@@ -81,13 +81,13 @@ The resource content is returned via `resources/read`:
     text?: string;                // HTML content as string
     blob?: string;                // OR base64-encoded HTML
     _meta?: {
-      "ui"?: {
-        "csp"?: {
+      ui?: {
+        csp?: {
           connect_domains?: string[];  // Origins for fetch/XHR/WebSocket
           resource_domains?: string[]; // Origins for images, scripts, etc
         };
-      "domain"?: string;
-      "prefersBorder"?: boolean;
+      domain?: string;
+      prefersBorder?: boolean;
       };
     };
   }];
