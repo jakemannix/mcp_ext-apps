@@ -2,7 +2,7 @@
 
 This repo contains the SDK and [specification](./main/specification/draft/apps.mdx) for MCP Apps Extension ([SEP-1865](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/1865)).
 
-MCP Apps are a standard inspired by [OpenAI's Apps SDK](https://developers.openai.com/apps-sdk/) and [MCP-UI](https://mcpui.dev/) to allow MCP Servers to display interactive UI elements in conversational MCP clients / chatbots.
+MCP Apps are proposed standard inspired by [OpenAI's Apps SDK](https://developers.openai.com/apps-sdk/) and [MCP-UI](https://mcpui.dev/) to allow MCP Servers to display interactive UI elements in conversational MCP clients / chatbots.
 
 This repo provides:
 - [types.ts](./src/types.ts): Types of JSON-RPC messages used to communicate between Apps & their host
