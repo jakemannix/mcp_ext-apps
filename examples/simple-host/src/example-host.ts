@@ -66,7 +66,7 @@ window.addEventListener("load", async () => {
 
       // Step 2: Create proxy server instance
       const serverCapabilities = client.getServerCapabilities();
-      const proxy = new AppBridge(
+      const appBridge = new AppBridge(
         client,
         {
           name: "Example MCP UI Host",
@@ -80,48 +80,41 @@ window.addEventListener("load", async () => {
       );
 
       // Step 3: Register handlers BEFORE connecting
-      proxy.oninitialized = () => {
+      appBridge.oninitialized = () => {
         console.log("[Example] Inner iframe MCP client initialized");
 
         // Send tool input once iframe is ready
-        proxy.sendToolInput({ arguments: toolInput });
+        appBridge.sendToolInput({ arguments: toolInput });
       };
 
-      proxy.setRequestHandler(McpUiOpenLinkRequestSchema, async (req) => {
-        console.log("[Example] Open link requested:", req.params.url);
-        window.open(req.params.url, "_blank", "noopener,noreferrer");
-        return { isError: false };
-      });
+      appBridge.onopenlink = async ({url}) => {
+        console.log("[Example] Open link requested:", url);
+        window.open(url, "_blank", "noopener,noreferrer");
+        return {isError: false};
+      };
 
-      proxy.setRequestHandler(McpUiMessageRequestSchema, async (req) => {
-        console.log("[Example] Message requested:", req.params);
-        return { isError: false };
-      });
+      appBridge.onmessage = async (params) => {
+        console.log("[Example] Message requested:", params);
+        return {isError: false};
+      };
 
       // Handle size changes by resizing the iframe
-      proxy.setNotificationHandler(
-        McpUiSizeChangeNotificationSchema,
-        async (notif: any) => {
-          const { width, height } = notif.params;
-          if (width !== undefined) {
-            iframe.style.width = `${width}px`;
-          }
-          if (height !== undefined) {
-            iframe.style.height = `${height}px`;
-          }
-        },
-      );
+      appBridge.onsizechange = ({ width, height }) => {
+        if (width !== undefined) {
+          iframe.style.width = `${width}px`;
+        }
+        if (height !== undefined) {
+          iframe.style.height = `${height}px`;
+        }
+      };
 
-      proxy.setNotificationHandler(
-        LoggingMessageNotificationSchema,
-        async (notif: any) => {
-          console.log("[Tool UI Log]", notif.params);
-        },
-      );
+      appBridge.onloggingmessage = async params => {
+        console.log("[Tool UI Log]", params);
+      };
 
       // Step 4: Connect proxy to iframe (triggers MCP initialization)
       // Pass iframe.contentWindow as both target and source for proper message filtering
-      await proxy.connect(
+      await appBridge.connect(
         new PostMessageTransport(iframe.contentWindow!, iframe.contentWindow!),
       );
 
@@ -134,7 +127,7 @@ window.addEventListener("load", async () => {
       const html = await readToolUiResourceHtml(client, {
         uri: resourceInfo.uri,
       });
-      await proxy.sendSandboxResourceReady({ html });
+      await appBridge.sendSandboxResourceReady({ html });
 
       console.log("[Example] Tool UI setup complete for:", toolName);
     } catch (error) {
@@ -159,7 +152,7 @@ window.addEventListener("load", async () => {
       Object.assign(document.createElement("button"), {
         innerText: "Add MCP UI View",
         onclick: () =>
-          createToolUI("create-example-ui", { message: "Hello from Host!" }),
+          createToolUI("create-ui-vanilla", { message: "Hello from Host!" }),
       }),
     );
   }
