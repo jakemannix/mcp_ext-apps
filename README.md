@@ -48,12 +48,26 @@ open http://localhost:8080/
 > [!NOTE]  
 > Please bear with us while we add more examples!
 
-### Use the SDK in your project
+### Using the SDK in your project
 
-This repo is in flux and isn't published to npm (when it is, it will use the `@modelcontextprotocol/ext-apps` package). In the meantime you can depend on the SDK library in a Node.js project by installing it w/ its git URL:
+This repo is in flux and isn't published to npm yet: when it is, it will use the `@modelcontextprotocol/ext-apps` package.
+
+In the meantime you can depend on the SDK library in a Node.js project by installing it w/ its git URL:
 
 ```bash
-npm install git+https://github.com/modelcontextprotocol/ext-apps.git
+npm install -S git+https://github.com/modelcontextprotocol/ext-apps.git
+```
+
+Your `package.json` will then look like:
+
+```json
+{
+  ...
+  "dependencies": {
+    ...
+    "@modelcontextprotocol/ext-apps": "git+https://github.com/modelcontextprotocol/ext-apps.git"
+  }
+}
 ```
 
 ### Build tools in dependencies
