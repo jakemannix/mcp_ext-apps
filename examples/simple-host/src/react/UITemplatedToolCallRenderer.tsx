@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   type CallToolResult,
   type LoggingMessageNotification,
-  type McpError,
+  McpError,
   ErrorCode,
 } from "@modelcontextprotocol/sdk/types.js";
 
@@ -49,15 +49,9 @@ export interface UITemplatedToolCallRendererProps {
   /** Optional result from tool execution to pass to the tool UI once it's ready */
   toolResult?: CallToolResult;
 
-  onopenlink?: (
-    params: McpUiOpenLinkRequest["params"],
-    extra: RequestExtra,
-  ) => Promise<McpUiOpenLinkResult>;
-  onmessage?: (
-    params: McpUiMessageRequest["params"],
-    extra: RequestExtra,
-  ) => Promise<McpUiMessageResult>;
-  onloggingmessage?: (params: LoggingMessageNotification["params"]) => void;
+  onopenlink?: AppBridge["onopenlink"];
+  onmessage?: AppBridge["onmessage"];
+  onloggingmessage?: AppBridge["onloggingmessage"];
 
   /** Callback invoked when an error occurs during setup or message handling */
   onerror?: (error: Error) => void;
