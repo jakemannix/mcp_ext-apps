@@ -221,7 +221,7 @@ export type McpUiInitializeResult = z.infer<typeof McpUiInitializeResultSchema>;
 
 export const McpUiInitializedNotificationSchema = z.object({
   method: z.literal("ui/notifications/initialized"),
-  params: z.object({}),
+  params: z.object({}).optional(),
 });
 export type McpUiInitializedNotification = z.infer<
   typeof McpUiInitializedNotificationSchema

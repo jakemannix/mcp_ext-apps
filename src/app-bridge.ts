@@ -12,6 +12,8 @@ import {
   ListResourcesResultSchema,
   ListResourceTemplatesRequestSchema,
   ListResourceTemplatesResultSchema,
+  ReadResourceRequestSchema,
+  ReadResourceResultSchema,
   LoggingMessageNotification,
   LoggingMessageNotificationSchema,
   Notification,
@@ -264,6 +266,7 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
         ListResourceTemplatesRequestSchema,
         ListResourceTemplatesResultSchema,
       );
+      this.forwardRequest(ReadResourceRequestSchema, ReadResourceResultSchema);
       if (serverCapabilities.resources.listChanged) {
         this.forwardNotification(ResourceListChangedNotificationSchema);
       }
