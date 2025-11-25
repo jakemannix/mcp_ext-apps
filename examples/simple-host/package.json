@@ -6,7 +6,7 @@
   "scripts": {
     "start": "NODE_ENV=development npm run build && concurrently 'npm run start:server'",
     "start:server": "bun server.ts",
-    "build:openai-shim": "bun build src/openai/openai-shim.ts --outdir=dist/src --sourcemap",
+    "build:openai-shim": "bun build src/openai/openai-shim.ts --outdir=dist/ --sourcemap",
     "build": "concurrently 'INPUT=example-host-vanilla.html vite build' 'INPUT=example-host-react.html vite build' 'INPUT=sandbox.html vite build' 'npm run build:openai-shim'"
   },
   "dependencies": {
