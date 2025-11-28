@@ -1,5 +1,5 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { ZodLiteral, ZodObject } from "zod/v4";
+import * as z from "zod/v4/core";
 
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
@@ -838,10 +838,10 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
   }
 
   private forwardRequest<
-    Req extends ZodObject<{
-      method: ZodLiteral<string>;
+    Req extends z.$ZodObject<{
+      method: z.$ZodLiteral<string>;
     }>,
-    Res extends ZodObject<{}>,
+    Res extends z.$ZodObject<{}>,
   >(requestSchema: Req, resultSchema: Res) {
     this.setRequestHandler(requestSchema, async (request, extra) => {
       console.log(`Forwarding request ${request.method} from MCP UI client`);
@@ -851,7 +851,7 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
     });
   }
   private forwardNotification<
-    N extends ZodObject<{ method: ZodLiteral<string> }>,
+    N extends z.$ZodObject<{ method: z.$ZodLiteral<string> }>,
   >(notificationSchema: N) {
     this.setNotificationHandler(notificationSchema, async (notification) => {
       console.log(

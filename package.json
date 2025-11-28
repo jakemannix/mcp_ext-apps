@@ -64,13 +64,16 @@
     "ts-to-zod": "^5.1.0",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.14",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.1.13"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.24.3",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "zod": "^3.25"
+    "react-dom": "^19.2.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.53.3",
