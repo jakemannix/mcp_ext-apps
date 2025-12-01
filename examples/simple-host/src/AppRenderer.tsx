@@ -8,7 +8,11 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { AppBridge, McpUiAppCapabilities, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
+import {
+  AppBridge,
+  McpUiAppCapabilities,
+  PostMessageTransport,
+} from "@modelcontextprotocol/ext-apps/app-bridge";
 
 import {
   getToolUiResourceUri,
@@ -49,7 +53,10 @@ export interface AppRendererProps {
   onerror?: (error: Error) => void;
 
   /** Callback invoked when MCP UI initialization completes */
-  oninitialized?: (appVersion: Implementation | undefined, appCapabilities: McpUiAppCapabilities) => void;
+  oninitialized?: (
+    appVersion: Implementation | undefined,
+    appCapabilities: McpUiAppCapabilities,
+  ) => void;
 }
 
 /**
@@ -236,7 +243,10 @@ export const AppRenderer = (props: AppRendererProps) => {
         bridge.oninitialized = () => {
           if (!mounted) return;
           setInitialized(true);
-          oninitializedRef.current?.(bridge.getAppVersion(), bridge.getAppCapabilities());
+          oninitializedRef.current?.(
+            bridge.getAppVersion(),
+            bridge.getAppCapabilities(),
+          );
         };
 
         bridge.onmessage = (params, extra) => {
