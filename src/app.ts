@@ -745,6 +745,7 @@ export class App extends Protocol<Request, Notification, Result> {
    */
   setupSizeChangeNotifications() {
     let scheduled = false;
+
     const sendBodySizeChange = () => {
       if (scheduled) {
         return;
@@ -752,11 +753,17 @@ export class App extends Protocol<Request, Notification, Result> {
       scheduled = true;
       requestAnimationFrame(() => {
         scheduled = false;
-        const rect = (
-          document.body.parentElement ?? document.body
-        ).getBoundingClientRect();
-        const width = Math.ceil(rect.width);
-        const height = Math.ceil(rect.height);
+        const el = document.body.parentElement ?? document.body;
+        const rect = el.getBoundingClientRect();
+        // Compensate for viewport scrollbar on Linux/Windows where scrollbars
+        // consume space. window.innerWidth includes scrollbar, clientWidth excludes it.
+        const scrollbarWidth =
+          window.innerWidth - document.documentElement.clientWidth;
+        // Use max of rect (includes CSS transforms) and scroll dimensions (content overflow).
+        const width = Math.ceil(
+          Math.max(rect.width, el.scrollWidth) + scrollbarWidth,
+        );
+        const height = Math.ceil(Math.max(rect.height, el.scrollHeight));
         this.sendSizeChange({ width, height });
       });
     };

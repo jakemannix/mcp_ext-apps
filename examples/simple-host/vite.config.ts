@@ -18,8 +18,8 @@ export default defineConfig(({ mode }) => {
           "sandbox.html",
         ],
       },
-      outDir: "dist",
-      emptyOutDir: true,
+      outDir: `dist`,
+      emptyOutDir: false,
     },
   };
 });

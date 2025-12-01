@@ -430,7 +430,7 @@ export interface McpUiHostContext {
    * How the UI is currently displayed.
    * @example "inline"
    */
-  displayMode?: "inline" | "fullscreen" | "pip" | "carousel";
+  displayMode?: "inline" | "fullscreen" | "pip";
   /**
    * Display modes the host supports.
    * Apps can use this to offer mode-switching UI if applicable.
@@ -501,8 +501,8 @@ export const McpUiHostContextSchema: z.ZodType<McpUiHostContext> = z.object({
       tool: ToolSchema,
     })
     .optional(),
-  theme: z.enum(["light", "dark", "system"]).optional(),
-  displayMode: z.enum(["inline", "fullscreen", "pip", "carousel"]).optional(),
+  theme: z.enum(["light", "dark"]).optional(),
+  displayMode: z.enum(["inline", "fullscreen", "pip"]).optional(),
   availableDisplayModes: z.array(z.string()).optional(),
   viewport: z
     .object({
