@@ -191,6 +191,12 @@ app.use(express.json());
 app.use(
   cors({
     origin: "*",
+    allowedHeaders: [
+      "Content-Type",
+      "mcp-session-id",
+      "mcp-protocol-version",
+      "last-event-id",
+    ],
     exposedHeaders: ["Mcp-Session-Id"],
   }),
 );
@@ -279,7 +285,11 @@ app.delete("/mcp", async (req: Request, res: Response) => {
   }
 });
 
-app.listen(MCP_PORT, () => {
+app.listen(MCP_PORT, error => {
+  if (error) {
+    console.error("Failed to start MCP Server:", error);
+    process.exit(1);
+  }
   console.log(`MCP Server listening on http://localhost:${MCP_PORT}/mcp`);
 });
 
