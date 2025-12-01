@@ -1,4 +1,8 @@
-import type { McpUiSandboxProxyReadyNotification } from "@modelcontextprotocol/ext-apps";
+import {
+  McpUiResourceMetaSchema,
+  type McpUiResourceMeta,
+  McpUiSandboxProxyReadyNotification,
+} from "@modelcontextprotocol/ext-apps";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 
@@ -13,7 +17,7 @@ export async function setupSandboxProxyIframe(sandboxProxyUrl: URL): Promise<{
 
   const iframe = document.createElement("iframe");
   iframe.style.width = "100%";
-  iframe.style.height = "600px";
+  iframe.style.height = "100px";
   iframe.style.border = "none";
   iframe.style.backgroundColor = "transparent";
   iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
@@ -38,6 +42,11 @@ export async function setupSandboxProxyIframe(sandboxProxyUrl: URL): Promise<{
 export type ToolUiResourceInfo = {
   uri: string;
 };
+
+export interface ToolUiResourceContent {
+  html: string;
+  meta?: McpUiResourceMeta;
+}
 
 export async function getToolUiResourceUri(
   client: Client,
@@ -71,12 +80,12 @@ export async function getToolUiResourceUri(
   return { uri };
 }
 
-export async function readToolUiResourceHtml(
+export async function readToolUiResource(
   client: Client,
   opts: {
     uri: string;
   },
-): Promise<string> {
+): Promise<ToolUiResourceContent> {
   const resource = await client.readResource({ uri: opts.uri });
 
   if (!resource) {
@@ -109,5 +118,11 @@ export async function readToolUiResourceHtml(
     );
   }
 
-  return html;
+  return {
+    html,
+    meta:
+      content._meta && "ui" in content._meta
+        ? McpUiResourceMetaSchema.parse(content._meta["ui"])
+        : undefined,
+  };
 }

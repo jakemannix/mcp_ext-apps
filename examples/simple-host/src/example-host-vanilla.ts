@@ -5,7 +5,7 @@ import {
 import {
   setupSandboxProxyIframe,
   getToolUiResourceUri,
-  readToolUiResourceHtml,
+  readToolUiResource,
 } from "../src/app-host-utils";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -128,7 +128,7 @@ window.addEventListener("load", async () => {
         throw new Error(`Tool ${toolName} has no UI resource`);
       }
 
-      const html = await readToolUiResourceHtml(client, {
+      const { html } = await readToolUiResource(client, {
         uri: resourceInfo.uri,
       });
       await appBridge.sendSandboxResourceReady({ html });

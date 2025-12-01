@@ -3,21 +3,17 @@ import { useEffect, useRef, useState } from "react";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   type CallToolResult,
-  type LoggingMessageNotification,
-  McpError,
   ErrorCode,
+  Implementation,
+  McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import {
-  AppBridge,
-  PostMessageTransport,
-} from "@modelcontextprotocol/ext-apps/app-bridge";
+import { AppBridge, McpUiAppCapabilities, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
 
 import {
   getToolUiResourceUri,
-  readToolUiResourceHtml,
+  readToolUiResource,
   setupSandboxProxyIframe,
-  ToolUiResourceInfo,
 } from "./app-host-utils";
 
 /**
@@ -39,6 +35,9 @@ export interface AppRendererProps {
   /** Optional input arguments to pass to the tool UI once it's ready */
   toolInput?: Record<string, unknown>;
 
+  /** Whether the tool input is partial (still streaming). When true, sends tool-input-partial instead of tool-input */
+  isToolInputPartial?: boolean;
+
   /** Optional result from tool execution to pass to the tool UI once it's ready */
   toolResult?: CallToolResult;
 
@@ -48,6 +47,9 @@ export interface AppRendererProps {
 
   /** Callback invoked when an error occurs during setup or message handling */
   onerror?: (error: Error) => void;
+
+  /** Callback invoked when MCP UI initialization completes */
+  oninitialized?: (appVersion: Implementation | undefined, appCapabilities: McpUiAppCapabilities) => void;
 }
 
 /**
@@ -103,6 +105,7 @@ export const AppRenderer = (props: AppRendererProps) => {
     toolName,
     toolResourceUri,
     toolInput,
+    isToolInputPartial,
     toolResult,
     onmessage,
     onopenlink,
@@ -110,9 +113,11 @@ export const AppRenderer = (props: AppRendererProps) => {
     onerror,
   } = props;
 
-  // State
+  // State - using strings for stable effect dependencies
+  const [sandboxUrlHref, setSandboxUrlHref] = useState<string | null>(null);
+  const [resourceHtml, setResourceHtml] = useState<string | null>(null);
   const [appBridge, setAppBridge] = useState<AppBridge | null>(null);
-  const [iframeReady, setIframeReady] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -122,21 +127,85 @@ export const AppRenderer = (props: AppRendererProps) => {
   const onopenlinkRef = useRef(onopenlink);
   const onloggingmessageRef = useRef(onloggingmessage);
   const onerrorRef = useRef(onerror);
+  const oninitializedRef = useRef(props.oninitialized);
 
   useEffect(() => {
     onmessageRef.current = onmessage;
     onopenlinkRef.current = onopenlink;
     onloggingmessageRef.current = onloggingmessage;
     onerrorRef.current = onerror;
+    oninitializedRef.current = props.oninitialized;
   });
 
+  // Effect 1: Fetch resource to get HTML + CSP, build sandbox URL with CSP params
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchResource = async () => {
+      try {
+        let uri: string;
+
+        if (toolResourceUri) {
+          uri = toolResourceUri;
+        } else {
+          const info = await getToolUiResourceUri(client, toolName);
+          if (!info) {
+            throw new Error(
+              `Tool ${toolName} has no UI resource (no ui/resourceUri in tool._meta)`,
+            );
+          }
+          uri = info.uri;
+        }
+
+        if (cancelled) return;
+
+        const { html, meta } = await readToolUiResource(client, { uri });
+
+        if (cancelled) return;
+
+        // Build sandbox URL with CSP params from resource metadata
+        const url = new URL(sandboxProxyUrl.href);
+        if (meta?.csp?.connectDomains?.length) {
+          url.searchParams.set(
+            "connect-src",
+            meta.csp.connectDomains.join(" "),
+          );
+        }
+        if (meta?.csp?.resourceDomains?.length) {
+          url.searchParams.set(
+            "resource-src",
+            meta.csp.resourceDomains.join(" "),
+          );
+        }
+
+        setSandboxUrlHref(url.href);
+        setResourceHtml(html);
+      } catch (err) {
+        if (cancelled) return;
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        onerrorRef.current?.(error);
+      }
+    };
+
+    fetchResource();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client, toolName, toolResourceUri, sandboxProxyUrl.href]);
+
+  // Effect 2: When sandbox URL is ready, create iframe and setup AppBridge
+  useEffect(() => {
+    if (!sandboxUrlHref) return;
+
     let mounted = true;
 
     const setup = async () => {
       try {
-        const { iframe, onReady } =
-          await setupSandboxProxyIframe(sandboxProxyUrl);
+        const { iframe, onReady } = await setupSandboxProxyIframe(
+          new URL(sandboxUrlHref),
+        );
 
         if (!mounted) return;
 
@@ -150,7 +219,7 @@ export const AppRenderer = (props: AppRendererProps) => {
         if (!mounted) return;
 
         const serverCapabilities = client.getServerCapabilities();
-        const appBridge = new AppBridge(
+        const bridge = new AppBridge(
           client,
           {
             name: "Example MCP UI Host",
@@ -163,37 +232,33 @@ export const AppRenderer = (props: AppRendererProps) => {
           },
         );
 
-        // Step 3: Register ALL handlers BEFORE connecting (critical for avoiding race conditions)
-
-        // Hook into the standard MCP initialization to know when the inner iframe is ready
-        appBridge.oninitialized = () => {
+        // Register ALL handlers BEFORE connecting
+        bridge.oninitialized = () => {
           if (!mounted) return;
-          console.log("[Host] Inner iframe MCP client initialized");
-          setIframeReady(true);
+          setInitialized(true);
+          oninitializedRef.current?.(bridge.getAppVersion(), bridge.getAppCapabilities());
         };
 
-        // Register handlers passed in via props
-
-        appBridge.onmessage = (params, extra) => {
+        bridge.onmessage = (params, extra) => {
           if (!onmessageRef.current) {
             throw new McpError(ErrorCode.MethodNotFound, "Method not found");
           }
-          return onmessageRef.current(params, extra);
+          return onmessageRef.current?.(params, extra);
         };
-        appBridge.onopenlink = (params, extra) => {
+        bridge.onopenlink = (params, extra) => {
           if (!onopenlinkRef.current) {
             throw new McpError(ErrorCode.MethodNotFound, "Method not found");
           }
-          return onopenlinkRef.current(params, extra);
+          return onopenlinkRef.current?.(params, extra);
         };
-        appBridge.onloggingmessage = (params) => {
+        bridge.onloggingmessage = (params) => {
           if (!onloggingmessageRef.current) {
             throw new McpError(ErrorCode.MethodNotFound, "Method not found");
           }
-          return onloggingmessageRef.current(params);
+          return onloggingmessageRef.current?.(params);
         };
 
-        appBridge.onsizechange = async ({ width, height }) => {
+        bridge.onsizechange = async ({ width, height }) => {
           if (iframeRef.current) {
             if (width !== undefined) {
               iframeRef.current.style.width = `${width}px`;
@@ -204,10 +269,7 @@ export const AppRenderer = (props: AppRendererProps) => {
           }
         };
 
-        // Step 4: NOW connect (triggers MCP initialization handshake)
-        // IMPORTANT: Pass iframe.contentWindow as BOTH target and source to ensure
-        // this proxy only responds to messages from its specific iframe
-        await appBridge.connect(
+        await bridge.connect(
           new PostMessageTransport(
             iframe.contentWindow!,
             iframe.contentWindow!,
@@ -216,10 +278,8 @@ export const AppRenderer = (props: AppRendererProps) => {
 
         if (!mounted) return;
 
-        // Step 5: Store proxy in state
-        setAppBridge(appBridge);
+        setAppBridge(bridge);
       } catch (err) {
-        console.error("[AppRenderer] Error:", err);
         if (!mounted) return;
         const error = err instanceof Error ? err : new Error(String(err));
         setError(error);
@@ -231,7 +291,6 @@ export const AppRenderer = (props: AppRendererProps) => {
 
     return () => {
       mounted = false;
-      // Cleanup: remove iframe from DOM
       if (
         iframeRef.current &&
         containerRef.current?.contains(iframeRef.current)
@@ -239,88 +298,32 @@ export const AppRenderer = (props: AppRendererProps) => {
         containerRef.current.removeChild(iframeRef.current);
       }
     };
-  }, [client, sandboxProxyUrl]);
+  }, [sandboxUrlHref, client]);
 
-  // Effect 2: Fetch and send UI resource
+  // Effect 3: When appBridge and HTML exist, send HTML to sandbox
   useEffect(() => {
-    if (!appBridge) return;
+    if (!appBridge || !resourceHtml) return;
+    appBridge.sendSandboxResourceReady({ html: resourceHtml });
+  }, [appBridge, resourceHtml]);
 
-    let mounted = true;
-
-    const fetchAndSendResource = async () => {
-      try {
-        // Get the resource URI (use prop if provided, otherwise fetch)
-        let resourceInfo: ToolUiResourceInfo;
-
-        if (toolResourceUri) {
-          // When URI is provided directly, assume it's NOT OpenAI Apps SDK format
-          resourceInfo = {
-            uri: toolResourceUri,
-          };
-          console.log(
-            `[Host] Using provided resource URI: ${resourceInfo.uri}`,
-          );
-        } else {
-          console.log(`[Host] Fetching resource URI for tool: ${toolName}`);
-          const info = await getToolUiResourceUri(client, toolName);
-          if (!info) {
-            throw new Error(
-              `Tool ${toolName} has no UI resource (no ui/resourceUri or openai/outputTemplate in tool._meta)`,
-            );
-          }
-          resourceInfo = info;
-          console.log(`[Host] Got resource URI: ${resourceInfo.uri}`);
-        }
-
-        if (!resourceInfo.uri) {
-          throw new Error(`Tool ${toolName}: URI is undefined or empty`);
-        }
-
-        if (!mounted) return;
-
-        // Read the HTML content
-        console.log(`[Host] Reading resource HTML from: ${resourceInfo.uri}`);
-        const html = await readToolUiResourceHtml(client, {
-          uri: resourceInfo.uri,
-        });
-
-        if (!mounted) return;
-
-        // Send the resource to the sandbox proxy
-        console.log("[Host] Sending sandbox resource ready");
-        await appBridge.sendSandboxResourceReady({ html });
-      } catch (err) {
-        if (!mounted) return;
-        const error = err instanceof Error ? err : new Error(String(err));
-        setError(error);
-        onerrorRef.current?.(error);
+  // Effect 4: Send tool input when ready
+  useEffect(() => {
+    if (appBridge && initialized && toolInput) {
+      if (isToolInputPartial) {
+        appBridge.sendToolInputPartial({ arguments: toolInput });
+      } else {
+        appBridge.sendToolInput({ arguments: toolInput });
       }
-    };
-
-    fetchAndSendResource();
-
-    return () => {
-      mounted = false;
-    };
-  }, [appBridge, toolName, toolResourceUri, client]);
-
-  // Effect 3: Send tool input when ready
-  useEffect(() => {
-    if (appBridge && iframeReady && toolInput) {
-      console.log("[Host] Sending tool input:", toolInput);
-      appBridge.sendToolInput({ arguments: toolInput });
     }
-  }, [appBridge, iframeReady, toolInput]);
+  }, [appBridge, initialized, toolInput, isToolInputPartial]);
 
-  // Effect 4: Send tool result when ready
+  // Effect 5: Send tool result when ready
   useEffect(() => {
-    if (appBridge && iframeReady && toolResult) {
-      console.log("[Host] Sending tool result:", toolResult);
+    if (appBridge && initialized && toolResult) {
       appBridge.sendToolResult(toolResult);
     }
-  }, [appBridge, iframeReady, toolResult]);
+  }, [appBridge, initialized, toolResult]);
 
-  // Render
   return (
     <div
       ref={containerRef}

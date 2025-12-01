@@ -44,6 +44,56 @@ type VerifySchemaMatches<TSchema extends z.ZodTypeAny, TInterface> =
 export const LATEST_PROTOCOL_VERSION = "2025-11-21";
 
 /**
+ * Content Security Policy configuration for UI resources.
+ *
+ * Defines allowed origins for network requests and static resources.
+ *
+ * @see https://github.com/anthropics/anthropic-tools/blob/main/sep/sep-1865.md
+ */
+export interface McpUiResourceCsp {
+  /** Origins for network requests (fetch/XHR/WebSocket). Maps to CSP connect-src */
+  connectDomains?: string[];
+  /** Origins for static resources (images, scripts, stylesheets, fonts). Maps to CSP img-src, script-src, style-src, font-src */
+  resourceDomains?: string[];
+}
+
+/**
+ * Runtime validation schema for {@link McpUiResourceCsp}.
+ * @internal
+ */
+export const McpUiResourceCspSchema: z.ZodType<McpUiResourceCsp> = z.object({
+  connectDomains: z.array(z.string()).optional(),
+  resourceDomains: z.array(z.string()).optional(),
+});
+
+/**
+ * UI Resource metadata returned from resources/read responses.
+ *
+ * Contains CSP configuration, sandbox domain, and visual preferences for
+ * rendering the UI resource.
+ *
+ * @see https://github.com/anthropics/anthropic-tools/blob/main/sep/sep-1865.md
+ */
+export interface McpUiResourceMeta {
+  /** Content Security Policy configuration */
+  csp?: McpUiResourceCsp;
+  /** Dedicated origin for widget sandbox */
+  domain?: string;
+  /** Visual boundary preference - true if UI prefers a visible border */
+  prefersBorder?: boolean;
+}
+
+/**
+ * Runtime validation schema for {@link McpUiResourceMeta}.
+ * @internal
+ */
+export const McpUiResourceMetaSchema: z.ZodType<McpUiResourceMeta> = z.object({
+  csp: McpUiResourceCspSchema.optional(),
+  domain: z.string().optional(),
+  prefersBorder: z.boolean().optional(),
+});
+
+/**
  * Request to open an external URL in the host's default browser.
  *
  * Sent from the Guest UI to the Host when requesting to open an external link.
