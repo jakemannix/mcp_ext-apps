@@ -501,7 +501,7 @@ export const McpUiHostContextSchema: z.ZodType<McpUiHostContext> = z.object({
       tool: ToolSchema,
     })
     .optional(),
-  theme: z.enum(["light", "dark", "system"]).optional(),
+  theme: z.enum(["light", "dark"]).optional(),
   displayMode: z.enum(["inline", "fullscreen", "pip"]).optional(),
   availableDisplayModes: z.array(z.string()).optional(),
   viewport: z
