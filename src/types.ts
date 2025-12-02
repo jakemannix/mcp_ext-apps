@@ -823,3 +823,38 @@ type _VerifyInitializedNotification = VerifySchemaMatches<
   typeof McpUiInitializedNotificationSchema,
   McpUiInitializedNotification
 >;
+
+// =============================================================================
+// UI Resource Metadata Types
+// =============================================================================
+
+/**
+ * Content Security Policy configuration for UI resources.
+ *
+ * Servers declare which external origins their UI needs to access.
+ * Hosts use this to enforce appropriate CSP headers.
+ */
+export const McpUiResourceCspSchema = z.object({
+  /** Origins for network requests (fetch/XHR/WebSocket). Maps to CSP connect-src */
+  connectDomains: z.array(z.string()).optional(),
+  /** Origins for static resources (images, scripts, stylesheets, fonts). Maps to CSP img-src, script-src, style-src, font-src */
+  resourceDomains: z.array(z.string()).optional(),
+});
+export type McpUiResourceCsp = z.infer<typeof McpUiResourceCspSchema>;
+
+/**
+ * UI Resource metadata for security and rendering configuration.
+ *
+ * Included in the `_meta.ui` field of UI resource content returned via `resources/read`.
+ *
+ * @see {@link McpUiResourceCspSchema} for CSP configuration
+ */
+export const McpUiResourceMetaSchema = z.object({
+  /** Content Security Policy configuration */
+  csp: McpUiResourceCspSchema.optional(),
+  /** Dedicated origin for widget sandbox */
+  domain: z.string().optional(),
+  /** Visual boundary preference - true if UI prefers a visible border */
+  prefersBorder: z.boolean().optional(),
+});
+export type McpUiResourceMeta = z.infer<typeof McpUiResourceMetaSchema>;
