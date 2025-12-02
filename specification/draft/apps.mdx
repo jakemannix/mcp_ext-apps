@@ -632,12 +632,12 @@ Host MUST send this notification if the tool execution was cancelled, for any re
 Host MUST send this notification before tearing down the UI resource, for any reason, including user action, resource re-allocation, etc. The Host MAY specify the reason.
 Host SHOULD wait for a response before tearing down the resource (to prevent data loss).
 
-`ui/size-change` - UI’s size changed
+`ui/notifications/size-change` - UI’s size changed
 
 ```typescript
 {
   jsonrpc: "2.0",
-  method: "ui/size-change",
+  method: "ui/notifications/size-change",
   params: {
     width: number,   // Viewport width in pixels
     height: number   // Viewport height in pixels
