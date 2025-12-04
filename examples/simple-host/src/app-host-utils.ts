@@ -89,7 +89,7 @@ export async function readToolUiResourceHtml(
   }
   const content = resource.contents[0];
   let html: string;
-  const isHtml = (t?: string) => t === "text/html+mcp";
+  const isHtml = (t?: string) => t === "text/html;profile=mcp-app";
 
   if (
     "text" in content &&

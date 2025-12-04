@@ -68,7 +68,7 @@ const getServer = async () => {
         uri: "ui://raw",
         title: "Raw UI Template",
         description: "A simple raw HTML UI",
-        mimeType: "text/html+mcp",
+        mimeType: "text/html;profile=mcp-app",
       },
       rawHtml,
     );
@@ -99,7 +99,7 @@ const getServer = async () => {
         uri: "ui://vanilla",
         title: "Vanilla UI Template",
         description: "A simple vanilla JS UI",
-        mimeType: "text/html+mcp",
+        mimeType: "text/html;profile=mcp-app",
       },
       vanillaHtml,
     );
@@ -130,7 +130,7 @@ const getServer = async () => {
         uri: "ui://react",
         title: "React UI Template",
         description: "A React-based UI",
-        mimeType: "text/html+mcp",
+        mimeType: "text/html;profile=mcp-app",
       },
       reactHtml,
     );
