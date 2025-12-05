@@ -475,8 +475,8 @@ export interface McpUiHostContext {
     hover?: boolean;
   };
   /**
-   * Mobile safe area boundaries in pixels.
-   * Used to avoid notches, rounded corners, and system UI on mobile devices.
+   * Safe area boundaries in pixels.
+   * Used to avoid notches, rounded corners, and system UI.
    */
   safeAreaInsets?: {
     /** Top safe area inset in pixels */
