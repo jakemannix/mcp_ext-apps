@@ -45,7 +45,7 @@ import { App } from "../app";
  * }
  * ```
  *
- * @see {@link App.setupSizeChangeNotifications} for the underlying implementation
+ * @see {@link App.setupSizeChangedNotifications} for the underlying implementation
  * @see {@link useApp} which enables auto-resize by default
  * @see {@link App} constructor for configuring `autoResize` option
  */
@@ -58,6 +58,6 @@ export function useAutoResize(
       return;
     }
 
-    return app.setupSizeChangeNotifications();
+    return app.setupSizeChangedNotifications();
   }, [app, elementRef]);
 }

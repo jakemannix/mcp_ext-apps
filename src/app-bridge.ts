@@ -33,7 +33,7 @@ import {
 
 import {
   type McpUiSandboxResourceReadyNotification,
-  type McpUiSizeChangeNotification,
+  type McpUiSizeChangedNotification,
   type McpUiToolInputNotification,
   type McpUiToolInputPartialNotification,
   type McpUiToolResultNotification,
@@ -57,7 +57,7 @@ import {
   McpUiResourceTeardownResultSchema,
   McpUiSandboxProxyReadyNotification,
   McpUiSandboxProxyReadyNotificationSchema,
-  McpUiSizeChangeNotificationSchema,
+  McpUiSizeChangedNotificationSchema,
 } from "./types";
 export * from "./types";
 export { PostMessageTransport } from "./message-transport";
@@ -270,7 +270,7 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
    * adjust the iframe container dimensions based on the Guest UI's content.
    *
    * Note: This is for Guest UI → Host communication. To notify the Guest UI of
-   * host viewport changes, use {@link app.App.sendSizeChange}.
+   * host viewport changes, use {@link app.App.sendSizeChanged}.
    *
    * @example
    * ```typescript
@@ -284,13 +284,13 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
    * };
    * ```
    *
-   * @see {@link McpUiSizeChangeNotification} for the notification type
-   * @see {@link app.App.sendSizeChange} for Host → Guest UI size notifications
+   * @see {@link McpUiSizeChangedNotification} for the notification type
+   * @see {@link app.App.sendSizeChanged} for Host → Guest UI size notifications
    */
   set onsizechange(
-    callback: (params: McpUiSizeChangeNotification["params"]) => void,
+    callback: (params: McpUiSizeChangedNotification["params"]) => void,
   ) {
-    this.setNotificationHandler(McpUiSizeChangeNotificationSchema, (n) =>
+    this.setNotificationHandler(McpUiSizeChangedNotificationSchema, (n) =>
       callback(n.params),
     );
   }

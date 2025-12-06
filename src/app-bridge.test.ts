@@ -180,14 +180,14 @@ describe("App <-> AppBridge integration", () => {
       await bridge.connect(bridgeTransport);
     });
 
-    it("app.sendSizeChange triggers bridge.onsizechange", async () => {
+    it("app.sendSizeChanged triggers bridge.onsizechange", async () => {
       const receivedSizes: unknown[] = [];
       bridge.onsizechange = (params) => {
         receivedSizes.push(params);
       };
 
       await app.connect(appTransport);
-      await app.sendSizeChange({ width: 400, height: 600 });
+      await app.sendSizeChanged({ width: 400, height: 600 });
 
       expect(receivedSizes).toEqual([{ width: 400, height: 600 }]);
     });
