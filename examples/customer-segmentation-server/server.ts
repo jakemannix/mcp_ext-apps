@@ -28,6 +28,29 @@ const GetCustomerDataInputSchema = z.object({
     .describe("Filter by segment (default: All)"),
 });
 
+const CustomerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  segment: z.string(),
+  annualRevenue: z.number(),
+  employeeCount: z.number(),
+  accountAge: z.number(),
+  engagementScore: z.number(),
+  supportTickets: z.number(),
+  nps: z.number(),
+});
+
+const SegmentSummarySchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  color: z.string(),
+});
+
+const GetCustomerDataOutputSchema = z.object({
+  customers: z.array(CustomerSchema),
+  segments: z.array(SegmentSummarySchema),
+});
+
 // Cache generated data for session consistency
 let cachedCustomers: Customer[] | null = null;
 let cachedSegments: SegmentSummary[] | null = null;
@@ -70,13 +93,15 @@ const server = new McpServer({
       description:
         "Returns customer data with segment information for visualization. Optionally filter by segment.",
       inputSchema: GetCustomerDataInputSchema.shape,
+      outputSchema: GetCustomerDataOutputSchema.shape,
       _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async ({ segment }): Promise<CallToolResult> => {
       const data = getCustomerData(segment);
 
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+        structuredContent: data,
       };
     },
   );

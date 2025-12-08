@@ -336,13 +336,7 @@ async function fetchData(): Promise<void> {
       arguments: {},
     });
 
-    const text = result
-      .content!.filter(
-        (c): c is { type: "text"; text: string } => c.type === "text",
-      )
-      .map((c) => c.text)
-      .join("");
-    const data = JSON.parse(text) as {
+    const data = result.structuredContent as unknown as {
       customers: Customer[];
       segments: SegmentSummary[];
     };

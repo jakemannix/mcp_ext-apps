@@ -24,15 +24,11 @@ interface CallToolResultData {
   defaultInputs?: ScenarioInputs;
 }
 
-/** Extract templates and defaultInputs from tool result content */
+/** Extract templates and defaultInputs from tool result structuredContent */
 function extractResultData(result: CallToolResult): CallToolResultData {
-  const text = result
-    .content!.filter(
-      (c): c is { type: "text"; text: string } => c.type === "text",
-    )
-    .map((c) => c.text)
-    .join("");
-  const { templates, defaultInputs } = JSON.parse(text) as CallToolResultData;
+  if (!result.structuredContent) return {};
+  const { templates, defaultInputs } =
+    result.structuredContent as CallToolResultData;
   return { templates, defaultInputs };
 }
 

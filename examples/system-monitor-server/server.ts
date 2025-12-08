@@ -122,6 +122,7 @@ const server = new McpServer({
       description:
         "Returns current system statistics including per-core CPU usage, memory, and system info.",
       inputSchema: {},
+      outputSchema: SystemStatsSchema.shape,
       _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async (): Promise<CallToolResult> => {
@@ -148,7 +149,8 @@ const server = new McpServer({
       };
 
       return {
-        content: [{ type: "text", text: JSON.stringify(stats) }],
+        content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
+        structuredContent: stats,
       };
     },
   );

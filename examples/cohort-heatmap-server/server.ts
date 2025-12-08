@@ -150,6 +150,17 @@ function generateCohortData(
   };
 }
 
+function formatCohortSummary(data: CohortData): string {
+  const avgRetention = data.cohorts
+    .flatMap((c) => c.cells)
+    .filter((cell) => cell.periodIndex > 0)
+    .reduce((sum, cell, _, arr) => sum + cell.retention / arr.length, 0);
+
+  return `Cohort Analysis: ${data.cohorts.length} cohorts, ${data.periods.length} periods
+Average retention: ${(avgRetention * 100).toFixed(1)}%
+Metric: ${data.metric}, Period: ${data.periodType}`;
+}
+
 const server = new McpServer({
   name: "Cohort Heatmap Server",
   version: "1.0.0",
@@ -166,6 +177,7 @@ const server = new McpServer({
       description:
         "Returns cohort retention heatmap data showing customer retention over time by signup month",
       inputSchema: GetCohortDataInputSchema.shape,
+      outputSchema: CohortDataSchema.shape,
       _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async ({ metric, periodType, cohortCount, maxPeriods }) => {
@@ -177,7 +189,8 @@ const server = new McpServer({
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
+        content: [{ type: "text", text: formatCohortSummary(data) }],
+        structuredContent: data,
       };
     },
   );
