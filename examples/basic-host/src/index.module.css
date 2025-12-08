@@ -113,9 +113,8 @@
   min-height: 200px;
 
   iframe {
-    flex-shrink: 0;
-    height: 100%;
-    max-width: 100%;
+    flex: 1 0 auto;
+    height: 600px;
     box-sizing: border-box;
     border: 3px dashed #888;
     border-radius: 4px;
