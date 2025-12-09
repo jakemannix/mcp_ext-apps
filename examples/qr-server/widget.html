@@ -41,8 +41,17 @@
         const content = msg.params?.content;
         const img = content?.find(c => c.type === 'image');
         if (img) {
-          document.getElementById('qr').innerHTML =
-            `<img src="data:${img.mimeType};base64,${img.data}" alt="QR Code"/>`;
+          const qrDiv = document.getElementById('qr');
+          qrDiv.innerHTML = ''; // clear previous content
+
+          // Optionally allowlist mimetypes
+          const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+          const mimeType = allowedTypes.includes(img.mimeType) ? img.mimeType : 'image/png';
+
+          const image = document.createElement('img');
+          image.src = `data:${mimeType};base64,${img.data}`;
+          image.alt = "QR Code";
+          qrDiv.appendChild(image);
 
           // Report size to host
           window.parent.postMessage({
