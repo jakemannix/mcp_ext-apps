@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 340px;
+      width: 340px;
+    }
+    img {
+      width: 300px;
+      height: 300px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="qr"></div>
+  <script>
+    const WIDTH = 340;
+    const HEIGHT = 340;
+    let requestId = 1;
+
+    // Listen for messages from host
+    window.addEventListener('message', e => {
+      console.log('[Widget] Received message:', e)
+      const msg = e.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      // Handle ui/notifications/tool-result
+      if (msg.method === 'ui/notifications/tool-result') {
+        const content = msg.params?.content;
+        const img = content?.find(c => c.type === 'image');
+        if (img) {
+          document.getElementById('qr').innerHTML =
+            `<img src="data:${img.mimeType};base64,${img.data}" alt="QR Code"/>`;
+
+          // Report size to host
+          window.parent.postMessage({
+            jsonrpc: '2.0',
+            method: 'ui/notifications/size-changed',
+            params: { width: WIDTH, height: HEIGHT }
+          }, '*');
+        }
+      }
+
+      // Handle ui/initialize response - MUST send ui/notifications/initialized
+      if (msg.id && msg.result) {
+        console.log('[Widget] Initialize response received:', msg.result);
+        // Send initialized notification - HOST WAITS FOR THIS!
+        window.parent.postMessage({
+          jsonrpc: '2.0',
+          method: 'ui/notifications/initialized',
+          params: {}
+        }, '*');
+        console.log('[Widget] Sent ui/notifications/initialized');
+      }
+    });
+
+    // Send ui/initialize request when ready
+    window.parent.postMessage({
+      jsonrpc: '2.0',
+      id: requestId++,
+      method: 'ui/initialize',
+      params: {
+        appInfo: { name: 'QR Widget', version: '1.0.0' },
+        appCapabilities: {},
+        protocolVersion: '2024-11-05'
+      }
+    }, '*');
+  </script>
+</body>
+</html>
