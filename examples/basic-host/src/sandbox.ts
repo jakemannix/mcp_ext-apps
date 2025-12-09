@@ -56,17 +56,55 @@ const PROXY_READY_NOTIFICATION: McpUiSandboxProxyReadyNotification["method"] =
 // Special case: The "ui/notifications/sandbox-proxy-ready" message is
 // intercepted here (not relayed) because the Sandbox uses it to configure and
 // load the inner iframe with the Guest UI HTML content.
+// Build CSP meta tag from domains
+function buildCspMetaTag(csp?: { connectDomains?: string[]; resourceDomains?: string[] }): string {
+  const resourceDomains = csp?.resourceDomains?.join(" ") ?? "";
+  const connectDomains = csp?.connectDomains?.join(" ") ?? "";
+
+  // Base CSP directives
+  const directives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: ${resourceDomains}`.trim(),
+    `style-src 'self' 'unsafe-inline' blob: data: ${resourceDomains}`.trim(),
+    `img-src 'self' data: blob: ${resourceDomains}`.trim(),
+    `font-src 'self' data: blob: ${resourceDomains}`.trim(),
+    `connect-src 'self' ${connectDomains}`.trim(),
+    "frame-src 'none'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ];
+
+  return `<meta http-equiv="Content-Security-Policy" content="${directives.join("; ")}">`;
+}
+
 window.addEventListener("message", async (event) => {
   if (event.source === window.parent) {
     // NOTE: In production you'll also want to validate `event.origin` against
     // your Host domain.
     if (event.data && event.data.method === RESOURCE_READY_NOTIFICATION) {
-      const { html, sandbox } = event.data.params;
+      const { html, sandbox, csp } = event.data.params;
       if (typeof sandbox === "string") {
         inner.setAttribute("sandbox", sandbox);
       }
       if (typeof html === "string") {
-        inner.srcdoc = html;
+        // Inject CSP meta tag at the start of <head> if CSP is provided
+        console.log("[Sandbox] Received CSP:", csp);
+        let modifiedHtml = html;
+        if (csp) {
+          const cspMetaTag = buildCspMetaTag(csp);
+          console.log("[Sandbox] Injecting CSP meta tag:", cspMetaTag);
+          // Insert after <head> tag if present, otherwise prepend
+          if (modifiedHtml.includes("<head>")) {
+            modifiedHtml = modifiedHtml.replace("<head>", `<head>\n${cspMetaTag}`);
+          } else if (modifiedHtml.includes("<head ")) {
+            modifiedHtml = modifiedHtml.replace(/<head[^>]*>/, `$&\n${cspMetaTag}`);
+          } else {
+            modifiedHtml = cspMetaTag + modifiedHtml;
+          }
+        } else {
+          console.log("[Sandbox] No CSP provided, using default");
+        }
+        inner.srcdoc = modifiedHtml;
       }
     } else {
       if (inner && inner.contentWindow) {

@@ -79,7 +79,7 @@ export const RESOURCE_URI_META_KEY = "ui/resourceUri";
 /**
  * MIME type for MCP UI resources.
  */
-export const RESOURCE_MIME_TYPE = "text/html;profile=mcp";
+export const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 
 /**
  * Options for configuring App behavior.

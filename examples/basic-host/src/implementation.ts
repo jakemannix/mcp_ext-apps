@@ -40,17 +40,25 @@ export async function connectToServer(serverUrl: URL): Promise<ServerInfo> {
 }
 
 
+interface UiResourceData {
+  html: string;
+  csp?: {
+    connectDomains?: string[];
+    resourceDomains?: string[];
+  };
+}
+
 export interface ToolCallInfo {
   serverInfo: ServerInfo;
   tool: Tool;
   input: Record<string, unknown>;
   resultPromise: Promise<CallToolResult>;
-  appHtmlPromise?: Promise<string>;
+  appResourcePromise?: Promise<UiResourceData>;
 }
 
 
 export function hasAppHtml(toolCallInfo: ToolCallInfo): toolCallInfo is Required<ToolCallInfo> {
-  return !!toolCallInfo.appHtmlPromise;
+  return !!toolCallInfo.appResourcePromise;
 }
 
 
@@ -71,7 +79,7 @@ export function callTool(
 
   const uiResourceUri = getUiResourceUri(tool);
   if (uiResourceUri) {
-    toolCallInfo.appHtmlPromise = getUiResourceHtml(serverInfo, uiResourceUri);
+    toolCallInfo.appResourcePromise = getUiResource(serverInfo, uiResourceUri);
   }
 
   return toolCallInfo;
@@ -88,13 +96,7 @@ function getUiResourceUri(tool: Tool): string | undefined {
 }
 
 
-async function getUiResourceHtml(serverInfo: ServerInfo, uri: string): Promise<string> {
-  let html = serverInfo.appHtmlCache.get(uri);
-  if (html) {
-    log.info("Read UI resource from cache:", uri);
-    return html;
-  }
-
+async function getUiResource(serverInfo: ServerInfo, uri: string): Promise<UiResourceData> {
   log.info("Reading UI resource:", uri);
   const resource = await serverInfo.client.readResource({ uri });
 
@@ -114,9 +116,17 @@ async function getUiResourceHtml(serverInfo: ServerInfo, uri: string): Promise<s
     throw new Error(`Unsupported MIME type: ${content.mimeType}`);
   }
 
-  html = "blob" in content ? atob(content.blob) : content.text;
-  serverInfo.appHtmlCache.set(uri, html);
-  return html;
+  const html = "blob" in content ? atob(content.blob) : content.text;
+
+  // Extract CSP metadata from resource content._meta.ui.csp (or content.meta for Python SDK)
+  log.info("Resource content keys:", Object.keys(content));
+  log.info("Resource content._meta:", (content as any)._meta);
+
+  // Try both _meta (spec) and meta (Python SDK quirk)
+  const contentMeta = (content as any)._meta || (content as any).meta;
+  const csp = contentMeta?.ui?.csp;
+
+  return { html, csp };
 }
 
 
@@ -150,7 +160,7 @@ export function loadSandboxProxy(iframe: HTMLIFrameElement): Promise<boolean> {
 export async function initializeApp(
   iframe: HTMLIFrameElement,
   appBridge: AppBridge,
-  { input, resultPromise, appHtmlPromise }: Required<ToolCallInfo>,
+  { input, resultPromise, appResourcePromise }: Required<ToolCallInfo>,
 ): Promise<void> {
   const appInitializedPromise = hookInitializedCallback(appBridge);
 
@@ -162,9 +172,10 @@ export async function initializeApp(
     new PostMessageTransport(iframe.contentWindow!, iframe.contentWindow!),
   );
 
-  // Load inner iframe HTML
-  log.info("Sending UI resource HTML to MCP App");
-  await appBridge.sendSandboxResourceReady({ html: await appHtmlPromise });
+  // Load inner iframe HTML with CSP metadata
+  const { html, csp } = await appResourcePromise;
+  log.info("Sending UI resource HTML to MCP App", csp ? `(CSP: ${JSON.stringify(csp)})` : "");
+  await appBridge.sendSandboxResourceReady({ html, csp });
 
   // Wait for inner iframe to be ready
   log.info("Waiting for MCP App to initialize...");

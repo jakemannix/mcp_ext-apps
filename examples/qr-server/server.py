@@ -10,7 +10,7 @@ from pathlib import Path
 import qrcode
 import uvicorn
 from mcp.server.fastmcp import FastMCP
-from mcp.types import ImageContent
+from mcp import types
 from starlette.middleware.cors import CORSMiddleware
 
 WIDGET_URI = "ui://qr-server/widget.html"
@@ -28,7 +28,7 @@ def generate_qr(
     error_correction: str = "M",
     fill_color: str = "black",
     back_color: str = "white",
-) -> list[ImageContent]:
+) -> list[types.ImageContent]:
     """Generate a QR code from text.
 
     Args:
@@ -59,31 +59,55 @@ def generate_qr(
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     b64 = base64.b64encode(buffer.getvalue()).decode()
-    return [ImageContent(type="image", data=b64, mimeType="image/png")]
+    return [types.ImageContent(type="image", data=b64, mimeType="image/png")]
 
 
-# IMPORTANT: resourceDomains needed for CSP to allow loading SDK from unpkg.com
-# Without this, hosts enforcing CSP will block the external script import
-@mcp.resource(WIDGET_URI, mime_type="text/html")
-def widget() -> dict:
+# Register widget resource using FastMCP decorator (returns HTML string)
+@mcp.resource(WIDGET_URI, mime_type="text/html;profile=mcp-app")
+def widget() -> str:
+    return Path(__file__).parent.joinpath("widget.html").read_text()
+
+
+# Override the read_resource handler to inject _meta into the response
+# This is needed because FastMCP doesn't support custom _meta on resources
+_low_level_server = mcp._mcp_server
+
+
+async def _read_resource_with_meta(req: types.ReadResourceRequest):
+    """Custom handler that injects CSP metadata for the widget resource."""
+    uri = str(req.params.uri)
     html = Path(__file__).parent.joinpath("widget.html").read_text()
-    return {
-        "text": html,
-        "_meta": {
-            "ui": {
-                "csp": {
-                    "resourceDomains": ["https://unpkg.com"]
-                }
-            }
-        }
-    }
 
-# HACK: Bypass SDK's restrictive mime_type validation
-# The SDK pattern doesn't allow ";profile=mcp-app" but MCP spec requires it for widgets
-# https://github.com/modelcontextprotocol/python-sdk/pull/1755
-for resource in mcp._resource_manager._resources.values():
-    if str(resource.uri) == WIDGET_URI:
-        object.__setattr__(resource, 'mime_type', 'text/html;profile=mcp-app')
+    if uri == WIDGET_URI:
+        # NOTE: Must use model_validate with '_meta' key (not 'meta') due to Pydantic alias behavior
+        content = types.TextResourceContents.model_validate({
+            "uri": WIDGET_URI,
+            "mimeType": "text/html;profile=mcp-app",
+            "text": html,
+            # IMPORTANT: all the external domains used by app must be listed
+            # in the _meta.ui.csp.resourceDomains - otherwise they will be blocked by CSP policy
+            "_meta": {"ui": {"csp": {"resourceDomains": ["https://unpkg.com"]}}}
+        })
+        return types.ServerResult(
+            types.ReadResourceResult(contents=[content])
+        )
+
+    # Fallback for other resources (shouldn't happen for this server)
+    return types.ServerResult(
+        types.ReadResourceResult(
+            contents=[
+                types.TextResourceContents(
+                    uri=uri,
+                    mimeType="text/plain",
+                    text="Resource not found"
+                )
+            ]
+        )
+    )
+
+
+# Replace the handler after FastMCP has registered its own
+_low_level_server.request_handlers[types.ReadResourceRequest] = _read_resource_with_meta
 
 if __name__ == "__main__":
     if "--stdio" in sys.argv:
