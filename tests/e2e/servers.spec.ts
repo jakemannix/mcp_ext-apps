@@ -3,10 +3,18 @@ import { test, expect, type Page } from "@playwright/test";
 // Server configurations
 const SERVERS = [
   { key: "basic-react", index: 0, name: "Basic MCP App Server (React-based)" },
-  { key: "basic-vanillajs", index: 1, name: "Basic MCP App Server (Vanilla JS)" },
+  {
+    key: "basic-vanillajs",
+    index: 1,
+    name: "Basic MCP App Server (Vanilla JS)",
+  },
   { key: "budget-allocator", index: 2, name: "Budget Allocator Server" },
   { key: "cohort-heatmap", index: 3, name: "Cohort Heatmap Server" },
-  { key: "customer-segmentation", index: 4, name: "Customer Segmentation Server" },
+  {
+    key: "customer-segmentation",
+    index: 4,
+    name: "Customer Segmentation Server",
+  },
   { key: "scenario-modeler", index: 5, name: "SaaS Scenario Modeler" },
   { key: "system-monitor", index: 6, name: "System Monitor Server" },
   { key: "threejs", index: 7, name: "Three.js Server" },

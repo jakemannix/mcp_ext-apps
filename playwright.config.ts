@@ -8,7 +8,8 @@ export default defineConfig({
   workers: 1, // Single worker since we share the server
   reporter: "html",
   // Use platform-agnostic snapshot names (no -darwin/-linux suffix)
-  snapshotPathTemplate: "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}",
+  snapshotPathTemplate:
+    "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}",
   use: {
     baseURL: "http://localhost:8080",
     trace: "on-first-retry",
