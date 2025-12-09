@@ -17,6 +17,32 @@ import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
+// Default code example for the Three.js widget
+const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(width, height);
+renderer.setClearColor(0x1a1a2e);
+
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshStandardMaterial({ color: 0x00ff88 })
+);
+scene.add(cube);
+
+scene.add(new THREE.DirectionalLight(0xffffff, 1));
+scene.add(new THREE.AmbientLight(0x404040));
+
+camera.position.z = 3;
+
+function animate() {
+  requestAnimationFrame(animate);
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+  renderer.render(scene, camera);
+}
+animate();`;
+
 const THREEJS_DOCUMENTATION = `# Three.js Widget Documentation
 
 ## Available Globals
@@ -123,7 +149,12 @@ const server = new McpServer({
       description:
         "Render an interactive 3D scene with custom Three.js code. Available globals: THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, canvas, width, height.",
       inputSchema: {
-        code: z.string().describe("JavaScript code to render the 3D scene"),
+        code: z
+          .string()
+          .optional()
+          .describe(
+            "JavaScript code to render the 3D scene (defaults to a rotating cube demo)",
+          ),
         height: z
           .number()
           .int()
@@ -138,7 +169,10 @@ const server = new McpServer({
         content: [
           {
             type: "text",
-            text: JSON.stringify({ code, height: height || 400 }),
+            text: JSON.stringify({
+              code: code || DEFAULT_THREEJS_CODE,
+              height: height || 400,
+            }),
           },
         ],
       };
