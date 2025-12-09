@@ -1,6 +1,7 @@
 """
 QR Code MCP Server - Generates QR codes from text
 """
+import os
 import sys
 import io
 import base64
@@ -13,7 +14,8 @@ from mcp.types import ImageContent
 from starlette.middleware.cors import CORSMiddleware
 
 WIDGET_URI = "ui://qr-server/widget.html"
-PORT = 3108
+HOST = os.environ.get("HOST", "0.0.0.0")  # 0.0.0.0 for Docker compatibility
+PORT = int(os.environ.get("PORT", "3108"))
 
 mcp = FastMCP("QR Server", port=PORT, stateless_http=True)
 
@@ -84,5 +86,5 @@ if __name__ == "__main__":
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        print(f"QR Server listening on http://localhost:{PORT}/mcp")
-        uvicorn.run(app, host="127.0.0.1", port=PORT)
+        print(f"QR Server listening on http://{HOST}:{PORT}/mcp")
+        uvicorn.run(app, host=HOST, port=PORT)
