@@ -7,8 +7,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Single worker since we share the server
   reporter: "html",
-  // In CI, create missing snapshots instead of failing (for cross-platform support)
-  updateSnapshots: process.env.CI ? "missing" : "none",
+  // Use platform-agnostic snapshot names (no -darwin/-linux suffix)
+  snapshotPathTemplate: "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}",
   use: {
     baseURL: "http://localhost:8080",
     trace: "on-first-retry",
@@ -36,8 +36,8 @@ export default defineConfig({
   // Snapshot configuration
   expect: {
     toHaveScreenshot: {
-      // Allow 2% pixel difference for dynamic content (timestamps, etc.)
-      maxDiffPixelRatio: 0.02,
+      // Allow 5% pixel difference for cross-platform rendering differences
+      maxDiffPixelRatio: 0.05,
       // Animation stabilization
       animations: "disabled",
     },
