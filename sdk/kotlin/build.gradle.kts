@@ -62,13 +62,19 @@ kotlin {
 
         val jvmMain by getting {
             dependencies {
-                // Android WebView support will be added via separate Android module
+                // Android WebView support
+                // Using compileOnly since WebView is provided by the Android framework
+                compileOnly("androidx.webkit:webkit:1.8.0")
             }
         }
 
         val jvmTest by getting {
             dependencies {
                 implementation("org.junit.jupiter:junit-jupiter:5.10.0")
+                implementation("org.mockito.kotlin:mockito-kotlin:5.1.0")
+                implementation("org.mockito:mockito-core:5.7.0")
+                // Android WebView for testing
+                compileOnly("androidx.webkit:webkit:1.8.0")
             }
         }
     }

@@ -267,13 +267,134 @@ class AppBridge(
     }
 
     /**
-     * Connect to the Guest UI via transport.
+     * Connect to the Guest UI via transport and set up message forwarding.
      *
-     * This establishes the transport connection. After calling this,
-     * wait for the onInitialized callback before sending data.
+     * This establishes the transport connection and automatically sets up
+     * request/notification forwarding based on the MCP server's capabilities.
+     * It proxies the following server capabilities to the Guest UI:
+     * - Tools (tools/call, notifications/tools/list_changed)
+     * - Resources (resources/read, resources/list, resources/templates/list, notifications/resources/list_changed)
+     * - Prompts (prompts/list, notifications/prompts/list_changed)
+     *
+     * After calling this, wait for the onInitialized callback before sending data.
+     *
+     * @param transport The transport layer for communication with the Guest UI
+     * @throws IllegalStateException if server capabilities are not available. This occurs when
+     *   connect() is called before the MCP client has completed its initialization with the server.
+     *   Ensure the client's connect() completes before calling bridge.connect().
      */
     override suspend fun connect(transport: McpAppsTransport) {
         super.connect(transport)
-        // TODO: Set up MCP server capability forwarding based on mcpClient.getServerCapabilities()
+
+        // Forward core available MCP features based on server capabilities
+        val serverCapabilities = mcpClient.getServerCapabilities()
+        if (serverCapabilities == null) {
+            throw IllegalStateException("Client server capabilities not available")
+        }
+
+        // Forward tools capability if available
+        if (serverCapabilities.tools != null) {
+            // Forward tools/call requests
+            setRequestHandler(
+                method = "tools/call",
+                paramsDeserializer = { it },  // Pass through as JsonObject
+                resultSerializer = { it }     // Pass through as JsonElement
+            ) { params ->
+                println("Forwarding request tools/call from MCP UI client")
+                val result = mcpClient.callTool(
+                    json.decodeFromJsonElement(params ?: JsonObject(emptyMap()))
+                )
+                json.encodeToJsonElement(result)
+            }
+
+            // Forward tools/list_changed notifications if supported
+            if (serverCapabilities.tools?.listChanged == true) {
+                setNotificationHandler(
+                    method = "notifications/tools/list_changed",
+                    paramsDeserializer = { it }
+                ) { _ ->
+                    println("Forwarding notification notifications/tools/list_changed from MCP UI client")
+                    // Notifications are received from Guest UI but typically don't need forwarding to server
+                }
+            }
+        }
+
+        // Forward resources capability if available
+        if (serverCapabilities.resources != null) {
+            // Forward resources/read requests
+            setRequestHandler(
+                method = "resources/read",
+                paramsDeserializer = { it },
+                resultSerializer = { it }
+            ) { params ->
+                println("Forwarding request resources/read from MCP UI client")
+                val result = mcpClient.readResource(
+                    json.decodeFromJsonElement(params ?: JsonObject(emptyMap()))
+                )
+                json.encodeToJsonElement(result)
+            }
+
+            // Forward resources/list requests
+            setRequestHandler(
+                method = "resources/list",
+                paramsDeserializer = { it },
+                resultSerializer = { it }
+            ) { params ->
+                println("Forwarding request resources/list from MCP UI client")
+                val result = mcpClient.listResources(
+                    json.decodeFromJsonElement(params ?: JsonObject(emptyMap()))
+                )
+                json.encodeToJsonElement(result)
+            }
+
+            // Forward resources/templates/list requests
+            setRequestHandler(
+                method = "resources/templates/list",
+                paramsDeserializer = { it },
+                resultSerializer = { it }
+            ) { params ->
+                println("Forwarding request resources/templates/list from MCP UI client")
+                val result = mcpClient.listResourceTemplates(
+                    json.decodeFromJsonElement(params ?: JsonObject(emptyMap()))
+                )
+                json.encodeToJsonElement(result)
+            }
+
+            // Forward resources/list_changed notifications if supported
+            if (serverCapabilities.resources?.listChanged == true) {
+                setNotificationHandler(
+                    method = "notifications/resources/list_changed",
+                    paramsDeserializer = { it }
+                ) { _ ->
+                    println("Forwarding notification notifications/resources/list_changed from MCP UI client")
+                }
+            }
+        }
+
+        // Forward prompts capability if available
+        if (serverCapabilities.prompts != null) {
+            // Forward prompts/list requests
+            setRequestHandler(
+                method = "prompts/list",
+                paramsDeserializer = { it },
+                resultSerializer = { it }
+            ) { params ->
+                println("Forwarding request prompts/list from MCP UI client")
+                val result = mcpClient.listPrompts(
+                    json.decodeFromJsonElement(params ?: JsonObject(emptyMap()))
+                )
+                json.encodeToJsonElement(result)
+            }
+
+            // Forward prompts/list_changed notifications if supported
+            if (serverCapabilities.prompts?.listChanged == true) {
+                setNotificationHandler(
+                    method = "notifications/prompts/list_changed",
+                    paramsDeserializer = { it }
+                ) { _ ->
+                    println("Forwarding notification notifications/prompts/list_changed from MCP UI client")
+                }
+            }
+        }
     }
 }

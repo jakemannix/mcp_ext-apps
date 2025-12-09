@@ -211,4 +211,149 @@ final class AppBridgeTests: XCTestCase {
         XCTAssertEqual(decoded.domain, "https://widget.example.com")
         XCTAssertEqual(decoded.prefersBorder, true)
     }
+
+    func testToolCallForwarding() async throws {
+        let bridge = AppBridge(
+            hostInfo: testHostInfo,
+            hostCapabilities: testHostCapabilities
+        )
+
+        // Set up callback to handle tools/call
+        var receivedToolName: String?
+        var receivedArguments: [String: AnyCodable]?
+        await bridge.setOnToolCall { name, arguments in
+            receivedToolName = name
+            receivedArguments = arguments
+            return [
+                "content": AnyCodable([
+                    ["type": "text", "text": "Tool result"]
+                ])
+            ]
+        }
+
+        // Create linked transport pair
+        let (hostTransport, guestTransport) = await InMemoryTransport.createLinkedPair()
+
+        // Connect bridge
+        try await bridge.connect(hostTransport)
+
+        // Send tools/call request from guest
+        let request = JSONRPCRequest(
+            id: .number(1),
+            method: "tools/call",
+            params: [
+                "name": AnyCodable("test_tool"),
+                "arguments": AnyCodable([
+                    "param1": "value1",
+                    "param2": 42
+                ])
+            ]
+        )
+        try await guestTransport.send(.request(request))
+
+        // Wait a bit for message processing
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Verify callback was called
+        XCTAssertEqual(receivedToolName, "test_tool")
+        XCTAssertNotNil(receivedArguments)
+        XCTAssertEqual(receivedArguments?["param1"]?.value as? String, "value1")
+        XCTAssertEqual(receivedArguments?["param2"]?.value as? Int, 42)
+
+        await bridge.close()
+        await guestTransport.close()
+    }
+
+    func testResourceReadForwarding() async throws {
+        let bridge = AppBridge(
+            hostInfo: testHostInfo,
+            hostCapabilities: testHostCapabilities
+        )
+
+        // Set up callback to handle resources/read
+        var receivedUri: String?
+        await bridge.setOnResourceRead { uri in
+            receivedUri = uri
+            return [
+                "contents": AnyCodable([
+                    [
+                        "uri": uri,
+                        "mimeType": "text/html",
+                        "text": "<html>Resource content</html>"
+                    ]
+                ])
+            ]
+        }
+
+        // Create linked transport pair
+        let (hostTransport, guestTransport) = await InMemoryTransport.createLinkedPair()
+
+        // Connect bridge
+        try await bridge.connect(hostTransport)
+
+        // Send resources/read request from guest
+        let request = JSONRPCRequest(
+            id: .number(1),
+            method: "resources/read",
+            params: [
+                "uri": AnyCodable("ui://test-app")
+            ]
+        )
+        try await guestTransport.send(.request(request))
+
+        // Wait a bit for message processing
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Verify callback was called
+        XCTAssertEqual(receivedUri, "ui://test-app")
+
+        await bridge.close()
+        await guestTransport.close()
+    }
+
+    func testToolCallWithoutCallback() async throws {
+        let bridge = AppBridge(
+            hostInfo: testHostInfo,
+            hostCapabilities: testHostCapabilities
+        )
+
+        // Don't set up callback - should result in error
+
+        // Create linked transport pair
+        let (hostTransport, guestTransport) = await InMemoryTransport.createLinkedPair()
+
+        // Connect bridge
+        try await bridge.connect(hostTransport)
+
+        // Send tools/call request from guest
+        let request = JSONRPCRequest(
+            id: .number(1),
+            method: "tools/call",
+            params: [
+                "name": AnyCodable("test_tool")
+            ]
+        )
+        try await guestTransport.send(.request(request))
+
+        // Wait a bit for message processing
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        // Verify error response was sent (we can't easily check the response without more infrastructure)
+        // Just verify the bridge is still functional
+        XCTAssertFalse(await bridge.isReady())
+
+        await bridge.close()
+        await guestTransport.close()
+    }
+}
+
+// Helper extension for tests
+extension AppBridge {
+    func setOnToolCall(_ callback: @escaping @Sendable (String, [String: AnyCodable]?) async throws -> [String: AnyCodable]) {
+        self.onToolCall = callback
+    }
+
+    func setOnResourceRead(_ callback: @escaping @Sendable (String) async throws -> [String: AnyCodable]) {
+        self.onResourceRead = callback
+    }
 }

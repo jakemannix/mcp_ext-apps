@@ -127,16 +127,16 @@ let _ = try await bridge.sendResourceTeardown()
 
 The `McpUiHostContext` provides rich environment information to the Guest UI:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `theme` | `McpUiTheme` | `.light` or `.dark` |
-| `displayMode` | `McpUiDisplayMode` | `.inline`, `.fullscreen`, or `.pip` |
-| `viewport` | `Viewport` | Current dimensions |
-| `locale` | `String` | BCP 47 locale (e.g., "en-US") |
-| `timeZone` | `String` | IANA timezone |
-| `platform` | `McpUiPlatform` | `.web`, `.desktop`, or `.mobile` |
-| `deviceCapabilities` | `DeviceCapabilities` | Touch/hover support |
-| `safeAreaInsets` | `SafeAreaInsets` | Safe area boundaries |
+| Field                | Type                 | Description                         |
+| -------------------- | -------------------- | ----------------------------------- |
+| `theme`              | `McpUiTheme`         | `.light` or `.dark`                 |
+| `displayMode`        | `McpUiDisplayMode`   | `.inline`, `.fullscreen`, or `.pip` |
+| `viewport`           | `Viewport`           | Current dimensions                  |
+| `locale`             | `String`             | BCP 47 locale (e.g., "en-US")       |
+| `timeZone`           | `String`             | IANA timezone                       |
+| `platform`           | `McpUiPlatform`      | `.web`, `.desktop`, or `.mobile`    |
+| `deviceCapabilities` | `DeviceCapabilities` | Touch/hover support                 |
+| `safeAreaInsets`     | `SafeAreaInsets`     | Safe area boundaries                |
 
 ### Host Capabilities
 
@@ -154,6 +154,101 @@ McpUiHostCapabilities(
 ## Actor-Based Concurrency
 
 The `AppBridge` is implemented as a Swift actor, ensuring thread-safe access to all its properties and methods. All public methods are async and should be called with `await`.
+
+## MCP Server Forwarding
+
+The AppBridge can forward tool and resource requests from the Guest UI to an MCP server. This enables Guest UIs to call server tools and read server resources through the bridge.
+
+### Setting Up Tool Call Forwarding
+
+```swift
+// Advertise server tool capability
+let bridge = AppBridge(
+    hostInfo: Implementation(name: "MyApp", version: "1.0.0"),
+    hostCapabilities: McpUiHostCapabilities(
+        serverTools: ServerToolsCapability()
+    )
+)
+
+// Set up callback to forward tools/call requests
+await bridge.onToolCall = { toolName, arguments in
+    // Forward to your MCP client/server
+    let result = try await mcpClient.callTool(
+        name: toolName,
+        arguments: arguments
+    )
+
+    // Return result in MCP CallToolResult format
+    return [
+        "content": AnyCodable(result.content),
+        "isError": AnyCodable(result.isError ?? false)
+    ]
+}
+```
+
+### Setting Up Resource Read Forwarding
+
+```swift
+// Advertise server resource capability
+let bridge = AppBridge(
+    hostInfo: Implementation(name: "MyApp", version: "1.0.0"),
+    hostCapabilities: McpUiHostCapabilities(
+        serverResources: ServerResourcesCapability()
+    )
+)
+
+// Set up callback to forward resources/read requests
+await bridge.onResourceRead = { uri in
+    // Forward to your MCP client/server
+    let resource = try await mcpClient.readResource(uri: uri)
+
+    // Return resource in MCP ReadResourceResult format
+    return [
+        "contents": AnyCodable(resource.contents.map { content in
+            [
+                "uri": content.uri,
+                "mimeType": content.mimeType,
+                "text": content.text
+            ]
+        })
+    ]
+}
+```
+
+### Complete Example with MCP SDK
+
+```swift
+import MCP
+import McpApps
+
+// Create MCP client (connected to an MCP server)
+let mcpClient = MCPClient(/* ... */)
+try await mcpClient.connect()
+
+// Create AppBridge with forwarding callbacks
+let bridge = AppBridge(
+    hostInfo: Implementation(name: "MyApp", version: "1.0.0"),
+    hostCapabilities: McpUiHostCapabilities(
+        openLinks: true,
+        serverTools: ServerToolsCapability(),
+        serverResources: ServerResourcesCapability(),
+        logging: true
+    )
+)
+
+// Set up tool call forwarding
+await bridge.onToolCall = { toolName, arguments in
+    try await mcpClient.callTool(name: toolName, arguments: arguments)
+}
+
+// Set up resource read forwarding
+await bridge.onResourceRead = { uri in
+    try await mcpClient.readResource(uri: uri)
+}
+
+// Connect and use the bridge
+try await bridge.connect(webViewTransport)
+```
 
 ## Integration with MCP SDK
 

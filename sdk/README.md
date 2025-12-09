@@ -71,19 +71,19 @@ All communication uses JSON-RPC 2.0 format over the WebView JavaScript bridge.
 
 ### Message Types
 
-| Method | Direction | Type | Description |
-|--------|-----------|------|-------------|
-| `ui/initialize` | Guest → Host | Request | Initialization handshake |
-| `ui/notifications/initialized` | Guest → Host | Notification | Initialization complete |
-| `ui/notifications/tool-input` | Host → Guest | Notification | Complete tool arguments |
-| `ui/notifications/tool-input-partial` | Host → Guest | Notification | Streaming partial arguments |
-| `ui/notifications/tool-result` | Host → Guest | Notification | Tool execution result |
-| `ui/notifications/size-changed` | Bidirectional | Notification | UI size changed |
-| `ui/notifications/host-context-changed` | Host → Guest | Notification | Context updated |
-| `ui/message` | Guest → Host | Request | Send chat message |
-| `ui/open-link` | Guest → Host | Request | Open external URL |
-| `ui/resource-teardown` | Host → Guest | Request | Graceful shutdown |
-| `notifications/message` | Guest → Host | Notification | Logging message |
+| Method                                  | Direction     | Type         | Description                 |
+| --------------------------------------- | ------------- | ------------ | --------------------------- |
+| `ui/initialize`                         | Guest → Host  | Request      | Initialization handshake    |
+| `ui/notifications/initialized`          | Guest → Host  | Notification | Initialization complete     |
+| `ui/notifications/tool-input`           | Host → Guest  | Notification | Complete tool arguments     |
+| `ui/notifications/tool-input-partial`   | Host → Guest  | Notification | Streaming partial arguments |
+| `ui/notifications/tool-result`          | Host → Guest  | Notification | Tool execution result       |
+| `ui/notifications/size-changed`         | Bidirectional | Notification | UI size changed             |
+| `ui/notifications/host-context-changed` | Host → Guest  | Notification | Context updated             |
+| `ui/message`                            | Guest → Host  | Request      | Send chat message           |
+| `ui/open-link`                          | Guest → Host  | Request      | Open external URL           |
+| `ui/resource-teardown`                  | Host → Guest  | Request      | Graceful shutdown           |
+| `notifications/message`                 | Guest → Host  | Notification | Logging message             |
 
 ## Integration with MCP SDKs
 

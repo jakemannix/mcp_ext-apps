@@ -27,6 +27,43 @@ public struct HostOptions: Sendable {
 /// 3. **Wait for init**: Guest UI sends initialize request, bridge responds
 /// 4. **Send data**: Call `sendToolInput()`, `sendToolResult()`, etc.
 /// 5. **Teardown**: Call `sendResourceTeardown()` before unmounting WebView
+///
+/// ## MCP Server Forwarding
+///
+/// AppBridge supports forwarding tool and resource requests from the Guest UI to an MCP server.
+/// This is accomplished via callbacks that the host sets up:
+///
+/// ```swift
+/// // Create bridge with server capabilities advertised
+/// let bridge = AppBridge(
+///     hostInfo: Implementation(name: "MyHost", version: "1.0.0"),
+///     hostCapabilities: McpUiHostCapabilities(
+///         serverTools: ServerToolsCapability(),
+///         serverResources: ServerResourcesCapability()
+///     )
+/// )
+///
+/// // Set up tool call forwarding
+/// await bridge.setOnToolCall { toolName, arguments in
+///     // Forward to MCP server and return result
+///     let result = try await mcpClient.callTool(name: toolName, arguments: arguments)
+///     // Convert MCP result to dictionary format
+///     return [
+///         "content": AnyCodable(result.content),
+///         "isError": AnyCodable(result.isError ?? false)
+///     ]
+/// }
+///
+/// // Set up resource read forwarding
+/// await bridge.setOnResourceRead { uri in
+///     // Forward to MCP server and return resource content
+///     let resource = try await mcpClient.readResource(uri: uri)
+///     // Convert MCP resource to dictionary format
+///     return [
+///         "contents": AnyCodable(resource.contents)
+///     ]
+/// }
+/// ```
 public actor AppBridge {
     private let hostInfo: Implementation
     private let hostCapabilities: McpUiHostCapabilities
@@ -49,6 +86,20 @@ public actor AppBridge {
     public var onOpenLink: (@Sendable (String) async -> McpUiOpenLinkResult)?
     public var onLoggingMessage: (@Sendable (LogLevel, AnyCodable, String?) -> Void)?
     public var onPing: (@Sendable () -> Void)?
+
+    // MCP Server forwarding callbacks
+    /// Callback for forwarding tools/call requests to the MCP server.
+    /// Parameters:
+    ///   - toolName: Name of the tool to call
+    ///   - arguments: Tool arguments as key-value pairs
+    /// Returns: Tool execution result as key-value pairs
+    public var onToolCall: (@Sendable (String, [String: AnyCodable]?) async throws -> [String: AnyCodable])?
+
+    /// Callback for forwarding resources/read requests to the MCP server.
+    /// Parameters:
+    ///   - uri: Resource URI to read
+    /// Returns: Resource content as key-value pairs
+    public var onResourceRead: (@Sendable (String) async throws -> [String: AnyCodable])?
 
     /// Create a new AppBridge instance.
     ///
@@ -91,6 +142,18 @@ public actor AppBridge {
             await self?.onPing?()
             return AnyCodable([:])
         }
+
+        // Handle tools/call request - forward to MCP server
+        requestHandlers["tools/call"] = { [weak self] params in
+            guard let self = self else { throw BridgeError.disconnected }
+            return try await self.handleToolCall(params)
+        }
+
+        // Handle resources/read request - forward to MCP server
+        requestHandlers["resources/read"] = { [weak self] params in
+            guard let self = self else { throw BridgeError.disconnected }
+            return try await self.handleResourceRead(params)
+        }
     }
 
     private func handleInitialize(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
@@ -132,6 +195,52 @@ public actor AppBridge {
 
         let result = await onOpenLink?(linkParams.url) ?? McpUiOpenLinkResult(isError: true)
         return AnyCodable(["isError": result.isError ?? false])
+    }
+
+    private func handleToolCall(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
+        guard let onToolCall = onToolCall else {
+            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.methodNotFound, message: "tools/call forwarding not configured"))
+        }
+
+        // Extract tool name and arguments from params
+        guard let name = params?["name"]?.value as? String else {
+            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.invalidParams, message: "Missing tool name"))
+        }
+
+        // Extract arguments if present
+        var arguments: [String: AnyCodable]? = nil
+        if let argsValue = params?["arguments"]?.value {
+            if let argsDict = argsValue as? [String: Any] {
+                arguments = argsDict.mapValues { AnyCodable($0) }
+            }
+        }
+
+        // Forward to callback
+        let result = try await onToolCall(name, arguments)
+
+        // Convert result to AnyCodable
+        let resultData = try JSONSerialization.data(withJSONObject: result.mapValues { $0.value })
+        let resultDict = try JSONSerialization.jsonObject(with: resultData) as? [String: Any] ?? [:]
+        return AnyCodable(resultDict)
+    }
+
+    private func handleResourceRead(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
+        guard let onResourceRead = onResourceRead else {
+            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.methodNotFound, message: "resources/read forwarding not configured"))
+        }
+
+        // Extract URI from params
+        guard let uri = params?["uri"]?.value as? String else {
+            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.invalidParams, message: "Missing resource URI"))
+        }
+
+        // Forward to callback
+        let result = try await onResourceRead(uri)
+
+        // Convert result to AnyCodable
+        let resultData = try JSONSerialization.data(withJSONObject: result.mapValues { $0.value })
+        let resultDict = try JSONSerialization.jsonObject(with: resultData) as? [String: Any] ?? [:]
+        return AnyCodable(resultDict)
     }
 
     /// Connect to the Guest UI via transport.

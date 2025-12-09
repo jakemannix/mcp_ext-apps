@@ -124,16 +124,16 @@ val result = bridge.sendResourceTeardown()
 
 The `McpUiHostContext` provides rich environment information to the Guest UI:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `theme` | `McpUiTheme` | `LIGHT` or `DARK` |
-| `displayMode` | `McpUiDisplayMode` | `INLINE`, `FULLSCREEN`, or `PIP` |
-| `viewport` | `Viewport` | Current dimensions |
-| `locale` | `String` | BCP 47 locale (e.g., "en-US") |
-| `timeZone` | `String` | IANA timezone |
-| `platform` | `McpUiPlatform` | `WEB`, `DESKTOP`, or `MOBILE` |
-| `deviceCapabilities` | `DeviceCapabilities` | Touch/hover support |
-| `safeAreaInsets` | `SafeAreaInsets` | Safe area boundaries |
+| Field                | Type                 | Description                      |
+| -------------------- | -------------------- | -------------------------------- |
+| `theme`              | `McpUiTheme`         | `LIGHT` or `DARK`                |
+| `displayMode`        | `McpUiDisplayMode`   | `INLINE`, `FULLSCREEN`, or `PIP` |
+| `viewport`           | `Viewport`           | Current dimensions               |
+| `locale`             | `String`             | BCP 47 locale (e.g., "en-US")    |
+| `timeZone`           | `String`             | IANA timezone                    |
+| `platform`           | `McpUiPlatform`      | `WEB`, `DESKTOP`, or `MOBILE`    |
+| `deviceCapabilities` | `DeviceCapabilities` | Touch/hover support              |
+| `safeAreaInsets`     | `SafeAreaInsets`     | Safe area boundaries             |
 
 ### Host Capabilities
 
