@@ -32,7 +32,7 @@
 
     // Listen for messages from host
     window.addEventListener('message', e => {
-      console.log('[Widget] Received message:', e)
+      console.log('[Widget] Received message:', e);
       const msg = e.data;
       if (!msg || typeof msg !== 'object') return;
 
