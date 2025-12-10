@@ -43,7 +43,11 @@ import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
 export { PostMessageTransport } from "./message-transport";
 export * from "./types";
-export { applyHostStyles } from "./styles";
+export {
+  applyHostStyles,
+  getDocumentTheme,
+  applyDocumentTheme,
+} from "./styles";
 
 /**
  * Metadata key for associating a resource URI with a tool call.
