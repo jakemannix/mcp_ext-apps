@@ -63,6 +63,7 @@ examples/basic-host-kotlin/
 ### 1. Open Project
 
 Open Android Studio and select "Open an Existing Project". Navigate to this directory:
+
 ```
 /path/to/ext-apps2/examples/basic-host-kotlin
 ```
@@ -72,6 +73,7 @@ Open Android Studio and select "Open an Existing Project". Navigate to this dire
 Android Studio will automatically detect the `build.gradle.kts` file and prompt you to sync. Click "Sync Now".
 
 The project is configured to use the local MCP Apps Kotlin SDK via composite build:
+
 ```kotlin
 includeBuild("../../sdk/kotlin") {
     dependencySubstitution {
@@ -101,6 +103,7 @@ The server will be available at `http://localhost:3000/sse`.
 ### 4. Configure Server URL
 
 When running in the Android **emulator**, use `10.0.2.2` instead of `localhost`:
+
 - Emulator: `http://10.0.2.2:3000/sse`
 - Physical device: Use your computer's IP address (e.g., `http://192.168.1.100:3000/sse`)
 
@@ -144,6 +147,7 @@ The default URL in the app is already set to `http://10.0.2.2:3000/sse` for emul
 ### MainActivity.kt
 
 Jetpack Compose-based UI with the following screens:
+
 - **IdleScreen**: Server URL input
 - **ConnectedScreen**: Tool selection and input
 - **AppDisplayScreen**: WebView displaying the Guest UI
@@ -154,6 +158,7 @@ Jetpack Compose-based UI with the following screens:
 Manages the complete MCP Apps flow:
 
 1. **Connection** (`connectToServer()`):
+
    ```kotlin
    val client = Client(Implementation("MCP Apps Android Host", "1.0.0"))
    client.connect(StreamableHTTPClientTransport(serverUrl))
@@ -161,17 +166,20 @@ Manages the complete MCP Apps flow:
    ```
 
 2. **Tool Execution** (`callTool()`):
+
    ```kotlin
    val result = client.callTool(CallToolRequest(name, arguments))
    ```
 
 3. **UI Resource Loading**:
+
    ```kotlin
    val resource = client.readResource(ReadResourceRequest(uri = uiResourceUri))
    val html = resource.contents[0].text
    ```
 
 4. **AppBridge Setup** (`setupAppBridgeAndWebView()`):
+
    ```kotlin
    val bridge = AppBridge(mcpClient, hostInfo, hostCapabilities, options)
    val transport = WebViewTransport(webView, json)
@@ -180,6 +188,7 @@ Manages the complete MCP Apps flow:
    ```
 
 5. **Communication**:
+
    ```kotlin
    // Send tool input to guest UI
    bridge.sendToolInput(arguments)
@@ -207,11 +216,13 @@ The `WebViewTransport` class (from the SDK) provides the communication layer:
 ### Android Logcat
 
 View detailed logs in Android Studio's Logcat:
+
 ```
 Filter: tag:McpHostViewModel
 ```
 
 Logs include:
+
 - Connection status
 - Tool discovery
 - AppBridge lifecycle events
@@ -235,6 +246,7 @@ Inspect the WebView remotely:
 **Problem**: Cannot connect to MCP server
 
 **Solutions**:
+
 - Verify the server is running: `curl http://localhost:3000/sse`
 - Use `10.0.2.2` instead of `localhost` for emulator
 - Use your computer's IP for physical devices
@@ -246,6 +258,7 @@ Inspect the WebView remotely:
 **Problem**: UI doesn't appear after calling tool
 
 **Solutions**:
+
 - Check Logcat for errors
 - Verify the tool has a UI resource (look for `ui.resourceUri` in tool metadata)
 - Ensure WebView JavaScript is enabled (handled by `WebViewTransport`)
@@ -256,6 +269,7 @@ Inspect the WebView remotely:
 **Problem**: "AppBridge initialization timeout" in logs
 
 **Solutions**:
+
 - Verify the Guest UI includes the MCP Apps TypeScript SDK
 - Check the Guest UI calls `initialize()` on load
 - Inspect WebView in Chrome DevTools to see console errors

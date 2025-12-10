@@ -25,6 +25,7 @@ A minimal iOS app demonstrating how to host MCP Apps in a WKWebView using the Sw
 ### Using Xcode
 
 1. **Open in Xcode:**
+
    ```bash
    open Package.swift
    ```
@@ -40,14 +41,14 @@ A minimal iOS app demonstrating how to host MCP Apps in a WKWebView using the Sw
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `./scripts/dev.sh` | Watch mode - rebuilds and reloads on file changes |
-| `./scripts/run.sh` | Build and run once |
-| `./scripts/build.sh` | Build only |
-| `./scripts/logs.sh` | Stream app logs from simulator |
-| `./scripts/screenshot.sh` | Take a screenshot |
-| `./scripts/clean.sh` | Clean build artifacts |
+| Script                    | Description                                       |
+| ------------------------- | ------------------------------------------------- |
+| `./scripts/dev.sh`        | Watch mode - rebuilds and reloads on file changes |
+| `./scripts/run.sh`        | Build and run once                                |
+| `./scripts/build.sh`      | Build only                                        |
+| `./scripts/logs.sh`       | Stream app logs from simulator                    |
+| `./scripts/screenshot.sh` | Take a screenshot                                 |
+| `./scripts/clean.sh`      | Clean build artifacts                             |
 
 All scripts accept an optional simulator name: `./scripts/run.sh "iPhone 16"`
 

@@ -93,28 +93,28 @@ Your guest UI HTML file needs to work with the MCP Apps TypeScript SDK. The tran
 ```html
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>My Guest UI</title>
     <script type="module">
-        import { App } from '@modelcontextprotocol/sdk/app.js';
+      import { App } from "@modelcontextprotocol/sdk/app.js";
 
-        const app = new App({
-            name: 'MyGuestApp',
-            version: '1.0.0'
-        });
+      const app = new App({
+        name: "MyGuestApp",
+        version: "1.0.0",
+      });
 
-        // The transport is automatically configured to work with WebView
-        await app.connect();
+      // The transport is automatically configured to work with WebView
+      await app.connect();
 
-        // Handle messages from host
-        app.onToolInput((args) => {
-            console.log('Received tool input:', args);
-        });
+      // Handle messages from host
+      app.onToolInput((args) => {
+        console.log("Received tool input:", args);
+      });
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <h1>My Guest UI</h1>
-</body>
+  </body>
 </html>
 ```
 
@@ -125,25 +125,25 @@ If you're not using the TypeScript SDK, you can directly use the bridge:
 ```javascript
 // Send message to Kotlin host
 window.mcpBridge.send({
-    jsonrpc: '2.0',
-    method: 'ui/initialize',
-    id: 1,
-    params: {
-        appInfo: { name: 'MyApp', version: '1.0.0' },
-        appCapabilities: {},
-        protocolVersion: '2025-11-21'
-    }
+  jsonrpc: "2.0",
+  method: "ui/initialize",
+  id: 1,
+  params: {
+    appInfo: { name: "MyApp", version: "1.0.0" },
+    appCapabilities: {},
+    protocolVersion: "2025-11-21",
+  },
 });
 
 // Receive messages from Kotlin host
-window.addEventListener('message', (event) => {
-    const message = event.data;
-    console.log('Received message:', message);
+window.addEventListener("message", (event) => {
+  const message = event.data;
+  console.log("Received message:", message);
 
-    // Handle different message types
-    if (message.method === 'ui/notifications/tool-input') {
-        // Handle tool input
-    }
+  // Handle different message types
+  if (message.method === "ui/notifications/tool-input") {
+    // Handle tool input
+  }
 });
 ```
 

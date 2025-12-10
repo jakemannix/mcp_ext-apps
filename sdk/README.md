@@ -103,10 +103,12 @@ These native SDKs are compatible with the TypeScript SDK (`@modelcontextprotocol
 ### Prerequisites
 
 **Kotlin SDK:**
+
 - JDK 17+
 - Gradle 8+ (or use the wrapper)
 
 **Swift SDK:**
+
 - Xcode 15+ (for Swift 6.0)
 - macOS 13+ for development
 
@@ -147,6 +149,7 @@ swift build -c release
 ### Example Apps
 
 **Android (basic-host-kotlin):**
+
 ```bash
 cd examples/basic-host-kotlin
 # Open in Android Studio, or:
@@ -154,6 +157,7 @@ cd examples/basic-host-kotlin
 ```
 
 **iOS (basic-host-swift):**
+
 ```bash
 cd examples/basic-host-swift
 # Open Package.swift in Xcode, or:
