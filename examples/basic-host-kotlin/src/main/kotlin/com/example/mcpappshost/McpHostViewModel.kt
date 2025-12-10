@@ -11,6 +11,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
 import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.types.BlobResourceContents
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.sse.*
@@ -242,9 +243,14 @@ class McpHostViewModel : ViewModel() {
                                 buildJsonObject {
                                     put("content", buildJsonArray {
                                         callResult.content.forEach { block ->
+                                            // Extract text properly from content block
+                                            val text = when (block) {
+                                                is TextContent -> block.text
+                                                else -> block.toString()
+                                            }
                                             add(buildJsonObject {
                                                 put("type", JsonPrimitive("text"))
-                                                put("text", JsonPrimitive(block.toString()))
+                                                put("text", JsonPrimitive(text))
                                             })
                                         }
                                     })
