@@ -39,22 +39,55 @@ struct WebViewContainer: UIViewRepresentable {
             return
         }
 
-        // Create transport
-        let transport = WKWebViewTransport(webView: webView, handlerName: "mcpBridge")
+        context.coordinator.hasLoadedContent = true
 
-        // Set up AppBridge
+        // Create transport and set up AppBridge
         Task {
             do {
-                // Start transport (injects bridge script)
+                // Create transport with the webView
+                let transport = await WKWebViewTransport(webView: webView, handlerName: "mcpBridge")
+
+                // Start transport (registers message handler)
                 try await transport.start()
 
                 // Set up AppBridge with callbacks
                 try await toolCallInfo.setupAppBridge(transport: transport)
 
-                // Load HTML content
+                // Inject bridge script into HTML and load
+                let bridgeScript = """
+                <script>
+                (function() {
+                    window.parent = window.parent || {};
+                    window.parent.postMessage = function(message, targetOrigin) {
+                        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mcpBridge) {
+                            window.webkit.messageHandlers.mcpBridge.postMessage(message);
+                        } else {
+                            console.error('WKWebView message handler not available');
+                        }
+                    };
+                    window.dispatchEvent(new Event('mcp-bridge-ready'));
+                    console.log('MCP Apps WKWebView bridge initialized (inline)');
+                })();
+                </script>
+                """
+
+                // Inject script at the beginning of <head> or <html>
+                var modifiedHtml = html
+                if let headRange = html.range(of: "<head>", options: .caseInsensitive) {
+                    modifiedHtml.insert(contentsOf: bridgeScript, at: headRange.upperBound)
+                } else if let htmlRange = html.range(of: "<html>", options: .caseInsensitive) {
+                    // Find end of <html> tag
+                    if let tagEnd = html.range(of: ">", range: htmlRange.upperBound..<html.endIndex) {
+                        modifiedHtml.insert(contentsOf: "<head>\(bridgeScript)</head>", at: tagEnd.upperBound)
+                    }
+                } else {
+                    // Prepend to beginning
+                    modifiedHtml = bridgeScript + html
+                }
+
                 await MainActor.run {
-                    webView.loadHTMLString(html, baseURL: nil)
-                    context.coordinator.hasLoadedContent = true
+                    print("[WebViewContainer] Loading HTML with injected bridge script")
+                    webView.loadHTMLString(modifiedHtml, baseURL: nil)
                 }
             } catch {
                 print("[WebViewContainer] Failed to set up AppBridge: \(error)")

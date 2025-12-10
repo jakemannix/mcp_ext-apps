@@ -220,9 +220,29 @@ class ToolCallInfo: ObservableObject, Identifiable {
     }
 
     private func getUiResourceUri(from tool: Tool) -> String? {
-        // For now, tools don't have metadata in MCP SDK - would need custom extension
-        // This is a placeholder - in real usage, the server would provide this
-        return nil
+        // The MCP Swift SDK doesn't expose tool._meta, so we can't access ui/resourceUri directly.
+        // As a workaround for example servers, try to find a matching UI resource.
+        //
+        // Known UI resource URIs for example servers:
+        // - basic-server-react/vanillajs: ui://get-time/mcp-app.html (tool: get_time)
+        // - budget-allocator-server: ui://budget-allocator/mcp-app.html (tool: create_budget)
+        // - cohort-heatmap-server: ui://get-cohort-data/mcp-app.html (tool: get_cohort_data)
+        // - customer-segmentation-server: ui://customer-segmentation/mcp-app.html (tool: analyze_segments)
+        // - scenario-modeler-server: ui://scenario-modeler/mcp-app.html (tool: run_scenario)
+        // - system-monitor-server: ui://system-monitor/mcp-app.html (tool: get_system_stats)
+        // - threejs-server: ui://threejs/mcp-app.html (tool: render_3d)
+
+        let knownMappings: [String: String] = [
+            "get_time": "ui://get-time/mcp-app.html",
+            "create_budget": "ui://budget-allocator/mcp-app.html",
+            "get_cohort_data": "ui://get-cohort-data/mcp-app.html",
+            "analyze_segments": "ui://customer-segmentation/mcp-app.html",
+            "run_scenario": "ui://scenario-modeler/mcp-app.html",
+            "get_system_stats": "ui://system-monitor/mcp-app.html",
+            "render_3d": "ui://threejs/mcp-app.html",
+        ]
+
+        return knownMappings[tool.name]
     }
 
     private func loadUiResource(uri: String) async throws {
