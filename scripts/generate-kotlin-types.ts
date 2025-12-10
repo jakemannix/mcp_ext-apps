@@ -14,7 +14,7 @@ const PROJECT_DIR = join(__dirname, "..");
 const SCHEMA_FILE = join(PROJECT_DIR, "src/generated/schema.json");
 const OUTPUT_FILE = join(
   PROJECT_DIR,
-  "sdk/kotlin/src/commonMain/kotlin/io/modelcontextprotocol/apps/generated/SchemaTypes.kt",
+  "sdk/kotlin/src/main/kotlin/io/modelcontextprotocol/apps/generated/SchemaTypes.kt",
 );
 
 interface JsonSchema {

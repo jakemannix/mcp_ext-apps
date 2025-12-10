@@ -1,8 +1,7 @@
 package io.modelcontextprotocol.apps.types
 
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.ContentBlock
 import io.modelcontextprotocol.kotlin.sdk.Implementation
+import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -106,7 +105,7 @@ data class McpUiMessageParams(
     /** Message role, currently only "user" is supported */
     val role: String = "user",
     /** Message content blocks (text, image, etc.) */
-    val content: List<ContentBlock>
+    val content: List<JsonElement>
 )
 
 /**
