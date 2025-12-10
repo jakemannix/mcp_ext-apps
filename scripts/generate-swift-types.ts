@@ -95,7 +95,12 @@ const generatedTypes = new Set<string>();
 const typeDefinitions: string[] = [];
 
 function toSwiftPropertyName(name: string): string {
-  return name.replace(/-/g, "_");
+  // Replace invalid Swift identifier characters
+  return name
+    .replace(/[.\/:]/g, "_")
+    .replace(/-/g, "_")
+    .replace(/^_+/, "") // Remove leading underscores
+    .replace(/_+$/, ""); // Remove trailing underscores
 }
 
 function getCanonicalName(name: string): string {
@@ -124,6 +129,69 @@ function getDiscriminatorValue(variant: JsonSchema): string | null {
   const typeField = variant.properties?.type;
   if (typeField?.const) return typeField.const as string;
   return null;
+}
+
+// Check if anyOf is a field-based union (differentiated by presence of fields like text/blob)
+function isFieldBasedUnion(variants: JsonSchema[]): string | null {
+  if (variants.length !== 2) return null;
+
+  // Find the differentiating required field
+  const req0 = new Set(variants[0].required || []);
+  const req1 = new Set(variants[1].required || []);
+
+  // Find fields unique to each variant
+  const unique0 = [...req0].filter(f => !req1.has(f));
+  const unique1 = [...req1].filter(f => !req0.has(f));
+
+  if (unique0.length === 1 && unique1.length === 1) {
+    return `${unique0[0]}|${unique1[0]}`;
+  }
+  return null;
+}
+
+// Generate Swift enum for field-based union (e.g., text vs blob)
+function generateFieldBasedUnion(
+  name: string,
+  variants: JsonSchema[],
+  fields: string,
+  defs: Record<string, JsonSchema>,
+): void {
+  const canonical = getCanonicalName(name);
+  if (generatedTypes.has(canonical)) return;
+  generatedTypes.add(canonical);
+
+  const [field0, field1] = fields.split("|");
+  const case0 = field0.replace(/-/g, "");
+  const case1 = field1.replace(/-/g, "");
+  const struct0 = canonical + capitalize(case0);
+  const struct1 = canonical + capitalize(case1);
+
+  // Generate the associated structs
+  generateStruct(struct0, variants[0], defs);
+  generateStruct(struct1, variants[1], defs);
+
+  typeDefinitions.push(`public enum ${canonical}: Codable, Sendable, Equatable {
+    case ${case0}(${struct0})
+    case ${case1}(${struct1})
+
+    public init(from decoder: Decoder) throws {
+        // Try decoding each variant
+        if let v = try? ${struct0}(from: decoder) {
+            self = .${case0}(v)
+        } else if let v = try? ${struct1}(from: decoder) {
+            self = .${case1}(v)
+        } else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Cannot decode ${canonical}"))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .${case0}(let v): try v.encode(to: encoder)
+        case .${case1}(let v): try v.encode(to: encoder)
+        }
+    }
+}`);
 }
 
 // Generate Swift enum for discriminated union
@@ -211,6 +279,16 @@ function toSwiftType(
       return canonical;
     }
 
+    // Check if it's a field-based union (e.g., text vs blob)
+    const fieldUnion = isFieldBasedUnion(schema.anyOf);
+    if (fieldUnion) {
+      const canonical = getCanonicalName(contextName);
+      if (!generatedTypes.has(canonical)) {
+        generateFieldBasedUnion(contextName, schema.anyOf, fieldUnion, defs);
+      }
+      return canonical;
+    }
+
     return "AnyCodable";
   }
 
@@ -237,7 +315,17 @@ function toSwiftType(
         EMPTY_TYPES.add(contextName);
         return "EmptyCapability";
       }
-      if (schema.additionalProperties && typeof schema.additionalProperties !== "boolean") {
+      // If it has properties defined, generate a struct (even with additionalProperties)
+      if (schema.properties && Object.keys(schema.properties).length > 0) {
+        const canonical = getCanonicalName(contextName);
+        if (!generatedTypes.has(canonical)) {
+          generateStruct(contextName, schema, defs);
+        }
+        return canonical;
+      }
+      // Handle typed additionalProperties (e.g., Record<string, SomeType>)
+      if (schema.additionalProperties && typeof schema.additionalProperties === "object" &&
+          Object.keys(schema.additionalProperties).length > 0) {
         const valueType = toSwiftType(
           schema.additionalProperties,
           contextName + "Value",
@@ -245,7 +333,8 @@ function toSwiftType(
         );
         return `[String: ${valueType}]`;
       }
-      if (schema.additionalProperties === true || (!schema.properties && schema.additionalProperties !== false)) {
+      // Fallback to [String: AnyCodable] for open objects
+      if (schema.additionalProperties || !schema.properties) {
         return "[String: AnyCodable]";
       }
       const canonical = getCanonicalName(contextName);
@@ -483,6 +572,8 @@ public typealias ServerToolsCapability = McpUiHostCapabilitiesServerTools
 public typealias ServerResourcesCapability = McpUiHostCapabilitiesServerResources
 public typealias AppToolsCapability = McpUiAppCapabilitiesTools
 public typealias ContentBlock = McpUiMessageRequestParamsContentItem
+public typealias CallToolResult = McpUiToolResultNotificationParams
+public typealias ResourceContent = McpUiMessageRequestParamsContentItemResourceResource
 
 // MARK: - Generated Types
 `;
