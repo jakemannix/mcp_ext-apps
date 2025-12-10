@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
+import kotlinx.serialization.encodeToString
 
 private const val TAG = "McpHostViewModel"
 
@@ -235,9 +236,28 @@ class McpHostViewModel : ViewModel() {
 
                         if (htmlContent != null) {
                             Log.i(TAG, "Loaded UI resource (${htmlContent.length} chars)")
+                            // Store both HTML and tool result for AppBridge
+                            val toolResultJson = json.encodeToString(
+                                kotlinx.serialization.json.JsonObject.serializer(),
+                                buildJsonObject {
+                                    put("content", buildJsonArray {
+                                        callResult.content.forEach { block ->
+                                            add(buildJsonObject {
+                                                put("type", JsonPrimitive("text"))
+                                                put("text", JsonPrimitive(block.toString()))
+                                            })
+                                        }
+                                    })
+                                    put("isError", JsonPrimitive(callResult.isError ?: false))
+                                }
+                            )
                             updateToolCall(toolCall.id) { it.copy(
                                 state = ToolCallState.State.READY,
-                                htmlContent = htmlContent
+                                htmlContent = htmlContent,
+                                toolResult = toolResultJson,
+                                inputArgs = inputArgs?.let { args ->
+                                    args.mapValues { (_, v) -> v.toString() }
+                                }
                             )}
                         } else {
                             Log.w(TAG, "No HTML content in resource")

@@ -22,6 +22,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.contentOrNull
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -264,32 +268,9 @@ fun ToolCallCard(toolCall: ToolCallState, onRemove: () -> Unit) {
                     }
                 }
                 toolCall.state == ToolCallState.State.READY && toolCall.htmlContent != null -> {
-                    // WebView for UI resource with bridge script injected
-                    val injectedHtml = remember(toolCall.htmlContent) {
-                        injectBridgeScript(toolCall.htmlContent!!)
-                    }
-
-                    AndroidView(
-                        factory = { context ->
-                            WebView(context).apply {
-                                webViewClient = WebViewClient()
-                                settings.javaScriptEnabled = true
-                                settings.domStorageEnabled = true
-                                settings.allowFileAccess = false
-                                settings.allowContentAccess = false
-
-                                // Add JavaScript interface for receiving messages
-                                addJavascriptInterface(object {
-                                    @JavascriptInterface
-                                    fun receiveMessage(jsonString: String) {
-                                        android.util.Log.d("WebView", "Received: $jsonString")
-                                        // TODO: Route to AppBridge
-                                    }
-                                }, "mcpBridge")
-
-                                loadDataWithBaseURL(null, injectedHtml, "text/html", "UTF-8", null)
-                            }
-                        },
+                    // WebView for UI resource with full AppBridge protocol
+                    McpAppWebView(
+                        toolCall = toolCall,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(toolCall.preferredHeight.dp)
@@ -310,4 +291,144 @@ fun ToolCallCard(toolCall: ToolCallState, onRemove: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * WebView composable that handles full MCP Apps protocol communication.
+ */
+@Composable
+fun McpAppWebView(
+    toolCall: ToolCallState,
+    modifier: Modifier = Modifier
+) {
+    val json = remember { kotlinx.serialization.json.Json { ignoreUnknownKeys = true } }
+    var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    var initialized by remember { mutableStateOf(false) }
+
+    // Inject bridge script into HTML
+    val injectedHtml = remember(toolCall.htmlContent) {
+        injectBridgeScript(toolCall.htmlContent!!)
+    }
+
+    // Function to send JSON-RPC message to WebView
+    fun sendToWebView(message: String) {
+        webViewRef?.let { wv ->
+            val script = """
+                (function() {
+                    try {
+                        const msg = ${"$"}message;
+                        window.dispatchEvent(new MessageEvent('message', {
+                            data: msg,
+                            origin: window.location.origin,
+                            source: window
+                        }));
+                    } catch (e) {
+                        console.error('Failed to dispatch:', e);
+                    }
+                })();
+            """.trimIndent()
+            wv.post { wv.evaluateJavascript(script, null) }
+        }
+    }
+
+    // Send tool input and result after initialization
+    LaunchedEffect(initialized) {
+        if (initialized) {
+            android.util.Log.i("McpAppWebView", "Sending tool input and result")
+
+            // Send tool input
+            val inputArgs = toolCall.inputArgs ?: emptyMap()
+            val toolInputMsg = buildString {
+                append("""{"jsonrpc":"2.0","method":"ui/notifications/tool-input","params":{"arguments":""")
+                append(json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(),
+                    kotlinx.serialization.json.buildJsonObject {
+                        inputArgs.forEach { (k, v) ->
+                            put(k, kotlinx.serialization.json.JsonPrimitive(v.toString()))
+                        }
+                    }
+                ))
+                append("}}")
+            }
+            sendToWebView(toolInputMsg)
+
+            // Send tool result
+            if (toolCall.toolResult != null) {
+                val toolResultMsg = """{"jsonrpc":"2.0","method":"ui/notifications/tool-result","params":${toolCall.toolResult}}"""
+                sendToWebView(toolResultMsg)
+            }
+        }
+    }
+
+    AndroidView(
+        factory = { context ->
+            WebView(context).apply {
+                webViewRef = this
+                webViewClient = WebViewClient()
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+
+                // JavaScript interface for receiving messages from App
+                addJavascriptInterface(object {
+                    @JavascriptInterface
+                    fun receiveMessage(jsonString: String) {
+                        android.util.Log.d("McpAppWebView", "Received: $jsonString")
+                        try {
+                            val msg = json.parseToJsonElement(jsonString).jsonObject
+                            val method = msg["method"]?.jsonPrimitive?.contentOrNull
+                            val id = msg["id"]
+
+                            when (method) {
+                                "ui/initialize" -> {
+                                    // Respond to initialize request
+                                    val response = buildString {
+                                        append("""{"jsonrpc":"2.0","id":""")
+                                        append(id)
+                                        append(""","result":{""")
+                                        append(""""protocolVersion":"2025-11-21",""")
+                                        append(""""hostInfo":{"name":"BasicHostKotlin","version":"1.0.0"},""")
+                                        append(""""hostCapabilities":{"openLinks":{},"serverTools":{},"logging":{}},""")
+                                        append(""""hostContext":{"theme":"light","platform":"mobile"}""")
+                                        append("}}")
+                                    }
+                                    post { sendToWebView(response) }
+                                }
+                                "ui/notifications/initialized" -> {
+                                    android.util.Log.i("McpAppWebView", "App initialized!")
+                                    initialized = true
+                                }
+                                "ui/notifications/size-changed" -> {
+                                    val params = msg["params"]?.jsonObject
+                                    val height = params?.get("height")?.jsonPrimitive?.intOrNull
+                                    if (height != null) {
+                                        android.util.Log.i("McpAppWebView", "Size changed: height=$height")
+                                    }
+                                }
+                                "ui/message" -> {
+                                    android.util.Log.i("McpAppWebView", "Message from app")
+                                    val response = """{"jsonrpc":"2.0","id":$id,"result":{}}"""
+                                    post { sendToWebView(response) }
+                                }
+                                "ui/open-link" -> {
+                                    val url = msg["params"]?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull
+                                    android.util.Log.i("McpAppWebView", "Open link: $url")
+                                    val response = """{"jsonrpc":"2.0","id":$id,"result":{}}"""
+                                    post { sendToWebView(response) }
+                                }
+                                else -> {
+                                    android.util.Log.w("McpAppWebView", "Unknown method: $method")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("McpAppWebView", "Error parsing message", e)
+                        }
+                    }
+                }, "mcpBridge")
+
+                loadDataWithBaseURL(null, injectedHtml, "text/html", "UTF-8", null)
+            }
+        },
+        modifier = modifier
+    )
 }
