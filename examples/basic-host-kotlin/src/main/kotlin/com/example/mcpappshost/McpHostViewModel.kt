@@ -7,6 +7,10 @@ import androidx.lifecycle.viewModelScope
 import io.modelcontextprotocol.apps.generated.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
+import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
+import io.modelcontextprotocol.kotlin.sdk.types.BlobResourceContents
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.sse.*
@@ -48,12 +52,15 @@ data class ToolCallState(
     val id: String = java.util.UUID.randomUUID().toString(),
     val toolName: String,
     val input: String,
+    val inputArgs: Map<String, Any>? = null,
     val state: State = State.CALLING,
     val result: String? = null,
+    val toolResult: String? = null,  // Raw tool result for AppBridge
     val error: String? = null,
     val htmlContent: String? = null,
     var webView: WebView? = null,
-    var preferredHeight: Int = 350
+    var preferredHeight: Int = 350,
+    var appBridgeConnected: Boolean = false
 ) {
     enum class State { CALLING, LOADING_UI, READY, COMPLETED, ERROR }
 }
@@ -150,9 +157,12 @@ class McpHostViewModel : ViewModel() {
                 // List tools
                 val result = client.listTools()
                 _tools.value = result.tools.map { tool ->
-                    // Extract UI resource URI from _meta
-                    val uiResourceUri = tool.meta?.get("ui/resourceUri") as? String
-                    Log.d(TAG, "Tool ${tool.name} has uiResourceUri: $uiResourceUri")
+                    // Extract UI resource URI from _meta (JsonObject)
+                    val meta = tool.meta as? JsonObject
+                    val uiResourceUri = meta?.get("ui/resourceUri")?.let { element ->
+                        (element as? JsonPrimitive)?.contentOrNull
+                    }
+                    Log.d(TAG, "Tool ${tool.name} uiResourceUri: $uiResourceUri")
                     ToolInfo(
                         name = tool.name,
                         description = tool.description,
@@ -204,17 +214,56 @@ class McpHostViewModel : ViewModel() {
                 // Call the tool (name, arguments, meta, options)
                 val callResult = client.callTool(tool.name, emptyMap(), emptyMap())
 
-                // TODO: UI resource loading requires ReadResourceRequest - implement later
-                // For now, just show text result
-                val resultText = callResult.content.joinToString("\n") { it.toString() }
-                Log.i(TAG, "Tool result: $resultText")
+                // Check for UI resource
                 if (tool.uiResourceUri != null) {
-                    Log.i(TAG, "Tool has UI resource at ${tool.uiResourceUri} - UI loading not implemented yet")
+                    updateToolCall(toolCall.id) { it.copy(state = ToolCallState.State.LOADING_UI) }
+                    Log.i(TAG, "Reading UI resource: ${tool.uiResourceUri}")
+
+                    try {
+                        // Read the UI resource
+                        val request = ReadResourceRequest(ReadResourceRequestParams(uri = tool.uiResourceUri))
+                        val resourceResult = client.readResource(request)
+                        val htmlContent = resourceResult.contents.firstOrNull()?.let { content ->
+                            when (content) {
+                                is TextResourceContents -> content.text
+                                is BlobResourceContents -> {
+                                    String(android.util.Base64.decode(content.blob, android.util.Base64.DEFAULT))
+                                }
+                                else -> null
+                            }
+                        }
+
+                        if (htmlContent != null) {
+                            Log.i(TAG, "Loaded UI resource (${htmlContent.length} chars)")
+                            updateToolCall(toolCall.id) { it.copy(
+                                state = ToolCallState.State.READY,
+                                htmlContent = htmlContent
+                            )}
+                        } else {
+                            Log.w(TAG, "No HTML content in resource")
+                            val resultText = callResult.content.joinToString("\n") { it.toString() }
+                            updateToolCall(toolCall.id) { it.copy(
+                                state = ToolCallState.State.COMPLETED,
+                                result = resultText
+                            )}
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to read UI resource: ${e.message}", e)
+                        val resultText = callResult.content.joinToString("\n") { it.toString() }
+                        updateToolCall(toolCall.id) { it.copy(
+                            state = ToolCallState.State.COMPLETED,
+                            result = resultText
+                        )}
+                    }
+                } else {
+                    // No UI resource, show text result
+                    val resultText = callResult.content.joinToString("\n") { it.toString() }
+                    Log.i(TAG, "Tool result (no UI): $resultText")
+                    updateToolCall(toolCall.id) { it.copy(
+                        state = ToolCallState.State.COMPLETED,
+                        result = resultText
+                    )}
                 }
-                updateToolCall(toolCall.id) { it.copy(
-                    state = ToolCallState.State.COMPLETED,
-                    result = resultText
-                )}
 
             } catch (e: Exception) {
                 Log.e(TAG, "Tool call failed", e)

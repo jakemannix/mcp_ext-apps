@@ -1,6 +1,7 @@
 package com.example.mcpappshost
 
 import android.os.Bundle
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -263,20 +264,30 @@ fun ToolCallCard(toolCall: ToolCallState, onRemove: () -> Unit) {
                     }
                 }
                 toolCall.state == ToolCallState.State.READY && toolCall.htmlContent != null -> {
-                    // WebView for UI resource
+                    // WebView for UI resource with bridge script injected
+                    val injectedHtml = remember(toolCall.htmlContent) {
+                        injectBridgeScript(toolCall.htmlContent!!)
+                    }
+
                     AndroidView(
                         factory = { context ->
                             WebView(context).apply {
                                 webViewClient = WebViewClient()
                                 settings.javaScriptEnabled = true
                                 settings.domStorageEnabled = true
-                                loadDataWithBaseURL(null, toolCall.htmlContent, "text/html", "UTF-8", null)
-                            }
-                        },
-                        update = { webView ->
-                            // Update WebView if content changes
-                            if (toolCall.htmlContent != null) {
-                                webView.loadDataWithBaseURL(null, toolCall.htmlContent, "text/html", "UTF-8", null)
+                                settings.allowFileAccess = false
+                                settings.allowContentAccess = false
+
+                                // Add JavaScript interface for receiving messages
+                                addJavascriptInterface(object {
+                                    @JavascriptInterface
+                                    fun receiveMessage(jsonString: String) {
+                                        android.util.Log.d("WebView", "Received: $jsonString")
+                                        // TODO: Route to AppBridge
+                                    }
+                                }, "mcpBridge")
+
+                                loadDataWithBaseURL(null, injectedHtml, "text/html", "UTF-8", null)
                             }
                         },
                         modifier = Modifier
