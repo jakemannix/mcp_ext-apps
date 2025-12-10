@@ -2,7 +2,27 @@
 
 A minimal iOS app demonstrating how to host MCP Apps in a WKWebView using the Swift SDK.
 
-## Quick Start - Running in iOS Simulator
+## Quick Start
+
+### Using Scripts (Recommended)
+
+```bash
+# One-shot build and run
+./scripts/run.sh
+
+# Development mode with auto-reload on file changes
+./scripts/dev.sh
+
+# View app logs
+./scripts/logs.sh
+
+# Take a screenshot
+./scripts/screenshot.sh
+```
+
+> **Note:** `dev.sh` requires `fswatch`. Install with: `brew install fswatch`
+
+### Using Xcode
 
 1. **Open in Xcode:**
    ```bash
@@ -11,12 +31,25 @@ A minimal iOS app demonstrating how to host MCP Apps in a WKWebView using the Sw
 
 2. **Wait for SPM** to resolve dependencies (McpApps, MCP SDK)
 
-3. **Select iOS Simulator** from the device dropdown (e.g., "iPhone 15")
+3. **Select iOS Simulator** from the device dropdown (e.g., "iPhone 17 Pro")
 
 4. **Run** (⌘R)
 
 > **Note:** If no simulators appear, install them via:
 > Xcode → Settings → Components → iOS Simulators → Download
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `./scripts/dev.sh` | Watch mode - rebuilds and reloads on file changes |
+| `./scripts/run.sh` | Build and run once |
+| `./scripts/build.sh` | Build only |
+| `./scripts/logs.sh` | Stream app logs from simulator |
+| `./scripts/screenshot.sh` | Take a screenshot |
+| `./scripts/clean.sh` | Clean build artifacts |
+
+All scripts accept an optional simulator name: `./scripts/run.sh "iPhone 16"`
 
 This example shows the complete flow of:
 
