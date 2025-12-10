@@ -1,9 +1,12 @@
 package com.example.mcpappshost
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -20,8 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
@@ -304,6 +309,7 @@ fun McpAppWebView(
     toolCall: ToolCallState,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val json = remember { kotlinx.serialization.json.Json { ignoreUnknownKeys = true } }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var initialized by remember { mutableStateOf(false) }
@@ -409,15 +415,51 @@ fun McpAppWebView(
                                     }
                                 }
                                 "ui/message" -> {
-                                    android.util.Log.i("McpAppWebView", "Message from app")
-                                    val response = """{"jsonrpc":"2.0","id":$id,"result":{}}"""
-                                    post { sendToWebView(response) }
+                                    val params = msg["params"]?.jsonObject
+                                    val role = params?.get("role")?.jsonPrimitive?.contentOrNull ?: "user"
+                                    val content = params?.get("content")?.jsonArray?.firstOrNull()
+                                        ?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull ?: ""
+                                    android.util.Log.i("McpAppWebView", "Message from app: $content")
+                                    post {
+                                        Toast.makeText(context, "[$role] $content", Toast.LENGTH_LONG).show()
+                                        sendToWebView("""{"jsonrpc":"2.0","id":$id,"result":{}}""")
+                                    }
                                 }
                                 "ui/open-link" -> {
                                     val url = msg["params"]?.jsonObject?.get("url")?.jsonPrimitive?.contentOrNull
                                     android.util.Log.i("McpAppWebView", "Open link: $url")
-                                    val response = """{"jsonrpc":"2.0","id":$id,"result":{}}"""
-                                    post { sendToWebView(response) }
+                                    post {
+                                        if (url != null) {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(context, "Cannot open: $url", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        sendToWebView("""{"jsonrpc":"2.0","id":$id,"result":{}}""")
+                                    }
+                                }
+                                "notifications/message" -> {
+                                    // Logging from app
+                                    val params = msg["params"]?.jsonObject
+                                    val level = params?.get("level")?.jsonPrimitive?.contentOrNull ?: "info"
+                                    val data = params?.get("data")?.jsonPrimitive?.contentOrNull ?: ""
+                                    android.util.Log.i("McpAppWebView", "Log [$level]: $data")
+                                    post {
+                                        Toast.makeText(context, "Log: $data", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                "tools/call" -> {
+                                    // App wants to call a server tool (e.g., Get Server Time)
+                                    val params = msg["params"]?.jsonObject
+                                    val toolName = params?.get("name")?.jsonPrimitive?.contentOrNull
+                                    android.util.Log.i("McpAppWebView", "Tool call: $toolName")
+                                    post {
+                                        Toast.makeText(context, "Tool call: $toolName (not implemented)", Toast.LENGTH_SHORT).show()
+                                        // TODO: Forward to MCP client
+                                        sendToWebView("""{"jsonrpc":"2.0","id":$id,"error":{"code":-32601,"message":"Tool call forwarding not implemented"}}""")
+                                    }
                                 }
                                 else -> {
                                     android.util.Log.w("McpAppWebView", "Unknown method: $method")
