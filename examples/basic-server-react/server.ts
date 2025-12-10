@@ -64,30 +64,75 @@ app.use(cors());
 app.use(express.json());
 
 // SSE endpoint for Kotlin/native clients
-const sseTransports = new Map<string, SSEServerTransport>();
+// Each SSE connection needs its own MCP server instance
+const sseSessions = new Map<string, { transport: SSEServerTransport; server: McpServer }>();
 
 app.get("/sse", async (req: Request, res: Response) => {
-  const transport = new SSEServerTransport("/messages", res);
-  const sessionId = transport.sessionId;
-  sseTransports.set(sessionId, transport);
+  try {
+    // Create a new McpServer for this SSE session
+    const sseServer = new McpServer({
+      name: "Basic MCP App Server (React-based)",
+      version: "1.0.0",
+    });
 
-  res.on("close", () => {
-    sseTransports.delete(sessionId);
-    transport.close();
-  });
+    // Register the same tool and resource
+    const resourceUri = "ui://get-time/mcp-app.html";
+    sseServer.registerTool(
+      "get-time",
+      {
+        title: "Get Time",
+        description: "Returns the current server time as an ISO 8601 string.",
+        inputSchema: {},
+        _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      },
+      async (): Promise<CallToolResult> => {
+        const time = new Date().toISOString();
+        return {
+          content: [{ type: "text", text: JSON.stringify({ time }) }],
+        };
+      },
+    );
 
-  await server.connect(transport);
-  await transport.start();
+    sseServer.registerResource(
+      resourceUri,
+      resourceUri,
+      {},
+      async (): Promise<ReadResourceResult> => {
+        const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
+        return {
+          contents: [
+            { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+          ],
+        };
+      },
+    );
+
+    const transport = new SSEServerTransport("/messages", res);
+    const sessionId = transport.sessionId;
+    sseSessions.set(sessionId, { transport, server: sseServer });
+
+    res.on("close", () => {
+      sseSessions.delete(sessionId);
+      transport.close();
+    });
+
+    await sseServer.connect(transport);
+  } catch (error) {
+    console.error("SSE connection error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "SSE connection failed" });
+    }
+  }
 });
 
 app.post("/messages", async (req: Request, res: Response) => {
   const sessionId = req.query.sessionId as string;
-  const transport = sseTransports.get(sessionId);
-  if (!transport) {
+  const session = sseSessions.get(sessionId);
+  if (!session) {
     res.status(404).json({ error: "Session not found" });
     return;
   }
-  await transport.handlePostMessage(req, res, req.body);
+  await session.transport.handlePostMessage(req, res, req.body);
 });
 
 // StreamableHTTP endpoint for web clients
