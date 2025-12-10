@@ -316,7 +316,7 @@ fun McpAppWebView(
             val script = """
                 (function() {
                     try {
-                        const msg = ${"$"}message;
+                        const msg = $message;
                         window.dispatchEvent(new MessageEvent('message', {
                             data: msg,
                             origin: window.location.origin,
