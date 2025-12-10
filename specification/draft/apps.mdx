@@ -586,12 +586,12 @@ Guest UI behavior (optional):
 
 Host MUST send this notification when tool execution completes (if UI is displayed during tool execution).
 
-`ui/tool-cancelled` - Tool execution was cancelled
+`ui/notifications/tool-cancelled` - Tool execution was cancelled
 
 ```typescript
 {
   jsonrpc: "2.0",
-  method: "ui/tool-cancelled",
+  method: "ui/notifications/tool-cancelled",
   params: {
     reason: string
   }
