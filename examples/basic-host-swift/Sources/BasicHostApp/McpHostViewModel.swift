@@ -92,8 +92,24 @@ class McpHostViewModel: ObservableObject {
         mcpClient = nil
         tools = []
         selectedTool = nil
-        activeToolCalls = []
         connectionState = .disconnected
+    }
+
+    /// Switch to a different server (disconnect current, connect to new)
+    func switchServer(to index: Int) async {
+        // Don't switch if already on this server and connected
+        if index == selectedServerIndex && connectionState == .connected {
+            return
+        }
+
+        // Disconnect from current server if connected
+        if connectionState == .connected {
+            await disconnect()
+        }
+
+        // Update selection and connect
+        selectedServerIndex = index
+        await connect()
     }
 
     // MARK: - Tool Execution

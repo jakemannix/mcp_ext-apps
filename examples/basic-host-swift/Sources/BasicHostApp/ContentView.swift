@@ -110,9 +110,8 @@ struct ContentView: View {
         Menu {
             ForEach(Array(McpHostViewModel.knownServers.enumerated()), id: \.offset) { index, server in
                 Button(action: {
-                    viewModel.selectedServerIndex = index
-                    if viewModel.connectionState != .connected {
-                        Task { await viewModel.connect() }
+                    Task {
+                        await viewModel.switchServer(to: index)
                     }
                 }) {
                     HStack {
@@ -126,6 +125,7 @@ struct ContentView: View {
             Divider()
             Button("Custom URL...") {
                 viewModel.selectedServerIndex = -1
+                viewModel.connectionState = .disconnected
             }
         } label: {
             HStack {
