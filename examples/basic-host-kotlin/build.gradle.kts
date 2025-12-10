@@ -57,6 +57,10 @@ dependencies {
     // MCP Kotlin SDK core
     implementation("io.modelcontextprotocol:kotlin-sdk:0.8.1")
 
+    // Ktor client for HTTP transport
+    implementation("io.ktor:ktor-client-core:3.2.3")
+    implementation("io.ktor:ktor-client-cio:3.2.3")
+
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

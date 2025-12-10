@@ -1,40 +1,30 @@
 package com.example.mcpappshost
 
 import android.os.Bundle
-import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 
-/**
- * Main Activity demonstrating MCP Apps hosting in Android.
- *
- * This activity:
- * 1. Connects to an MCP server
- * 2. Lists available tools
- * 3. Allows calling a tool
- * 4. Displays the tool's UI resource in a WebView
- * 5. Uses AppBridge to communicate with the Guest UI
- */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     McpHostApp()
                 }
             }
@@ -42,272 +32,246 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
-    val uiState by viewModel.uiState.collectAsState()
+    val toolCalls by viewModel.toolCalls.collectAsState()
+    val connectionState by viewModel.connectionState.collectAsState()
+    val tools by viewModel.tools.collectAsState()
+    val selectedTool by viewModel.selectedTool.collectAsState()
+    val selectedServerIndex by viewModel.selectedServerIndex.collectAsState()
+    val toolInputJson by viewModel.toolInputJson.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Header
-        Text(
-            text = "MCP Apps Host",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    var isInputExpanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-        when (val state = uiState) {
-            is McpUiState.Idle -> {
-                IdleScreen(
-                    serverUrl = state.serverUrl,
-                    onServerUrlChange = viewModel::updateServerUrl,
-                    onConnect = viewModel::connectToServer
-                )
-            }
-            is McpUiState.Connecting -> {
-                LoadingScreen(message = "Connecting to server...")
-            }
-            is McpUiState.Connected -> {
-                ConnectedScreen(
-                    serverName = state.serverName,
-                    tools = state.tools,
-                    selectedTool = state.selectedTool,
-                    toolInput = state.toolInput,
-                    onToolSelect = viewModel::selectTool,
-                    onInputChange = viewModel::updateToolInput,
-                    onCallTool = viewModel::callTool
-                )
-            }
-            is McpUiState.ToolExecuting -> {
-                LoadingScreen(message = "Calling tool ${state.toolName}...")
-            }
-            is McpUiState.ShowingApp -> {
-                AppDisplayScreen(
-                    toolName = state.toolName,
-                    webViewState = state.webViewState,
-                    onBack = viewModel::reset
-                )
-            }
-            is McpUiState.Error -> {
-                ErrorScreen(
-                    error = state.message,
-                    onRetry = viewModel::reset
-                )
-            }
+    // Auto-scroll to new tool calls
+    LaunchedEffect(toolCalls.size) {
+        if (toolCalls.isNotEmpty()) {
+            listState.animateScrollToItem(toolCalls.size - 1)
         }
     }
-}
 
-@Composable
-fun IdleScreen(
-    serverUrl: String,
-    onServerUrlChange: (String) -> Unit,
-    onConnect: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Connect to MCP Server",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        OutlinedTextField(
-            value = serverUrl,
-            onValueChange = onServerUrlChange,
-            label = { Text("Server URL") },
-            placeholder = { Text("http://localhost:3000/sse") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Button(
-            onClick = onConnect,
-            modifier = Modifier.align(Alignment.End),
-            enabled = serverUrl.isNotBlank()
-        ) {
-            Text("Connect")
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text("MCP Host") })
+        },
+        bottomBar = {
+            BottomToolbar(
+                connectionState = connectionState,
+                selectedServerIndex = selectedServerIndex,
+                tools = tools,
+                selectedTool = selectedTool,
+                toolInputJson = toolInputJson,
+                isInputExpanded = isInputExpanded,
+                onServerSelect = { viewModel.switchServer(it) },
+                onToolSelect = { viewModel.selectTool(it) },
+                onInputChange = { viewModel.updateToolInput(it) },
+                onExpandToggle = { isInputExpanded = !isInputExpanded },
+                onCallTool = { viewModel.callTool() }
+            )
         }
-    }
-}
-
-@Composable
-fun LoadingScreen(message: String) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        CircularProgressIndicator()
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = message)
-    }
-}
-
-@Composable
-fun ConnectedScreen(
-    serverName: String,
-    tools: List<String>,
-    selectedTool: String,
-    toolInput: String,
-    onToolSelect: (String) -> Unit,
-    onInputChange: (String) -> Unit,
-    onCallTool: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Connected to: $serverName",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Text(
-            text = "Available Tools:",
-            style = MaterialTheme.typography.titleSmall
-        )
-
-        // Tool selection
-        if (tools.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+    ) { paddingValues ->
+        if (toolCalls.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                contentAlignment = Alignment.Center
             ) {
-                items(tools) { tool ->
-                    RadioButtonItem(
-                        text = tool,
-                        selected = tool == selectedTool,
-                        onClick = { onToolSelect(tool) }
-                    )
-                }
-            }
-
-            // Tool input
-            Text(
-                text = "Tool Input (JSON):",
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            OutlinedTextField(
-                value = toolInput,
-                onValueChange = onInputChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                placeholder = { Text("{}") }
-            )
-
-            Button(
-                onClick = onCallTool,
-                modifier = Modifier.align(Alignment.End),
-                enabled = selectedTool.isNotBlank()
-            ) {
-                Text("Call Tool")
+                Text("No active tool calls", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            Text(
-                text = "No tools available",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
-            )
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(toolCalls, key = { it.id }) { toolCall ->
+                    ToolCallCard(toolCall = toolCall, onRemove = { viewModel.removeToolCall(toolCall) })
+                }
+            }
         }
     }
 }
 
 @Composable
-fun RadioButtonItem(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
+fun BottomToolbar(
+    connectionState: ConnectionState,
+    selectedServerIndex: Int,
+    tools: List<ToolInfo>,
+    selectedTool: ToolInfo?,
+    toolInputJson: String,
+    isInputExpanded: Boolean,
+    onServerSelect: (Int) -> Unit,
+    onToolSelect: (ToolInfo) -> Unit,
+    onInputChange: (String) -> Unit,
+    onExpandToggle: () -> Unit,
+    onCallTool: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
-        Text(
-            text = text,
-            modifier = Modifier.padding(start = 8.dp)
-        )
-    }
-}
+    val isConnected = connectionState is ConnectionState.Connected
 
-@Composable
-fun AppDisplayScreen(
-    toolName: String,
-    webViewState: WebViewState,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Header with back button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Tool: $toolName",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Button(onClick = onBack) {
-                Text("Back")
+    Column(modifier = Modifier.fillMaxWidth()) {
+        AnimatedVisibility(visible = isInputExpanded && isConnected) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Input (JSON)", style = MaterialTheme.typography.labelSmall)
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = toolInputJson,
+                    onValueChange = onInputChange,
+                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                )
             }
         }
 
-        // WebView displaying the MCP App UI
-        AndroidView(
-            factory = { context ->
-                WebView(context).apply {
-                    // WebView configuration is handled by the ViewModel
-                    webViewState.webView = this
+        HorizontalDivider()
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ServerPicker(selectedServerIndex, connectionState, onServerSelect, Modifier.weight(1f))
+
+            if (isConnected) {
+                ToolPicker(tools, selectedTool, onToolSelect, Modifier.weight(1f))
+
+                IconButton(onClick = onExpandToggle) {
+                    Icon(
+                        if (isInputExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Toggle input"
+                    )
                 }
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-        )
+
+                Button(onClick = onCallTool, enabled = selectedTool != null) {
+                    Text("Call")
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun ErrorScreen(
-    error: String,
-    onRetry: () -> Unit
+fun ServerPicker(
+    selectedServerIndex: Int,
+    connectionState: ConnectionState,
+    onServerSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Error",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.error
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = error,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) {
-            Text("Retry")
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.clickable { expanded = true }.padding(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (selectedServerIndex in knownServers.indices) knownServers[selectedServerIndex].first else "Custom",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+            if (connectionState is ConnectionState.Connecting) {
+                Spacer(modifier = Modifier.width(4.dp))
+                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+            }
+        }
+
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            knownServers.forEachIndexed { index, (name, _) ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = { expanded = false; onServerSelect(index) },
+                    leadingIcon = if (index == selectedServerIndex && connectionState is ConnectionState.Connected) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolPicker(
+    tools: List<ToolInfo>,
+    selectedTool: ToolInfo?,
+    onToolSelect: (ToolInfo) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.clickable(enabled = tools.isNotEmpty()) { expanded = true }.padding(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(selectedTool?.name ?: "Select tool", style = MaterialTheme.typography.bodySmall)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+        }
+
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            tools.forEach { tool ->
+                DropdownMenuItem(text = { Text(tool.name) }, onClick = { expanded = false; onToolSelect(tool) })
+            }
+        }
+    }
+}
+
+@Composable
+fun ToolCallCard(toolCall: ToolCallState, onRemove: () -> Unit) {
+    var isInputExpanded by remember { mutableStateOf(false) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(toolCall.toolName, style = MaterialTheme.typography.titleSmall)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val (color, text) = when (toolCall.state) {
+                        ToolCallState.State.CALLING -> MaterialTheme.colorScheme.tertiary to "Calling"
+                        ToolCallState.State.LOADING_UI -> MaterialTheme.colorScheme.tertiary to "Loading"
+                        ToolCallState.State.READY -> MaterialTheme.colorScheme.primary to "Ready"
+                        ToolCallState.State.COMPLETED -> MaterialTheme.colorScheme.primary to "Done"
+                        ToolCallState.State.ERROR -> MaterialTheme.colorScheme.error to "Error"
+                    }
+                    Surface(color = color.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
+                        Text(text, color = color, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(4.dp))
+                    }
+
+                    IconButton(onClick = { isInputExpanded = !isInputExpanded }, modifier = Modifier.size(24.dp)) {
+                        Icon(if (isInputExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = "Toggle")
+                    }
+
+                    IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove")
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = isInputExpanded) {
+                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small, modifier = Modifier.padding(top = 8.dp)) {
+                    Text(toolCall.input, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), modifier = Modifier.padding(8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            when {
+                toolCall.error != null -> {
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
+                        Text(toolCall.error, color = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.padding(8.dp))
+                    }
+                }
+                toolCall.state == ToolCallState.State.COMPLETED && toolCall.result != null -> {
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
+                        Text(toolCall.result, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), modifier = Modifier.padding(8.dp))
+                    }
+                }
+                toolCall.state == ToolCallState.State.CALLING || toolCall.state == ToolCallState.State.LOADING_UI -> {
+                    Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Loading...", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
         }
     }
 }

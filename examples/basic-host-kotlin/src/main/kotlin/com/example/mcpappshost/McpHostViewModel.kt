@@ -4,12 +4,11 @@ import android.util.Log
 import android.webkit.WebView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.modelcontextprotocol.apps.AppBridge
-import io.modelcontextprotocol.apps.HostOptions
 import io.modelcontextprotocol.apps.generated.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -131,14 +130,15 @@ class McpHostViewModel : ViewModel() {
                 _connectionState.value = ConnectionState.Connecting
                 Log.i(TAG, "Connecting to $serverUrl")
 
+                val httpClient = HttpClient(CIO)
+                val transport = SseClientTransport(httpClient, serverUrl)
+
                 val client = Client(
                     clientInfo = io.modelcontextprotocol.kotlin.sdk.types.Implementation(
                         name = "BasicHostKotlin",
                         version = "1.0.0"
                     )
                 )
-
-                val transport = SseClientTransport(serverUrl)
                 client.connect(transport)
 
                 mcpClient = client
@@ -193,11 +193,11 @@ class McpHostViewModel : ViewModel() {
                     null
                 }
 
-                // Call the tool
-                val (content, isError) = client.callTool(tool.name, null)
+                // Call the tool (name, arguments, meta, options)
+                val callResult = client.callTool(tool.name, emptyMap(), emptyMap())
 
                 // Update tool call with result
-                val resultText = content.joinToString("\n") { it.toString() }
+                val resultText = callResult.content.joinToString("\n") { it.toString() }
 
                 updateToolCall(toolCall.id) { it.copy(
                     state = ToolCallState.State.COMPLETED,
