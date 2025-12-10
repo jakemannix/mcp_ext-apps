@@ -9,6 +9,7 @@
  * ## Main Exports
  *
  * - {@link useApp} - React hook to create and connect an MCP App
+ * - {@link useHostStyles} - React hook to apply host styles as CSS variables
  * - {@link useAutoResize} - React hook for manual auto-resize control (rarely needed)
  *
  * @module @modelcontextprotocol/ext-apps/react
@@ -32,3 +33,4 @@
  */
 export * from "./useApp";
 export * from "./useAutoResize";
+export * from "./useHostStyles";
