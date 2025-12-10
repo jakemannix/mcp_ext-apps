@@ -54,10 +54,10 @@ android {
 
 dependencies {
     // MCP Apps Kotlin SDK (from local project)
-    implementation(project(":sdk:kotlin"))
+    implementation("io.modelcontextprotocol:mcp-apps-kotlin-sdk")
 
     // MCP Kotlin SDK core
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0")
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.8.1")
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
