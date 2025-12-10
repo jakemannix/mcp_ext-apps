@@ -215,8 +215,9 @@ describe("App <-> AppBridge integration", () => {
 
     it("app.sendContext triggers bridge.oncontext and returns result", async () => {
       const receivedContexts: unknown[] = [];
-      bridge.oncontext = (params) => {
+      bridge.oncontext = async (params) => {
         receivedContexts.push(params);
+        return {};
       };
 
       await app.connect(appTransport);
@@ -235,8 +236,9 @@ describe("App <-> AppBridge integration", () => {
 
     it("app.sendContext works with multiple content blocks", async () => {
       const receivedContexts: unknown[] = [];
-      bridge.oncontext = (params) => {
+      bridge.oncontext = async (params) => {
         receivedContexts.push(params);
+        return {};
       };
 
       await app.connect(appTransport);
@@ -257,6 +259,20 @@ describe("App <-> AppBridge integration", () => {
         ],
       });
       expect(result).toEqual({});
+    });
+
+    it("app.sendContext returns error result when handler indicates error", async () => {
+      bridge.oncontext = async () => {
+        return { isError: true };
+      };
+
+      await app.connect(appTransport);
+      const result = await app.sendContext({
+        role: "user",
+        content: [{ type: "text", text: "Test" }],
+      });
+
+      expect(result.isError).toBe(true);
     });
   });
 

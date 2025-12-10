@@ -41,6 +41,7 @@ import {
   McpUiAppCapabilities,
   McpUiUpdateContextRequest,
   McpUiUpdateContextRequestSchema,
+  McpUiUpdateContextResult,
   McpUiHostCapabilities,
   McpUiHostContext,
   McpUiHostContextChangedNotification,
@@ -512,30 +513,46 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
    * future reasoning. Unlike logging messages, context updates are intended to be
    * available to the agent for decision making.
    *
-   * @param callback - Handler that receives context update params
+   * @param callback - Handler that receives context update params and returns a result
    *   - params.role - Message role (currently only "user")
    *   - params.content - Content blocks (text, image, etc.)
+   *   - extra - Request metadata (abort signal, session info)
+   *   - Returns: Promise<McpUiUpdateContextResult> with optional isError flag
    *
    * @example
    * ```typescript
-   * bridge.oncontext = ({ role, content }) => {
-   *   // Store context update for agent reasoning
-   *   conversationContext.push({
-   *     type: "app_context",
-   *     role,
-   *     content,
-   *     timestamp: Date.now()
-   *   });
+   * bridge.oncontext = async ({ role, content }, extra) => {
+   *   try {
+   *     // Store context update for agent reasoning
+   *     conversationContext.push({
+   *       type: "app_context",
+   *       role,
+   *       content,
+   *       timestamp: Date.now()
+   *     });
+   *     return {};
+   *   } catch (err) {
+   *     // Handle error and signal failure to the app
+   *     return { isError: true };
+   *   }
    * };
    * ```
+   *
+   * @see {@link McpUiUpdateContextRequest} for the request type
+   * @see {@link McpUiUpdateContextResult} for the result type
    */
   set oncontext(
-    callback: (params: McpUiUpdateContextRequest["params"]) => void,
+    callback: (
+      params: McpUiUpdateContextRequest["params"],
+      extra: RequestHandlerExtra,
+    ) => Promise<McpUiUpdateContextResult>,
   ) {
-    this.setRequestHandler(McpUiUpdateContextRequestSchema, async (request) => {
-      callback(request.params);
-      return {};
-    });
+    this.setRequestHandler(
+      McpUiUpdateContextRequestSchema,
+      async (request, extra) => {
+        return callback(request.params, extra);
+      },
+    );
   }
 
   /**
