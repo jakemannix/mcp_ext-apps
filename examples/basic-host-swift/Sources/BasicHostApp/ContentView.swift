@@ -70,7 +70,19 @@ struct ContentView: View {
             }
 
             HStack {
-                if viewModel.connectionState == .disconnected || viewModel.connectionState == .error("") {
+                if case .error = viewModel.connectionState {
+                    // Error state - show Retry button
+                    Button(action: {
+                        Task {
+                            await viewModel.connect()
+                        }
+                    }) {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                } else if viewModel.connectionState == .disconnected {
                     Button(action: {
                         Task {
                             await viewModel.connect()
@@ -80,6 +92,17 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                } else if viewModel.connectionState == .connecting {
+                    Button(action: {}) {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Connecting...")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(true)
                 } else if viewModel.connectionState == .connected {
                     Button(action: {
                         Task {
@@ -95,12 +118,18 @@ struct ContentView: View {
             }
 
             if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(8)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(4)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Text("Tap Retry to try again")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(4)
             }
         }
         .padding()
