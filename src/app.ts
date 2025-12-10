@@ -680,14 +680,14 @@ export class App extends Protocol<Request, Notification, Result> {
    *
    * Unlike `sendLog` which is for debugging/telemetry, context updates are intended
    * to inform the agent about app state changes that should be available for future
-   * reasoning without requiring a follow-up action (i.e., a prompt).
+   * reasoning without requiring a follow-up action (like `sendMessage`).
    *
    * @param params - Context role and content (same structure as ui/message)
    * @param options - Request options (timeout, etc.)
    *
    * @example Notify agent of significant state change
    * ```typescript
-   * await app.sendContext({
+   * await app.sendUpdateContext({
    *   role: "user",
    *   content: [{ type: "text", text: "User selected 3 items totaling $150.00" }]
    * });
@@ -695,7 +695,7 @@ export class App extends Protocol<Request, Notification, Result> {
    *
    * @returns Promise that resolves when the context update is acknowledged
    */
-  sendContext(
+  sendUpdateContext(
     params: McpUiUpdateContextRequest["params"],
     options?: RequestOptions,
   ) {

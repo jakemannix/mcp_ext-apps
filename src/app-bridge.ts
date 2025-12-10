@@ -521,7 +521,7 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
    *
    * @example
    * ```typescript
-   * bridge.oncontext = async ({ role, content }, extra) => {
+   * bridge.onupdatecontext = async ({ role, content }, extra) => {
    *   try {
    *     // Store context update for agent reasoning
    *     conversationContext.push({
@@ -541,7 +541,7 @@ export class AppBridge extends Protocol<Request, Notification, Result> {
    * @see {@link McpUiUpdateContextRequest} for the request type
    * @see {@link McpUiUpdateContextResult} for the result type
    */
-  set oncontext(
+  set onupdatecontext(
     callback: (
       params: McpUiUpdateContextRequest["params"],
       extra: RequestHandlerExtra,
