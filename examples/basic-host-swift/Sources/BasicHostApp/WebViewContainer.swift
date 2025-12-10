@@ -23,8 +23,6 @@ struct WebViewContainer: UIViewRepresentable {
         // Create web view
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.scrollView.isScrollEnabled = true
-        webView.scrollView.showsHorizontalScrollIndicator = false
-        webView.scrollView.bounces = false
         webView.isOpaque = false
         webView.backgroundColor = .clear
 
@@ -55,19 +53,9 @@ struct WebViewContainer: UIViewRepresentable {
                 // Set up AppBridge with callbacks
                 try await toolCallInfo.setupAppBridge(transport: transport)
 
-                // Inject viewport, CSS, and bridge script
+                // Inject viewport meta and bridge script
                 let injectedContent = """
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-                <style>
-                    html, body {
-                        max-width: 100% !important;
-                        overflow-x: hidden !important;
-                        box-sizing: border-box !important;
-                    }
-                    *, *::before, *::after {
-                        box-sizing: inherit !important;
-                    }
-                </style>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=yes">
                 <script>
                 (function() {
                     window.parent = window.parent || {};
