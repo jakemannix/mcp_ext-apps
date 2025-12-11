@@ -1,11 +1,12 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
-# Build artifacts
-examples/basic-host-swift/.build/
-examples/basic-host-kotlin/build/
-examples/basic-host-kotlin/.gradle/
+# IDE
+.idea/
+*.iml
 
-# Kotlin build artifacts
-kotlin/.gradle/
-kotlin/build/
-examples/basic-host-kotlin/.gradle/
-examples/basic-host-kotlin/build/
+# Local properties
+local.properties
