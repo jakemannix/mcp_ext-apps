@@ -238,6 +238,7 @@ fun ToolCallCard(
     onToolCall: (suspend (name: String, arguments: Map<String, Any>?) -> String)? = null
 ) {
     var isInputExpanded by remember { mutableStateOf(false) }
+    var webViewHeight by remember { mutableIntStateOf(toolCall.preferredHeight) }
 
     // Dimmed appearance when destroying (waiting for teardown)
     val cardAlpha = if (toolCall.isDestroying) 0.5f else 1f
@@ -308,9 +309,10 @@ fun ToolCallCard(
                         isDestroying = toolCall.isDestroying,
                         onTeardownComplete = onCloseComplete,
                         onToolCall = onToolCall,
+                        onSizeChanged = { height -> webViewHeight = height },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(toolCall.preferredHeight.dp)
+                            .height(webViewHeight.dp)
                     )
                 }
                 toolCall.state == ToolCallState.State.COMPLETED && toolCall.result != null -> {
@@ -339,6 +341,7 @@ fun McpAppWebView(
     isDestroying: Boolean = false,
     onTeardownComplete: (() -> Unit)? = null,
     onToolCall: (suspend (name: String, arguments: Map<String, Any>?) -> String)? = null,
+    onSizeChanged: ((height: Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -348,6 +351,7 @@ fun McpAppWebView(
     var initialized by remember { mutableStateOf(false) }
     var teardownRequestId by remember { mutableStateOf(0) }
     var teardownCompleted by remember { mutableStateOf(false) }
+    var currentHeight by remember { mutableIntStateOf(toolCall.preferredHeight) }
 
     // Inject bridge script into HTML
     val injectedHtml = remember(toolCall.htmlContent) {
@@ -485,8 +489,10 @@ fun McpAppWebView(
                                 "ui/notifications/size-changed" -> {
                                     val params = msg["params"]?.jsonObject
                                     val height = params?.get("height")?.jsonPrimitive?.intOrNull
-                                    if (height != null) {
+                                    if (height != null && height > 0) {
                                         android.util.Log.i("McpAppWebView", "Size changed: height=$height")
+                                        currentHeight = height
+                                        onSizeChanged?.invoke(height)
                                     }
                                 }
                                 "ui/message" -> {
