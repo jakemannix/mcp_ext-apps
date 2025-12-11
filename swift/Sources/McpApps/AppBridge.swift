@@ -231,8 +231,8 @@ public actor AppBridge {
             params: dict.mapValues { AnyCodable($0) })
     }
 
-    public func sendResourceTeardown() async throws -> McpUiResourceTeardownResult {
-        _ = try await sendRequest(method: "ui/resource-teardown", params: [:])
+    public func sendResourceTeardown(timeout: TimeInterval = 5) async throws -> McpUiResourceTeardownResult {
+        _ = try await sendRequest(method: "ui/resource-teardown", params: [:], timeout: timeout)
         return McpUiResourceTeardownResult()
     }
 
@@ -242,29 +242,40 @@ public actor AppBridge {
         try await transport?.send(.notification(JSONRPCNotification(method: method, params: params)))
     }
 
-    private func sendRequest(method: String, params: [String: AnyCodable]?) async throws -> AnyCodable {
+    private func sendRequest(method: String, params: [String: AnyCodable]?, timeout: TimeInterval = 30) async throws -> AnyCodable {
         let id = JSONRPCId.number(nextRequestId)
         nextRequestId += 1
         let request = JSONRPCRequest(id: id, method: method, params: params)
 
-        guard transport != nil else {
-            print("[AppBridge] sendRequest failed: transport is nil")
+        guard let transport = transport else {
             throw BridgeError.disconnected
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
+        // Create the continuation and store it
+        let result: AnyCodable = try await withCheckedThrowingContinuation { continuation in
             pendingRequests[id] = continuation
+
+            // Start timeout task
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                // If still pending after timeout, fail it
+                await self.failPendingRequest(id: id, error: BridgeError.timeout)
+            }
+
+            // Send the request
             Task {
                 do {
-                    print("[AppBridge] Sending request: \(method)")
-                    try await transport?.send(.request(request))
-                    print("[AppBridge] Request sent successfully, waiting for response...")
+                    try await transport.send(.request(request))
                 } catch {
-                    print("[AppBridge] Transport send failed: \(error)")
-                    pendingRequests.removeValue(forKey: id)?.resume(throwing: error)
+                    await self.failPendingRequest(id: id, error: error)
                 }
             }
         }
+        return result
+    }
+
+    private func failPendingRequest(id: JSONRPCId, error: Error) {
+        pendingRequests.removeValue(forKey: id)?.resume(throwing: error)
     }
 }
 

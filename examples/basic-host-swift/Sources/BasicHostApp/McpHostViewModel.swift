@@ -515,32 +515,20 @@ class ToolCallInfo: ObservableObject, Identifiable {
         var errorMessage: String?
 
         if let bridge = appBridge {
-            logger.info("Sending teardown request...")
-
-            // Race between teardown and timeout
-            await withTaskGroup(of: String?.self) { group in
-                group.addTask {
-                    do {
-                        logger.info("Calling bridge.sendResourceTeardown()...")
-                        _ = try await bridge.sendResourceTeardown()
-                        logger.info("Teardown request completed successfully")
-                        return nil
-                    } catch {
-                        logger.error("Teardown request failed: \(String(describing: error)), type: \(type(of: error))")
-                        return "Teardown failed: app may not have saved data"
-                    }
+            // Only send teardown if the bridge is initialized
+            // If not initialized, the app hasn't done anything worth saving
+            let isReady = await bridge.isReady()
+            if isReady {
+                logger.info("Sending teardown request...")
+                do {
+                    _ = try await bridge.sendResourceTeardown()
+                    logger.info("Teardown request completed successfully")
+                } catch {
+                    logger.error("Teardown request failed: \(String(describing: error))")
+                    errorMessage = "Teardown failed: app may not have saved data"
                 }
-                group.addTask {
-                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second timeout
-                    logger.warning("Teardown timeout reached after 5 seconds")
-                    return "Teardown timed out: app may not have saved data"
-                }
-                // Wait for first to complete
-                if let result = await group.next() {
-                    errorMessage = result
-                }
-                logger.info("Task group completed")
-                group.cancelAll()
+            } else {
+                logger.info("Skipping teardown - bridge not yet initialized")
             }
 
             logger.info("Closing bridge...")
