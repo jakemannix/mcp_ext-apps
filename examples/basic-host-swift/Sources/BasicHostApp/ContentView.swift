@@ -47,6 +47,20 @@ struct ContentView: View {
             }
             .navigationTitle("MCP Host")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .bottom) {
+                if let toast = viewModel.toastMessage {
+                    Text(toast)
+                        .font(.footnote)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Color.red.opacity(0.9))
+                        .cornerRadius(8)
+                        .padding(.bottom, 80) // Above toolbar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut, value: viewModel.toastMessage)
+                }
+            }
         }
     }
 

@@ -9,10 +9,8 @@ echo "📋 Streaming logs from $BUNDLE_ID on '$SIMULATOR'..."
 echo "   Press Ctrl+C to stop"
 echo ""
 
-# Stream logs, filtering for our app
+# Stream logs, filtering for our app (both OSLog and print statements)
 xcrun simctl spawn "$SIMULATOR" log stream \
     --predicate "subsystem == '$BUNDLE_ID' OR process == 'BasicHostSwift'" \
-    --style compact 2>/dev/null || \
-xcrun simctl spawn "$SIMULATOR" log stream \
-    --predicate "process == 'BasicHostSwift'" \
+    --level debug \
     --style compact

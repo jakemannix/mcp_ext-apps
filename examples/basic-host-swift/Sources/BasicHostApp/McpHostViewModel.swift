@@ -2,6 +2,9 @@ import Foundation
 import SwiftUI
 import MCP
 import McpApps
+import os.log
+
+private let logger = Logger(subsystem: "com.example.BasicHostSwift", category: "ToolCall")
 
 /// View model managing MCP server connection and tool execution.
 @MainActor
@@ -22,6 +25,15 @@ class McpHostViewModel: ObservableObject {
     }
     @Published var activeToolCalls: [ToolCallInfo] = []
     @Published var errorMessage: String?
+    @Published var toastMessage: String?
+
+    func showToast(_ message: String, duration: TimeInterval = 3.0) {
+        toastMessage = message
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            await MainActor.run { self.toastMessage = nil }
+        }
+    }
 
     /// Known MCP servers (matches examples/servers.json)
     static let knownServers = [
@@ -240,7 +252,9 @@ class McpHostViewModel: ObservableObject {
     }
 
     func removeToolCall(_ toolCall: ToolCallInfo) async {
-        await toolCall.teardown()
+        if let error = await toolCall.teardown() {
+            showToast(error)
+        }
         activeToolCalls.removeAll { $0.id == toolCall.id }
     }
 }
@@ -465,8 +479,10 @@ class ToolCallInfo: ObservableObject, Identifiable {
             ]
         }
 
+        logger.info("Connecting bridge to transport...")
         try await bridge.connect(transport)
         self.appBridge = bridge
+        logger.info("AppBridge is now set and ready")
     }
 
     private func sendToolResult(_ result: ToolResult, to bridge: AppBridge) async throws {
@@ -486,33 +502,56 @@ class ToolCallInfo: ObservableObject, Identifiable {
     }
 
     /// Teardown the app bridge before removing the tool call
-    func teardown() async {
+    /// Returns an error message if teardown failed, nil on success
+    func teardown() async -> String? {
         // Prevent double-tap
-        guard !isTearingDown else { return }
+        guard !isTearingDown else {
+            logger.info("Teardown already in progress, skipping")
+            return nil
+        }
         isTearingDown = true
+        logger.info("Starting teardown, appBridge exists: \(self.appBridge != nil)")
+
+        var errorMessage: String?
 
         if let bridge = appBridge {
-            do {
-                // Use a timeout so we don't wait forever if app is unresponsive
-                try await withThrowingTaskGroup(of: Void.self) { group in
-                    group.addTask {
+            logger.info("Sending teardown request...")
+
+            // Race between teardown and timeout
+            await withTaskGroup(of: String?.self) { group in
+                group.addTask {
+                    do {
+                        logger.info("Calling bridge.sendResourceTeardown()...")
                         _ = try await bridge.sendResourceTeardown()
+                        logger.info("Teardown request completed successfully")
+                        return nil
+                    } catch {
+                        logger.error("Teardown request failed: \(String(describing: error)), type: \(type(of: error))")
+                        return "Teardown failed: app may not have saved data"
                     }
-                    group.addTask {
-                        try await Task.sleep(nanoseconds: 5_000_000_000) // 5 second timeout
-                        throw CancellationError()
-                    }
-                    // Wait for first to complete (either teardown or timeout)
-                    try await group.next()
-                    group.cancelAll()
                 }
-            } catch {
-                print("[Host] Teardown failed or timed out: \(error)")
+                group.addTask {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 second timeout
+                    logger.warning("Teardown timeout reached after 5 seconds")
+                    return "Teardown timed out: app may not have saved data"
+                }
+                // Wait for first to complete
+                if let result = await group.next() {
+                    errorMessage = result
+                }
+                logger.info("Task group completed")
+                group.cancelAll()
             }
+
+            logger.info("Closing bridge...")
             await bridge.close()
+            logger.info("Bridge closed")
+        } else {
+            logger.warning("No bridge to teardown (appBridge is nil)")
         }
         appBridge = nil
-        // Note: isTearingDown stays true - the card will be removed from the list
+        logger.info("Teardown complete, will remove card from list")
+        return errorMessage
     }
 }
 
