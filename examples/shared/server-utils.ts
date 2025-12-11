@@ -42,9 +42,11 @@ export async function startServer(
 
   // Express app - bind to all interfaces for development/testing
   const app = createMcpExpressApp({ host: "0.0.0.0" });
-  app.use(cors({
-    exposedHeaders: ["mcp-session-id"],
-  }));
+  app.use(
+    cors({
+      exposedHeaders: ["mcp-session-id"],
+    }),
+  );
 
   // Streamable HTTP (stateful)
   app.all("/mcp", async (req: Request, res: Response) => {
