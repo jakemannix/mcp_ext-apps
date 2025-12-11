@@ -123,7 +123,7 @@ SERVERS.forEach((server) => {
 
       await expect(page).toHaveScreenshot(`${server.key}.png`, {
         mask,
-        maxDiffPixelRatio: 0.01, // 1% tolerance (tighter now that dynamic content is masked)
+        maxDiffPixelRatio: 0.06, // 6% tolerance for cross-platform font rendering differences
       });
     });
   });
