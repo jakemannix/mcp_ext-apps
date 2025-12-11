@@ -426,10 +426,14 @@ fun McpAppWebView(
             val teardownMsg = """{"jsonrpc":"2.0","id":$requestId,"method":"ui/resource-teardown","params":{}}"""
             sendToWebView(teardownMsg)
 
-            // Timeout: if no response in 3 seconds, complete anyway
-            kotlinx.coroutines.delay(3000)
+            // Poll for completion with timeout (500ms total, checking every 50ms)
+            var elapsed = 0
+            while (!teardownCompleted && elapsed < 500) {
+                kotlinx.coroutines.delay(50)
+                elapsed += 50
+            }
             if (!teardownCompleted) {
-                android.util.Log.w("McpAppWebView", "Teardown timeout, completing anyway")
+                android.util.Log.w("McpAppWebView", "Teardown timeout after ${elapsed}ms, completing anyway")
                 teardownCompleted = true
                 onTeardownComplete?.invoke()
             }
