@@ -5,6 +5,8 @@ import io.modelcontextprotocol.apps.transport.McpAppsTransport
 
 import io.modelcontextprotocol.apps.generated.*
 import kotlinx.serialization.json.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Options for configuring AppBridge behavior.
@@ -217,12 +219,18 @@ class AppBridge(
         )
     }
 
-    suspend fun sendResourceTeardown(): McpUiResourceTeardownResult {
+    /**
+     * Request the App to perform cleanup before the resource is torn down.
+     *
+     * @param timeout Maximum time to wait for the App to respond (default 500ms)
+     */
+    suspend fun sendResourceTeardown(timeout: Duration = 500.milliseconds): McpUiResourceTeardownResult {
         return request(
             method = "ui/resource-teardown",
             params = McpUiResourceTeardownParams(),
             paramsSerializer = { JsonObject(emptyMap()) },
-            resultDeserializer = { McpUiResourceTeardownResult() }
+            resultDeserializer = { McpUiResourceTeardownResult() },
+            timeout = timeout
         )
     }
 }
