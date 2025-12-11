@@ -245,21 +245,31 @@ Example:
 
 ### Resource Discovery
 
-Tools are associated with UI resources through the `_meta` field:
+Tools are associated with UI resources through the `_meta.ui` field:
 
 ```typescript
+interface McpUiToolMeta {
+  /** URI of UI resource for rendering tool results */
+  resourceUri?: string;
+  /**
+   * Who can access this tool. Default: ["model"]
+   * - "model": Tool visible to and callable by the agent
+   * - "apps": Tool callable by ui apps from this server
+   */
+  visibility?: Array<"model" | "apps">;
+}
+
 interface Tool {
   name: string;
   description: string;
   inputSchema: object;
   _meta?: {
-    // Required: URI of the UI resource to use for rendering
-    "ui/resourceUri"?: string;
+    ui?: McpUiToolMeta;
   };
 }
 ```
 
-Example:
+Example (tool visible to both model and apps):
 
 ```json
 {
@@ -272,19 +282,47 @@ Example:
     }
   },
   "_meta": {
-    "ui/resourceUri": "ui://weather-server/dashboard-template"
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["model", "apps"]
+    }
+  }
+}
+```
+
+Example (app-only tool, hidden from model):
+
+```json
+{
+  "name": "refresh_dashboard",
+  "description": "Refresh dashboard data",
+  "inputSchema": { "type": "object" },
+  "_meta": {
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["apps"]
+    }
   }
 }
 ```
 
 #### Behavior:
 
-- If `ui/resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
+- If `ui.resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
 - If host does not support MCP Apps, tool behaves as standard tool (text-only fallback)
 - Resource MUST exist on the server
-- Host MUST use `resources/read` to fetch the referenced resource URI.
+- Host MUST use `resources/read` to fetch the referenced resource URI
 - Host MAY prefetch and cache UI resource content for performance optimization
 - Since UI resources are primarily discovered through tool metadata, Servers MAY omit UI-only resources from `resources/list` and `notifications/resources/list_changed`
+
+#### Visibility:
+
+- `visibility` defaults to `["model"]` if omitted (standard MCP behavior)
+- `"model"`: Tool is visible to and callable by the agent
+- `"apps"`: Tool is callable by apps from the same server connection only
+- Host MUST NOT include tools with `visibility: ["apps"]` in the agent's tool list
+- Host MUST reject `tools/call` requests from apps for tools that don't include `"apps"` in visibility
+- Cross-server tool calls are always blocked for app-only tools
 
 #### Benefits:
 
@@ -879,7 +917,7 @@ sequenceDiagram
 
   autonumber
   S -->> H: resources/list (includes ui:// resources)
-  S -->> H: tools/list (includes tools with ui/resourceUri metadata)
+  S -->> H: tools/list (includes tools with _meta.ui metadata)
 ```
 
 #### 2. UI Initialization (Desktop/Native Hosts)
@@ -893,7 +931,7 @@ sequenceDiagram
 
   autonumber
   par UI Tool call
-    H ->> S: tools/call to Tool with ui/resourceUri metadata
+    H ->> S: tools/call to Tool with _meta.ui metadata
   and UI initialization
     alt Desktop/Native hosts
       H ->> H: Render Guest UI in an iframe (HTML from the ui:// resource)
@@ -1079,7 +1117,7 @@ await client.callTool("get_weather", { location: "New York" });
 
 This pattern enables interactive, self-updating widgets.
 
-Note: The called tool may not appear in `tools/list` responses. MCP servers MAY expose private tools specifically designed for UI interaction that are not visible to the agent. UI implementations SHOULD attempt to call tools by name regardless of discoverability. The specification for Private Tools will be covered in a future SEP.
+Note: Tools with `visibility: ["apps"]` are hidden from the agent but remain callable by apps via `tools/call`. This enables UI-only interactions (refresh buttons, form submissions) without exposing implementation details to the model. See the Visibility section under Resource Discovery for details.
 
 ### Client\<\>Server Capability Negotiation
 
@@ -1132,7 +1170,7 @@ if (hasUISupport) {
     description: "Get weather with interactive dashboard",
     inputSchema: { /* ... */ },
     _meta: {
-      "ui/resourceUri": "ui://weather-server/dashboard"
+      ui: { resourceUri: "ui://weather-server/dashboard" }
     }
   });
 } else {
@@ -1240,6 +1278,24 @@ This proposal synthesizes feedback from the UI CWG and MCP-UI community, host im
 - **Full design system:** Rejected as too prescriptive; hosts have different aesthetics
 - **Inline styles in tool results:** Rejected; separating theming from data enables caching and updates
 - **CSS-in-JS injection:** Rejected; framework-specific and security concerns with injected code
+
+#### 5. Tool Visibility via Metadata
+
+**Decision:** Use `_meta.ui.visibility` array to control tool accessibility between model and app.
+
+**Rationale:**
+
+- Nested `_meta.ui` structure groups all UI-related metadata cleanly
+- Array format (`["model", "app"]`) allows flexible combinations
+- Default `["model", "app"]` allows both agent and app to access tools
+- `"app"` scope is per-server, preventing cross-server tool calls
+- Cleaner than OpenAI's two-field approach (`widgetAccessible` + `visibility`)
+
+**Alternatives considered:**
+
+- **Two separate fields:** OpenAI uses `widgetAccessible` and `visibility` separately. Rejected as redundant; single `visibility` array covers all cases.
+- **Boolean `private` flag:** Simpler but less flexible; doesn't express model-only tools.
+- **Flat `ui/visibility` key:** Rejected in favor of nested structure for consistency with future `_meta.ui` fields.
 
 ### Backward Compatibility
 
