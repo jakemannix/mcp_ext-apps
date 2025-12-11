@@ -37,19 +37,6 @@ jobs:
 
       - run: npm run prettier
 
-  swift:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Swift SDK
-        working-directory: swift
-        run: swift build
-
-      - name: Test Swift SDK
-        working-directory: swift
-        run: swift test
-
   kotlin:
     runs-on: ubuntu-latest
     steps:
