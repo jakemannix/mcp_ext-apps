@@ -232,7 +232,7 @@ public actor AppBridge {
     }
 
     public func sendResourceTeardown() async throws -> McpUiResourceTeardownResult {
-        _ = try await sendRequest(method: "ui/resource-teardown", params: nil)
+        _ = try await sendRequest(method: "ui/resource-teardown", params: [:])
         return McpUiResourceTeardownResult()
     }
 
@@ -247,12 +247,20 @@ public actor AppBridge {
         nextRequestId += 1
         let request = JSONRPCRequest(id: id, method: method, params: params)
 
+        guard transport != nil else {
+            print("[AppBridge] sendRequest failed: transport is nil")
+            throw BridgeError.disconnected
+        }
+
         return try await withCheckedThrowingContinuation { continuation in
             pendingRequests[id] = continuation
             Task {
                 do {
+                    print("[AppBridge] Sending request: \(method)")
                     try await transport?.send(.request(request))
+                    print("[AppBridge] Request sent successfully, waiting for response...")
                 } catch {
+                    print("[AppBridge] Transport send failed: \(error)")
                     pendingRequests.removeValue(forKey: id)?.resume(throwing: error)
                 }
             }

@@ -25,7 +25,8 @@ public actor WKWebViewTransport: McpAppsTransport {
     private var messageHandler: MessageHandlerProxy?
 
     // Store webView reference for MainActor access
-    @MainActor private weak var webView: WKWebView?
+    // Note: Using strong reference to ensure webView stays alive for teardown messages
+    @MainActor private var webView: WKWebView?
 
     public let incoming: AsyncThrowingStream<JSONRPCMessage, Error>
 
@@ -109,6 +110,7 @@ public actor WKWebViewTransport: McpAppsTransport {
         await MainActor.run {
             webView?.configuration.userContentController.removeScriptMessageHandler(forName: name)
             webView?.configuration.userContentController.removeAllUserScripts()
+            webView = nil  // Release strong reference
         }
 
         messageHandler = nil
