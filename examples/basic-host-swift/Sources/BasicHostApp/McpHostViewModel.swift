@@ -288,6 +288,7 @@ class ToolCallInfo: ObservableObject, Identifiable {
     @Published var result: ToolResult?
     @Published var state: ExecutionState = .calling
     @Published var error: String?
+    @Published var isTearingDown = false
 
     init(
         serverName: String,
@@ -486,15 +487,32 @@ class ToolCallInfo: ObservableObject, Identifiable {
 
     /// Teardown the app bridge before removing the tool call
     func teardown() async {
+        // Prevent double-tap
+        guard !isTearingDown else { return }
+        isTearingDown = true
+
         if let bridge = appBridge {
             do {
-                _ = try await bridge.sendResourceTeardown()
+                // Use a timeout so we don't wait forever if app is unresponsive
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    group.addTask {
+                        _ = try await bridge.sendResourceTeardown()
+                    }
+                    group.addTask {
+                        try await Task.sleep(nanoseconds: 5_000_000_000) // 5 second timeout
+                        throw CancellationError()
+                    }
+                    // Wait for first to complete (either teardown or timeout)
+                    try await group.next()
+                    group.cancelAll()
+                }
             } catch {
-                print("[Host] Teardown failed: \(error)")
+                print("[Host] Teardown failed or timed out: \(error)")
             }
             await bridge.close()
         }
         appBridge = nil
+        // Note: isTearingDown stays true - the card will be removed from the list
     }
 }
 

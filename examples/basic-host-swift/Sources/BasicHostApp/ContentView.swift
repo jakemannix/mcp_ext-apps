@@ -183,7 +183,6 @@ struct ToolCallCard: View {
     let onRemove: () -> Void
 
     @State private var isInputExpanded = false
-    @State private var isTearingDown = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -200,7 +199,7 @@ struct ToolCallCard: View {
 
                 Spacer()
 
-                if isTearingDown {
+                if toolCallInfo.isTearingDown {
                     HStack(spacing: 4) {
                         ProgressView().scaleEffect(0.6)
                         Text("Closing...")
@@ -222,10 +221,7 @@ struct ToolCallCard: View {
                             .foregroundColor(.secondary)
                     }
 
-                    Button {
-                        isTearingDown = true
-                        onRemove()
-                    } label: {
+                    Button(action: onRemove) {
                         Image(systemName: "xmark")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -290,8 +286,8 @@ struct ToolCallCard: View {
         .padding(10)
         .background(Color(UIColor.secondarySystemBackground))
         .cornerRadius(10)
-        .opacity(isTearingDown ? 0.5 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isTearingDown)
+        .opacity(toolCallInfo.isTearingDown ? 0.5 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: toolCallInfo.isTearingDown)
     }
 
     private var stateColor: Color {
