@@ -264,6 +264,163 @@
                 }
               ]
             },
+            "styles": {
+              "description": "CSS variables for theming the app.",
+              "type": "object",
+              "propertyNames": {
+                "description": "Style variables for theming MCP apps.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "--color-background-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-border-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-border-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-info"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-danger"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-success"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-warning"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-family-sans"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-heading"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-body"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-caption"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-weight-regular"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-weight-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-leading-regular"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-leading-tight"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-heading"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-body"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-body-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-caption"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-caption-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-small"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-medium"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-large"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-full"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-width-regular"
+                  }
+                ]
+              },
+              "additionalProperties": {
+                "description": "Style variables for theming MCP apps.",
+                "type": "string"
+              }
+            },
             "displayMode": {
               "description": "How the UI is currently displayed.",
               "anyOf": [
@@ -549,6 +706,163 @@
               "const": "dark"
             }
           ]
+        },
+        "styles": {
+          "description": "CSS variables for theming the app.",
+          "type": "object",
+          "propertyNames": {
+            "description": "Style variables for theming MCP apps.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "--color-background-primary"
+              },
+              {
+                "type": "string",
+                "const": "--color-background-secondary"
+              },
+              {
+                "type": "string",
+                "const": "--color-background-tertiary"
+              },
+              {
+                "type": "string",
+                "const": "--color-background-inverted"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-primary"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-secondary"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-tertiary"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-inverted"
+              },
+              {
+                "type": "string",
+                "const": "--color-icon-primary"
+              },
+              {
+                "type": "string",
+                "const": "--color-icon-secondary"
+              },
+              {
+                "type": "string",
+                "const": "--color-icon-tertiary"
+              },
+              {
+                "type": "string",
+                "const": "--color-icon-inverted"
+              },
+              {
+                "type": "string",
+                "const": "--color-border-primary"
+              },
+              {
+                "type": "string",
+                "const": "--color-border-secondary"
+              },
+              {
+                "type": "string",
+                "const": "--color-accent-info"
+              },
+              {
+                "type": "string",
+                "const": "--color-accent-danger"
+              },
+              {
+                "type": "string",
+                "const": "--color-accent-success"
+              },
+              {
+                "type": "string",
+                "const": "--color-accent-warning"
+              },
+              {
+                "type": "string",
+                "const": "--font-family-sans"
+              },
+              {
+                "type": "string",
+                "const": "--font-size-heading"
+              },
+              {
+                "type": "string",
+                "const": "--font-size-body"
+              },
+              {
+                "type": "string",
+                "const": "--font-size-caption"
+              },
+              {
+                "type": "string",
+                "const": "--font-weight-regular"
+              },
+              {
+                "type": "string",
+                "const": "--font-weight-emphasized"
+              },
+              {
+                "type": "string",
+                "const": "--font-leading-regular"
+              },
+              {
+                "type": "string",
+                "const": "--font-leading-tight"
+              },
+              {
+                "type": "string",
+                "const": "--font-style-heading"
+              },
+              {
+                "type": "string",
+                "const": "--font-style-body"
+              },
+              {
+                "type": "string",
+                "const": "--font-style-body-emphasized"
+              },
+              {
+                "type": "string",
+                "const": "--font-style-caption"
+              },
+              {
+                "type": "string",
+                "const": "--font-style-caption-emphasized"
+              },
+              {
+                "type": "string",
+                "const": "--border-radius-small"
+              },
+              {
+                "type": "string",
+                "const": "--border-radius-medium"
+              },
+              {
+                "type": "string",
+                "const": "--border-radius-large"
+              },
+              {
+                "type": "string",
+                "const": "--border-radius-full"
+              },
+              {
+                "type": "string",
+                "const": "--border-width-regular"
+              }
+            ]
+          },
+          "additionalProperties": {
+            "description": "Style variables for theming MCP apps.",
+            "type": "string"
+          }
         },
         "displayMode": {
           "description": "How the UI is currently displayed.",
@@ -1017,6 +1331,163 @@
                   "const": "dark"
                 }
               ]
+            },
+            "styles": {
+              "description": "CSS variables for theming the app.",
+              "type": "object",
+              "propertyNames": {
+                "description": "Style variables for theming MCP apps.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "--color-background-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-background-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-tertiary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-icon-inverted"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-border-primary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-border-secondary"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-info"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-danger"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-success"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-accent-warning"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-family-sans"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-heading"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-body"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-size-caption"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-weight-regular"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-weight-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-leading-regular"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-leading-tight"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-heading"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-body"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-body-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-caption"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--font-style-caption-emphasized"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-small"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-medium"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-large"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-radius-full"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--border-width-regular"
+                  }
+                ]
+              },
+              "additionalProperties": {
+                "description": "Style variables for theming MCP apps.",
+                "type": "string"
+              }
             },
             "displayMode": {
               "description": "How the UI is currently displayed.",
@@ -1717,6 +2188,314 @@
       },
       "required": ["method", "params"],
       "additionalProperties": false
+    },
+    "McpUiStyleVariableKey": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "CSS variable keys available to MCP apps for theming.",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "--color-background-primary"
+        },
+        {
+          "type": "string",
+          "const": "--color-background-secondary"
+        },
+        {
+          "type": "string",
+          "const": "--color-background-tertiary"
+        },
+        {
+          "type": "string",
+          "const": "--color-background-inverted"
+        },
+        {
+          "type": "string",
+          "const": "--color-text-primary"
+        },
+        {
+          "type": "string",
+          "const": "--color-text-secondary"
+        },
+        {
+          "type": "string",
+          "const": "--color-text-tertiary"
+        },
+        {
+          "type": "string",
+          "const": "--color-text-inverted"
+        },
+        {
+          "type": "string",
+          "const": "--color-icon-primary"
+        },
+        {
+          "type": "string",
+          "const": "--color-icon-secondary"
+        },
+        {
+          "type": "string",
+          "const": "--color-icon-tertiary"
+        },
+        {
+          "type": "string",
+          "const": "--color-icon-inverted"
+        },
+        {
+          "type": "string",
+          "const": "--color-border-primary"
+        },
+        {
+          "type": "string",
+          "const": "--color-border-secondary"
+        },
+        {
+          "type": "string",
+          "const": "--color-accent-info"
+        },
+        {
+          "type": "string",
+          "const": "--color-accent-danger"
+        },
+        {
+          "type": "string",
+          "const": "--color-accent-success"
+        },
+        {
+          "type": "string",
+          "const": "--color-accent-warning"
+        },
+        {
+          "type": "string",
+          "const": "--font-family-sans"
+        },
+        {
+          "type": "string",
+          "const": "--font-size-heading"
+        },
+        {
+          "type": "string",
+          "const": "--font-size-body"
+        },
+        {
+          "type": "string",
+          "const": "--font-size-caption"
+        },
+        {
+          "type": "string",
+          "const": "--font-weight-regular"
+        },
+        {
+          "type": "string",
+          "const": "--font-weight-emphasized"
+        },
+        {
+          "type": "string",
+          "const": "--font-leading-regular"
+        },
+        {
+          "type": "string",
+          "const": "--font-leading-tight"
+        },
+        {
+          "type": "string",
+          "const": "--font-style-heading"
+        },
+        {
+          "type": "string",
+          "const": "--font-style-body"
+        },
+        {
+          "type": "string",
+          "const": "--font-style-body-emphasized"
+        },
+        {
+          "type": "string",
+          "const": "--font-style-caption"
+        },
+        {
+          "type": "string",
+          "const": "--font-style-caption-emphasized"
+        },
+        {
+          "type": "string",
+          "const": "--border-radius-small"
+        },
+        {
+          "type": "string",
+          "const": "--border-radius-medium"
+        },
+        {
+          "type": "string",
+          "const": "--border-radius-large"
+        },
+        {
+          "type": "string",
+          "const": "--border-radius-full"
+        },
+        {
+          "type": "string",
+          "const": "--border-width-regular"
+        }
+      ]
+    },
+    "McpUiStyles": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Style variables for theming MCP apps.",
+      "type": "object",
+      "propertyNames": {
+        "description": "Style variables for theming MCP apps.",
+        "anyOf": [
+          {
+            "type": "string",
+            "const": "--color-background-primary"
+          },
+          {
+            "type": "string",
+            "const": "--color-background-secondary"
+          },
+          {
+            "type": "string",
+            "const": "--color-background-tertiary"
+          },
+          {
+            "type": "string",
+            "const": "--color-background-inverted"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-primary"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-secondary"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-tertiary"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-inverted"
+          },
+          {
+            "type": "string",
+            "const": "--color-icon-primary"
+          },
+          {
+            "type": "string",
+            "const": "--color-icon-secondary"
+          },
+          {
+            "type": "string",
+            "const": "--color-icon-tertiary"
+          },
+          {
+            "type": "string",
+            "const": "--color-icon-inverted"
+          },
+          {
+            "type": "string",
+            "const": "--color-border-primary"
+          },
+          {
+            "type": "string",
+            "const": "--color-border-secondary"
+          },
+          {
+            "type": "string",
+            "const": "--color-accent-info"
+          },
+          {
+            "type": "string",
+            "const": "--color-accent-danger"
+          },
+          {
+            "type": "string",
+            "const": "--color-accent-success"
+          },
+          {
+            "type": "string",
+            "const": "--color-accent-warning"
+          },
+          {
+            "type": "string",
+            "const": "--font-family-sans"
+          },
+          {
+            "type": "string",
+            "const": "--font-size-heading"
+          },
+          {
+            "type": "string",
+            "const": "--font-size-body"
+          },
+          {
+            "type": "string",
+            "const": "--font-size-caption"
+          },
+          {
+            "type": "string",
+            "const": "--font-weight-regular"
+          },
+          {
+            "type": "string",
+            "const": "--font-weight-emphasized"
+          },
+          {
+            "type": "string",
+            "const": "--font-leading-regular"
+          },
+          {
+            "type": "string",
+            "const": "--font-leading-tight"
+          },
+          {
+            "type": "string",
+            "const": "--font-style-heading"
+          },
+          {
+            "type": "string",
+            "const": "--font-style-body"
+          },
+          {
+            "type": "string",
+            "const": "--font-style-body-emphasized"
+          },
+          {
+            "type": "string",
+            "const": "--font-style-caption"
+          },
+          {
+            "type": "string",
+            "const": "--font-style-caption-emphasized"
+          },
+          {
+            "type": "string",
+            "const": "--border-radius-small"
+          },
+          {
+            "type": "string",
+            "const": "--border-radius-medium"
+          },
+          {
+            "type": "string",
+            "const": "--border-radius-large"
+          },
+          {
+            "type": "string",
+            "const": "--border-radius-full"
+          },
+          {
+            "type": "string",
+            "const": "--border-width-regular"
+          }
+        ]
+      },
+      "additionalProperties": {
+        "description": "Style variables for theming MCP apps.",
+        "type": "string"
+      }
     },
     "McpUiTheme": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",

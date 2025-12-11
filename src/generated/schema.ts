@@ -25,6 +25,62 @@ export const McpUiDisplayModeSchema = z
   .describe("Display mode for UI presentation.");
 
 /**
+ * @description CSS variable keys available to MCP apps for theming.
+ */
+export const McpUiStyleVariableKeySchema = z
+  .union([
+    z.literal("--color-background-primary"),
+    z.literal("--color-background-secondary"),
+    z.literal("--color-background-tertiary"),
+    z.literal("--color-background-inverted"),
+    z.literal("--color-text-primary"),
+    z.literal("--color-text-secondary"),
+    z.literal("--color-text-tertiary"),
+    z.literal("--color-text-inverted"),
+    z.literal("--color-icon-primary"),
+    z.literal("--color-icon-secondary"),
+    z.literal("--color-icon-tertiary"),
+    z.literal("--color-icon-inverted"),
+    z.literal("--color-border-primary"),
+    z.literal("--color-border-secondary"),
+    z.literal("--color-accent-info"),
+    z.literal("--color-accent-danger"),
+    z.literal("--color-accent-success"),
+    z.literal("--color-accent-warning"),
+    z.literal("--font-family-sans"),
+    z.literal("--font-size-heading"),
+    z.literal("--font-size-body"),
+    z.literal("--font-size-caption"),
+    z.literal("--font-weight-regular"),
+    z.literal("--font-weight-emphasized"),
+    z.literal("--font-leading-regular"),
+    z.literal("--font-leading-tight"),
+    z.literal("--font-style-heading"),
+    z.literal("--font-style-body"),
+    z.literal("--font-style-body-emphasized"),
+    z.literal("--font-style-caption"),
+    z.literal("--font-style-caption-emphasized"),
+    z.literal("--border-radius-small"),
+    z.literal("--border-radius-medium"),
+    z.literal("--border-radius-large"),
+    z.literal("--border-radius-full"),
+    z.literal("--border-width-regular"),
+  ])
+  .describe("CSS variable keys available to MCP apps for theming.");
+
+/**
+ * @description Style variables for theming MCP apps.
+ */
+export const McpUiStylesSchema = z
+  .record(
+    McpUiStyleVariableKeySchema.describe(
+      "Style variables for theming MCP apps.",
+    ),
+    z.string().describe("Style variables for theming MCP apps."),
+  )
+  .describe("Style variables for theming MCP apps.");
+
+/**
  * @description Request to open an external URL in the host's default browser.
  * @see {@link app.App.sendOpenLink} for the method that sends this request
  */
@@ -353,6 +409,10 @@ export const McpUiHostContextSchema = z.looseObject({
   /** @description Current color theme preference. */
   theme: McpUiThemeSchema.optional().describe(
     "Current color theme preference.",
+  ),
+  /** @description CSS variables for theming the app. */
+  styles: McpUiStylesSchema.optional().describe(
+    "CSS variables for theming the app.",
   ),
   /** @description How the UI is currently displayed. */
   displayMode: McpUiDisplayModeSchema.optional().describe(

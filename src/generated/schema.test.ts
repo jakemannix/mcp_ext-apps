@@ -19,6 +19,14 @@ export type McpUiDisplayModeSchemaInferredType = z.infer<
   typeof generated.McpUiDisplayModeSchema
 >;
 
+export type McpUiStyleVariableKeySchemaInferredType = z.infer<
+  typeof generated.McpUiStyleVariableKeySchema
+>;
+
+export type McpUiStylesSchemaInferredType = z.infer<
+  typeof generated.McpUiStylesSchema
+>;
+
 export type McpUiOpenLinkRequestSchemaInferredType = z.infer<
   typeof generated.McpUiOpenLinkRequestSchema
 >;
@@ -111,6 +119,14 @@ expectType<spec.McpUiTheme>({} as McpUiThemeSchemaInferredType);
 expectType<McpUiThemeSchemaInferredType>({} as spec.McpUiTheme);
 expectType<spec.McpUiDisplayMode>({} as McpUiDisplayModeSchemaInferredType);
 expectType<McpUiDisplayModeSchemaInferredType>({} as spec.McpUiDisplayMode);
+expectType<spec.McpUiStyleVariableKey>(
+  {} as McpUiStyleVariableKeySchemaInferredType,
+);
+expectType<McpUiStyleVariableKeySchemaInferredType>(
+  {} as spec.McpUiStyleVariableKey,
+);
+expectType<spec.McpUiStyles>({} as McpUiStylesSchemaInferredType);
+expectType<McpUiStylesSchemaInferredType>({} as spec.McpUiStyles);
 expectType<spec.McpUiOpenLinkRequest>(
   {} as McpUiOpenLinkRequestSchemaInferredType,
 );
