@@ -398,23 +398,24 @@ class ToolCallInfo: ObservableObject, Identifiable {
         bridge.onInitialized = { [weak self] in
             Task { @MainActor in
                 guard let self = self else { return }
-                try? await bridge.sendToolInput(
+                let params = McpUiToolInputParams(
                     arguments: self.input.mapValues { AnyCodable($0) }
                 )
+                try? await bridge.sendToolInput(params)
                 if let result = self.result {
                     try? await self.sendToolResult(result, to: bridge)
                 }
             }
         }
 
-        bridge.onMessage = { role, content in
-            print("[Host] Message from Guest UI: \(role)")
+        bridge.onMessage = { params in
+            print("[Host] Message from Guest UI: \(params.role)")
             return McpUiMessageResult(isError: false)
         }
 
-        bridge.onOpenLink = { url in
-            print("[Host] Open link request: \(url)")
-            if let urlObj = URL(string: url) {
+        bridge.onOpenLink = { params in
+            print("[Host] Open link request: \(params.url)")
+            if let urlObj = URL(string: params.url) {
                 await MainActor.run {
                     UIApplication.shared.open(urlObj)
                 }
@@ -422,13 +423,13 @@ class ToolCallInfo: ObservableObject, Identifiable {
             return McpUiOpenLinkResult(isError: false)
         }
 
-        bridge.onLoggingMessage = { level, data, logger in
-            print("[Host] Guest UI log [\(level)]: \(data.value)")
+        bridge.onLoggingMessage = { params in
+            print("[Host] Guest UI log [\(params.level)]: \(params.data.value)")
         }
 
-        bridge.onSizeChange = { [weak self] width, height in
-            print("[Host] Size change: \(width ?? 0) x \(height ?? 0)")
-            if let height = height {
+        bridge.onSizeChange = { [weak self] params in
+            print("[Host] Size change: \(params.width ?? 0) x \(params.height ?? 0)")
+            if let height = params.height {
                 Task { @MainActor in
                     self?.preferredHeight = CGFloat(height)
                 }
@@ -486,19 +487,18 @@ class ToolCallInfo: ObservableObject, Identifiable {
     }
 
     private func sendToolResult(_ result: ToolResult, to bridge: AppBridge) async throws {
-        try await bridge.sendToolResult([
-            "content": AnyCodable(result.content.map { c -> [String: Any] in
-                switch c {
-                case .text(let text):
-                    return ["type": "text", "text": text]
-                case .image(let data, let mimeType, _):
-                    return ["type": "image", "data": data, "mimeType": mimeType]
-                default:
-                    return ["type": "text", "text": ""]
-                }
-            }),
-            "isError": AnyCodable(result.isError ?? false)
-        ])
+        let contentItems: [McpUiToolResultNotificationParamsContentItem] = result.content.compactMap { c in
+            switch c {
+            case .text(let text):
+                return .text(McpUiToolResultNotificationParamsContentItemText(type: "text", text: text))
+            case .image(let data, let mimeType, _):
+                return .image(McpUiToolResultNotificationParamsContentItemImage(type: "image", data: data, mimeType: mimeType))
+            default:
+                return nil
+            }
+        }
+        let params = McpUiToolResultParams(content: contentItems, isError: result.isError)
+        try await bridge.sendToolResult(params)
     }
 
     /// Teardown the app bridge before removing the tool call
