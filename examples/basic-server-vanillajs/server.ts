@@ -3,7 +3,7 @@ import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/s
 import fs from "node:fs/promises";
 import path from "node:path";
 import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import { getPort, startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
@@ -52,4 +52,4 @@ const server = new McpServer({
   );
 }
 
-startServer(server, { name: "Basic MCP App Server (Vanilla JS)" });
+startServer(server, { port: getPort(), name: "Basic MCP App Server (Vanilla JS)" });

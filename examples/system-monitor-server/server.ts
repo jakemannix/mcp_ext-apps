@@ -9,7 +9,7 @@ import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
 import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import { getPort, startServer } from "../shared/server-utils.js";
 
 // Schemas - types are derived from these using z.infer
 const CpuCoreSchema = z.object({
@@ -171,4 +171,4 @@ const server = new McpServer({
   );
 }
 
-startServer(server, { name: "System Monitor Server" });
+startServer(server, { port: getPort(), name: "System Monitor Server" });

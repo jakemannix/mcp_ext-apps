@@ -2,7 +2,7 @@
  * Shared utilities for running MCP servers with multiple transports.
  *
  * Supports:
- * - stdio transport (--stdio flag)
+ * - stdio transport (when port is undefined)
  * - Streamable HTTP transport (/mcp) - stateful sessions
  * - Legacy SSE transport (/sse, /messages) - backwards compatibility
  */
@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 
 export interface ServerOptions {
-  /** Port to listen on. Defaults to PORT env var or 3001. */
+  /** Port to listen on. If undefined, uses stdio transport. */
   port?: number;
   /** Server name for logging. */
   name?: string;
@@ -27,21 +27,18 @@ export interface ServerOptions {
 type Transport = StreamableHTTPServerTransport | SSEServerTransport;
 
 /**
- * Starts an MCP server with stdio and HTTP transports.
+ * Starts an MCP server.
  *
- * HTTP mode provides:
- * - /mcp (GET/POST/DELETE): Streamable HTTP with stateful sessions
- * - /sse (GET) + /messages (POST): Legacy SSE for older clients
+ * - If port is undefined: uses stdio transport
+ * - If port is provided: HTTP server with Streamable HTTP + legacy SSE
  */
 export async function startServer(
   server: McpServer,
   options: ServerOptions = {},
 ): Promise<void> {
-  const port =
-    options.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 3001);
-  const name = options.name ?? "MCP Server";
+  const { port, name = "MCP Server" } = options;
 
-  if (process.argv.includes("--stdio")) {
+  if (port === undefined) {
     await server.connect(new StdioServerTransport());
     console.error(`${name} running in stdio mode`);
     return;
@@ -51,7 +48,6 @@ export async function startServer(
   const sessions = new Map<string, Transport>();
 
   // Express app - bind to all interfaces for development/testing
-  // (allows connections from Android emulators, other devices, etc.)
   const app = createMcpExpressApp({ host: "0.0.0.0" });
   app.use(cors());
 
@@ -156,4 +152,10 @@ export async function startServer(
 
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+}
+
+/** Helper to get port from args/env, returns undefined for stdio mode */
+export function getPort(defaultPort = 3001): number | undefined {
+  if (process.argv.includes("--stdio")) return undefined;
+  return process.env.PORT ? parseInt(process.env.PORT, 10) : defaultPort;
 }
