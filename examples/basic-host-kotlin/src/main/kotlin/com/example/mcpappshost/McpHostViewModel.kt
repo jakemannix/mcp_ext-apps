@@ -63,9 +63,12 @@ data class ToolCallState(
     val htmlContent: String? = null,
     var webView: WebView? = null,
     var preferredHeight: Int = 350,
-    var appBridgeConnected: Boolean = false
+    var appBridgeConnected: Boolean = false,
+    val isDestroying: Boolean = false  // Two-phase teardown: true while waiting for app response
 ) {
     enum class State { CALLING, LOADING_UI, READY, COMPLETED, ERROR }
+
+    val hasApp: Boolean get() = htmlContent != null && state == State.READY
 }
 
 class McpHostViewModel : ViewModel() {
@@ -307,8 +310,25 @@ class McpHostViewModel : ViewModel() {
         }
     }
 
-    fun removeToolCall(toolCall: ToolCallState) {
-        _toolCalls.value = _toolCalls.value.filter { it.id != toolCall.id }
+    /**
+     * Request to close a tool call. For apps, this marks as destroying and waits
+     * for teardown. For non-app results, removes immediately.
+     */
+    fun requestClose(toolCall: ToolCallState) {
+        if (toolCall.hasApp) {
+            // Mark as destroying - the WebView will send teardown and call completeClose
+            updateToolCall(toolCall.id) { it.copy(isDestroying = true) }
+        } else {
+            // Non-app results close immediately
+            completeClose(toolCall.id)
+        }
+    }
+
+    /**
+     * Complete the close after teardown response (or immediately for non-apps).
+     */
+    fun completeClose(id: String) {
+        _toolCalls.value = _toolCalls.value.filter { it.id != id }
     }
 
     /**

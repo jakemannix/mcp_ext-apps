@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
@@ -103,7 +104,8 @@ fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
                 items(toolCalls, key = { it.id }) { toolCall ->
                     ToolCallCard(
                         toolCall = toolCall,
-                        onRemove = { viewModel.removeToolCall(toolCall) },
+                        onRequestClose = { viewModel.requestClose(toolCall) },
+                        onCloseComplete = { viewModel.completeClose(toolCall.id) },
                         onToolCall = { name, args -> viewModel.forwardToolCall(name, args) }
                     )
                 }
@@ -231,12 +233,20 @@ fun ToolPicker(
 @Composable
 fun ToolCallCard(
     toolCall: ToolCallState,
-    onRemove: () -> Unit,
+    onRequestClose: () -> Unit,
+    onCloseComplete: () -> Unit,
     onToolCall: (suspend (name: String, arguments: Map<String, Any>?) -> String)? = null
 ) {
     var isInputExpanded by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    // Dimmed appearance when destroying (waiting for teardown)
+    val cardAlpha = if (toolCall.isDestroying) 0.5f else 1f
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(cardAlpha)
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -249,12 +259,14 @@ fun ToolCallCard(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    val (color, text) = when (toolCall.state) {
-                        ToolCallState.State.CALLING -> MaterialTheme.colorScheme.tertiary to "Calling"
-                        ToolCallState.State.LOADING_UI -> MaterialTheme.colorScheme.tertiary to "Loading"
-                        ToolCallState.State.READY -> MaterialTheme.colorScheme.primary to "Ready"
-                        ToolCallState.State.COMPLETED -> MaterialTheme.colorScheme.primary to "Done"
-                        ToolCallState.State.ERROR -> MaterialTheme.colorScheme.error to "Error"
+                    val (color, text) = when {
+                        toolCall.isDestroying -> MaterialTheme.colorScheme.tertiary to "Closing"
+                        toolCall.state == ToolCallState.State.CALLING -> MaterialTheme.colorScheme.tertiary to "Calling"
+                        toolCall.state == ToolCallState.State.LOADING_UI -> MaterialTheme.colorScheme.tertiary to "Loading"
+                        toolCall.state == ToolCallState.State.READY -> MaterialTheme.colorScheme.primary to "Ready"
+                        toolCall.state == ToolCallState.State.COMPLETED -> MaterialTheme.colorScheme.primary to "Done"
+                        toolCall.state == ToolCallState.State.ERROR -> MaterialTheme.colorScheme.error to "Error"
+                        else -> MaterialTheme.colorScheme.tertiary to "Unknown"
                     }
                     Surface(color = color.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
                         Text(text, color = color, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(4.dp))
@@ -264,8 +276,13 @@ fun ToolCallCard(
                         Icon(if (isInputExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = "Toggle")
                     }
 
-                    IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove")
+                    // Disable close button while destroying
+                    IconButton(
+                        onClick = onRequestClose,
+                        modifier = Modifier.size(24.dp),
+                        enabled = !toolCall.isDestroying
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
             }
@@ -288,6 +305,8 @@ fun ToolCallCard(
                     // WebView for UI resource with full AppBridge protocol
                     McpAppWebView(
                         toolCall = toolCall,
+                        isDestroying = toolCall.isDestroying,
+                        onTeardownComplete = onCloseComplete,
                         onToolCall = onToolCall,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -317,6 +336,8 @@ fun ToolCallCard(
 @Composable
 fun McpAppWebView(
     toolCall: ToolCallState,
+    isDestroying: Boolean = false,
+    onTeardownComplete: (() -> Unit)? = null,
     onToolCall: (suspend (name: String, arguments: Map<String, Any>?) -> String)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -325,6 +346,8 @@ fun McpAppWebView(
     val json = remember { kotlinx.serialization.json.Json { ignoreUnknownKeys = true } }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var initialized by remember { mutableStateOf(false) }
+    var teardownRequestId by remember { mutableStateOf(0) }
+    var teardownCompleted by remember { mutableStateOf(false) }
 
     // Inject bridge script into HTML
     val injectedHtml = remember(toolCall.htmlContent) {
@@ -380,6 +403,35 @@ fun McpAppWebView(
         }
     }
 
+    // Graceful teardown: send ui/resource-teardown when isDestroying becomes true
+    // Per spec: "Host SHOULD wait for a response before tearing down the resource"
+    LaunchedEffect(isDestroying) {
+        if (isDestroying && !teardownCompleted) {
+            if (webViewRef == null || !initialized) {
+                // WebView not ready, complete immediately
+                android.util.Log.i("McpAppWebView", "Teardown: WebView not ready, completing immediately")
+                onTeardownComplete?.invoke()
+                return@LaunchedEffect
+            }
+
+            // Generate unique request ID for teardown
+            val requestId = System.currentTimeMillis().toInt()
+            teardownRequestId = requestId
+            android.util.Log.i("McpAppWebView", "Sending teardown request (id=$requestId)")
+
+            val teardownMsg = """{"jsonrpc":"2.0","id":$requestId,"method":"ui/resource-teardown","params":{}}"""
+            sendToWebView(teardownMsg)
+
+            // Timeout: if no response in 3 seconds, complete anyway
+            kotlinx.coroutines.delay(3000)
+            if (!teardownCompleted) {
+                android.util.Log.w("McpAppWebView", "Teardown timeout, completing anyway")
+                teardownCompleted = true
+                onTeardownComplete?.invoke()
+            }
+        }
+    }
+
     AndroidView(
         factory = { context ->
             WebView(context).apply {
@@ -399,6 +451,17 @@ fun McpAppWebView(
                             val msg = json.parseToJsonElement(jsonString).jsonObject
                             val method = msg["method"]?.jsonPrimitive?.contentOrNull
                             val id = msg["id"]
+
+                            // Check for teardown response (has result but no method)
+                            if (method == null && msg.containsKey("result")) {
+                                val responseId = id?.jsonPrimitive?.intOrNull
+                                if (responseId == teardownRequestId && !teardownCompleted) {
+                                    android.util.Log.i("McpAppWebView", "Teardown response received")
+                                    teardownCompleted = true
+                                    post { onTeardownComplete?.invoke() }
+                                }
+                                return
+                            }
 
                             when (method) {
                                 "ui/initialize" -> {
