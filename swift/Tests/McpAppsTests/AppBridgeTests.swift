@@ -58,7 +58,8 @@ final class AppBridgeTests: XCTestCase {
     }
 
     func testToolInputParams() throws {
-        let params = McpUiToolInputNotificationParams(
+        // Test using the typealias (consistent with TypeScript API)
+        let params = McpUiToolInputParams(
             arguments: [
                 "query": AnyCodable("weather in NYC"),
                 "count": AnyCodable(5)
@@ -69,10 +70,53 @@ final class AppBridgeTests: XCTestCase {
         let decoder = JSONDecoder()
 
         let encoded = try encoder.encode(params)
-        let decoded = try decoder.decode(McpUiToolInputNotificationParams.self, from: encoded)
+        let decoded = try decoder.decode(McpUiToolInputParams.self, from: encoded)
 
         XCTAssertEqual(decoded.arguments?["query"]?.value as? String, "weather in NYC")
         XCTAssertEqual(decoded.arguments?["count"]?.value as? Int, 5)
+    }
+
+    func testSizeChangedParams() throws {
+        let params = McpUiSizeChangedParams(width: 800, height: 600)
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let encoded = try encoder.encode(params)
+        let decoded = try decoder.decode(McpUiSizeChangedParams.self, from: encoded)
+
+        XCTAssertEqual(decoded.width, 800)
+        XCTAssertEqual(decoded.height, 600)
+    }
+
+    func testToolCancelledParams() throws {
+        let params = McpUiToolCancelledParams(reason: "User cancelled")
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let encoded = try encoder.encode(params)
+        let decoded = try decoder.decode(McpUiToolCancelledParams.self, from: encoded)
+
+        XCTAssertEqual(decoded.reason, "User cancelled")
+    }
+
+    func testLoggingMessageParams() throws {
+        let params = LoggingMessageParams(
+            level: .warning,
+            data: AnyCodable("Test warning message"),
+            logger: "TestLogger"
+        )
+
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let encoded = try encoder.encode(params)
+        let decoded = try decoder.decode(LoggingMessageParams.self, from: encoded)
+
+        XCTAssertEqual(decoded.level, .warning)
+        XCTAssertEqual(decoded.data.value as? String, "Test warning message")
+        XCTAssertEqual(decoded.logger, "TestLogger")
     }
 
     func testJSONRPCRequest() throws {
