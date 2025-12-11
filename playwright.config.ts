@@ -2,11 +2,12 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  fullyParallel: false, // Run tests sequentially to share server
+  fullyParallel: true, // Tests are independent, can run in parallel
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // Single worker since we share the server
-  reporter: "html",
+  workers: process.env.CI ? 2 : 4, // More workers locally, fewer in CI
+  timeout: 30000, // 30s per test
+  reporter: process.env.CI ? "list" : "html",
   // Use platform-agnostic snapshot names (no -darwin/-linux suffix)
   snapshotPathTemplate:
     "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}",

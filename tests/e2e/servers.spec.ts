@@ -17,6 +17,7 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
     "#info-uptime", // System uptime
   ],
   "wiki-explorer": ["#graph"], // Force-directed graph (dynamic layout)
+  threejs: ["canvas"], // 3D render canvas (dynamic animation)
 };
 
 // Server configurations
