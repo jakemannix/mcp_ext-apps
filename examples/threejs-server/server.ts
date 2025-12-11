@@ -153,7 +153,12 @@ const server = new McpServer({
           .string()
           .default(DEFAULT_THREEJS_CODE)
           .describe("JavaScript code to render the 3D scene"),
-        height: z.number().int().positive().default(400).describe("Height in pixels"),
+        height: z
+          .number()
+          .int()
+          .positive()
+          .default(400)
+          .describe("Height in pixels"),
       },
       _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
