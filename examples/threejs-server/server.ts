@@ -4,12 +4,13 @@
  * Provides tools for rendering interactive 3D scenes using Three.js.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { getPort, startServer } from "../shared/server-utils.js";
+import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
@@ -181,4 +182,16 @@ const server = new McpServer({
   );
 }
 
-startServer(server, { port: getPort(), name: "Three.js Server" }).catch((e) => { console.error(e); process.exit(1); });
+async function main() {
+  if (process.argv.includes("--stdio")) {
+    await server.connect(new StdioServerTransport());
+  } else {
+    const port = parseInt(process.env.PORT ?? "3001", 10);
+    await startServer(server, { port, name: "Three.js Server" });
+  }
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
