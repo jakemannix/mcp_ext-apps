@@ -58,6 +58,31 @@ examples/basic-host-kotlin/
 - **Android SDK**: API 26+ (Android 8.0+)
 - **MCP Server**: A running MCP server with UI resources
 
+<details>
+<summary>Installing Android SDK and emulator on Mac</summary>
+
+```bash
+brew install --cask android-commandlinetools
+
+# Accept licenses
+yes | sdkmanager --licenses
+
+# Install required components
+sdkmanager "platform-tools" "emulator" "platforms;android-34" "system-images;android-34;google_apis;arm64-v8a"
+
+# Create an AVD (Android Virtual Device)
+avdmanager create avd -n Pixel_8 -k "system-images;android-34;google_apis;arm64-v8a" -d pixel_8
+
+# Add to PATH (add to ~/.zshrc)
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
+
+# Start emulator
+emulator -avd Pixel_8
+```
+
+</details>
+
 ## Setup Instructions
 
 ### 1. Open Project
@@ -65,7 +90,7 @@ examples/basic-host-kotlin/
 Open Android Studio and select "Open an Existing Project". Navigate to this directory:
 
 ```
-/path/to/ext-apps2/examples/basic-host-kotlin
+/path/to/ext-apps/examples/basic-host-kotlin
 ```
 
 ### 2. Sync Gradle
@@ -89,7 +114,7 @@ You need a running MCP server with UI resources. For testing, you can use the QR
 
 ```bash
 # In a terminal, navigate to the examples directory
-cd /path/to/ext-apps2/examples/qr-code
+cd /path/to/ext-apps/examples/qr-code
 
 # Install dependencies
 npm install

@@ -49,7 +49,8 @@ Start with these foundational examples to learn the SDK:
 
 - [`examples/basic-server-vanillajs`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vanillajs) — Example MCP server with tools that return UI Apps (vanilla JS)
 - [`examples/basic-server-react`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-react) — Example MCP server with tools that return UI Apps (React)
-- [`examples/basic-host`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host) — Bare-bones example of hosting MCP Apps
+- [`examples/basic-host`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host) — Bare-bones example of hosting MCP Apps (TypeScript/React)
+- [`examples/basic-host-kotlin`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host-kotlin) — Android example of hosting MCP Apps (Kotlin/Jetpack Compose)
 
 The [`examples/`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples) directory contains additional demo apps showcasing real-world use cases.
 
