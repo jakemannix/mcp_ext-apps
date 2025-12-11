@@ -4,6 +4,7 @@
  * Provides tools for rendering interactive 3D scenes using Three.js.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
@@ -195,7 +196,8 @@ async function main() {
     app.use(cors());
     app.use(express.json());
 
-    app.post("/mcp", async (req: Request, res: Response) => {
+    // Streamable HTTP transport (current spec) - handles GET, POST, DELETE
+    app.all("/mcp", async (req: Request, res: Response) => {
       try {
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
@@ -218,6 +220,26 @@ async function main() {
           });
         }
       }
+    });
+
+    // Legacy SSE transport (deprecated) - for backwards compatibility
+    const sseTransports = new Map<string, SSEServerTransport>();
+
+    app.get("/sse", async (_req: Request, res: Response) => {
+      const transport = new SSEServerTransport("/messages", res);
+      sseTransports.set(transport.sessionId, transport);
+      res.on("close", () => { sseTransports.delete(transport.sessionId); });
+      await server.connect(transport);
+    });
+
+    app.post("/messages", async (req: Request, res: Response) => {
+      const sessionId = req.query.sessionId as string;
+      const transport = sseTransports.get(sessionId);
+      if (!transport) {
+        res.status(404).json({ error: "Session not found" });
+        return;
+      }
+      await transport.handlePostMessage(req, res, req.body);
     });
 
     const httpServer = app.listen(PORT, () => {
