@@ -13,6 +13,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import cors from "cors";
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 
@@ -49,8 +50,10 @@ export async function startServer(
   // Unified session store for both transport types
   const sessions = new Map<string, Transport>();
 
-  // Express with DNS rebinding protection
-  const app = createMcpExpressApp();
+  // Express app - bind to all interfaces for development/testing
+  // (allows connections from Android emulators, other devices, etc.)
+  const app = createMcpExpressApp({ host: "0.0.0.0" });
+  app.use(cors());
 
   // Streamable HTTP (stateful)
   app.all("/mcp", async (req: Request, res: Response) => {
