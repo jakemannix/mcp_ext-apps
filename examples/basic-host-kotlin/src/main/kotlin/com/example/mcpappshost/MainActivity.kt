@@ -26,7 +26,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -334,6 +337,11 @@ fun ToolCallCard(
 
 /**
  * WebView composable that handles full MCP Apps protocol communication.
+ *
+ * Implements proper lifecycle management to handle:
+ * - Activity pause/resume (calls WebView.onPause/onResume)
+ * - Composable disposal (cleans up WebView references)
+ * - LazyColumn recycling (preserves WebView state via key)
  */
 @Composable
 fun McpAppWebView(
@@ -345,6 +353,7 @@ fun McpAppWebView(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val json = remember { kotlinx.serialization.json.Json { ignoreUnknownKeys = true } }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
@@ -352,6 +361,50 @@ fun McpAppWebView(
     var teardownRequestId by remember { mutableStateOf(0) }
     var teardownCompleted by remember { mutableStateOf(false) }
     var currentHeight by remember { mutableIntStateOf(toolCall.preferredHeight) }
+
+    // Track whether the WebView is currently paused
+    var isPaused by remember { mutableStateOf(false) }
+
+    // Lifecycle observer to pause/resume WebView when activity lifecycle changes
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    android.util.Log.d("McpAppWebView", "Lifecycle ON_PAUSE - pausing WebView")
+                    webViewRef?.onPause()
+                    isPaused = true
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    android.util.Log.d("McpAppWebView", "Lifecycle ON_RESUME - resuming WebView")
+                    if (isPaused) {
+                        webViewRef?.onResume()
+                        isPaused = false
+                    }
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    android.util.Log.d("McpAppWebView", "Lifecycle ON_DESTROY - cleaning up WebView")
+                    webViewRef?.let { wv ->
+                        wv.stopLoading()
+                        wv.destroy()
+                    }
+                    webViewRef = null
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            android.util.Log.d("McpAppWebView", "DisposableEffect onDispose - cleaning up")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // Clean up WebView when composable is disposed
+            webViewRef?.let { wv ->
+                wv.stopLoading()
+                // Don't destroy here - just clear the reference
+                // The WebView will be garbage collected or reused
+            }
+            webViewRef = null
+        }
+    }
 
     // Inject bridge script into HTML
     val injectedHtml = remember(toolCall.htmlContent) {
@@ -572,6 +625,19 @@ fun McpAppWebView(
                 }, "mcpBridge")
 
                 loadDataWithBaseURL(null, injectedHtml, "text/html", "UTF-8", null)
+            }
+        },
+        update = { webView ->
+            // Update webViewRef if it changed (e.g., after recreation)
+            if (webViewRef != webView) {
+                android.util.Log.d("McpAppWebView", "WebView reference updated")
+                webViewRef = webView
+            }
+            // Sync paused state with current lifecycle
+            if (isPaused && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                android.util.Log.d("McpAppWebView", "Resuming WebView after lifecycle sync")
+                webView.onResume()
+                isPaused = false
             }
         },
         modifier = modifier
