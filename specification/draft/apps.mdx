@@ -440,10 +440,6 @@ interface HostContext {
 }
 ```
 
-All fields are optional. Hosts SHOULD provide relevant context. Guest UIs SHOULD handle missing fields gracefully.
-
-For `styles`, apps SHOULD provide CSS fallback values (e.g., `var(--color-text-primary, #171717)`) to handle hosts that don't supply styles.
-
 Example:
 
 ```json
@@ -460,7 +456,8 @@ Example:
       "styles": {
         "--color-background-primary": "light-dark(#ffffff, #171717)",
         "--color-text-primary": "light-dark(#171717, #fafafa)",
-        "--font-family-sans": "system-ui, sans-serif"
+        "--font-family-sans": "system-ui, sans-serif",
+        ...
       },
       "displayMode": "inline",
       "viewport": { "width": 400, "height": 300 }
@@ -471,9 +468,9 @@ Example:
 
 ### Theming
 
-Hosts pass CSS custom properties via `HostContext.styles` for visual cohesion with the host environment.
+Hosts can optionally pass CSS custom properties via `HostContext.styles` for visual cohesion with the host environment.
 
-#### Standardized Variables
+#### Current Standardized Variables
 
 | Category | Variables |
 |----------|-----------|
@@ -492,26 +489,27 @@ Hosts pass CSS custom properties via `HostContext.styles` for visual cohesion wi
 
 #### Host Behavior
 
-- Hosts MAY provide any subset of standardized variables
-- Hosts MAY use CSS `light-dark()` function for theme-aware values
-- `theme` indicates the active mode; `styles` provides the concrete CSS values
+- Hosts can provide any subset of standardized variables, or not pass `styles` at all. However, passing all of the standardized properties is recommended for cohesiveness
+- Hosts can use the CSS `light-dark()` function for theme-aware values
 
 #### App Behavior
 
-- Apps SHOULD use fallback values for CSS variables: `var(--color-text-primary, #171717)`
-- This ensures graceful degradation when hosts omit `styles` or specific variables
-- When the host uses `light-dark()` values, apps MUST set `color-scheme` on their document:
-  ```css
-  :root { color-scheme: light dark; }
-  ```
+- Apps should set default fallback values for CSS variables, to account for hosts who don't pass some or all style variables. This ensures graceful degradation when hosts omit `styles` or specific variables:
+```
+:root {
+  --colorTextPrimary: #171717;
+}
+```
+- Apps can use the `applyHostStyles` utility (or `useHostStyles` if they prefer a React hook) to easily populate the host-provided CSS variables into their style sheet
+- Apps can use the `applyDocumentTheme` utility (or `useDocumentTheme` if they prefer a React hook) to easily respond to Host Context `theme` changes in a way that is compatible with the host's light/dark color variables 
 
-Example CSS:
+Example usage of standardized CSS variables:
 
 ```css
 .container {
-  background: var(--color-background-primary, #ffffff);
-  color: var(--color-text-primary, #171717);
-  font: var(--font-style-body, 400 16px/1.4 system-ui);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font: var(--font-style-body);
 }
 ```
 
