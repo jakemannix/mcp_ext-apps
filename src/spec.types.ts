@@ -513,3 +513,22 @@ export interface McpUiRequestDisplayModeResult {
    */
   [key: string]: unknown;
 }
+
+/**
+ * @description Tool visibility scope - who can access the tool.
+ */
+export type McpUiToolVisibility = "model" | "app";
+
+/**
+ * @description UI-related metadata for tools.
+ */
+export interface McpUiToolMeta {
+  /** @description URI of UI resource for rendering tool results. */
+  resourceUri?: string;
+  /**
+   * @description Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: McpUiToolVisibility[];
+}
