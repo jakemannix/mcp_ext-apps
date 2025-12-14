@@ -1317,7 +1317,7 @@
           "additionalProperties": false
         }
       },
-      "additionalProperties": false
+      "additionalProperties": {}
     },
     "McpUiHostStyles": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1642,7 +1642,7 @@
           }
         }
       },
-      "additionalProperties": {}
+      "additionalProperties": false
     },
     "McpUiInitializeRequest": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
