@@ -57,9 +57,16 @@ const PROXY_READY_NOTIFICATION: McpUiSandboxProxyReadyNotification["method"] =
 // intercepted here (not relayed) because the Sandbox uses it to configure and
 // load the inner iframe with the Guest UI HTML content.
 // Build CSP meta tag from domains
-function buildCspMetaTag(csp?: { connectDomains?: string[]; resourceDomains?: string[] }): string {
+function buildCspMetaTag(csp?: {
+  connectDomains?: string[];
+  resourceDomains?: string[];
+  frameDomains?: string[];
+  baseUriDomains?: string[];
+}): string {
   const resourceDomains = csp?.resourceDomains?.join(" ") ?? "";
   const connectDomains = csp?.connectDomains?.join(" ") ?? "";
+  const frameDomains = csp?.frameDomains?.join(" ");
+  const baseUriDomains = csp?.baseUriDomains?.join(" ");
 
   // Base CSP directives
   const directives = [
@@ -69,12 +76,30 @@ function buildCspMetaTag(csp?: { connectDomains?: string[]; resourceDomains?: st
     `img-src 'self' data: blob: ${resourceDomains}`.trim(),
     `font-src 'self' data: blob: ${resourceDomains}`.trim(),
     `connect-src 'self' ${connectDomains}`.trim(),
-    "frame-src 'none'",
+    // Use frameDomains if provided, otherwise default to 'none'
+    frameDomains ? `frame-src ${frameDomains}` : "frame-src 'none'",
     "object-src 'none'",
-    "base-uri 'self'",
+    // Use baseUriDomains if provided, otherwise default to 'self'
+    baseUriDomains ? `base-uri ${baseUriDomains}` : "base-uri 'self'",
   ];
 
   return `<meta http-equiv="Content-Security-Policy" content="${directives.join("; ")}">`;
+}
+
+// Build iframe allow attribute from permissions
+function buildAllowAttribute(permissions?: {
+  camera?: boolean;
+  microphone?: boolean;
+  geolocation?: boolean;
+}): string {
+  if (!permissions) return "";
+
+  const allowList: string[] = [];
+  if (permissions.camera) allowList.push("camera");
+  if (permissions.microphone) allowList.push("microphone");
+  if (permissions.geolocation) allowList.push("geolocation");
+
+  return allowList.join("; ");
 }
 
 window.addEventListener("message", async (event) => {
@@ -82,9 +107,15 @@ window.addEventListener("message", async (event) => {
     // NOTE: In production you'll also want to validate `event.origin` against
     // your Host domain.
     if (event.data && event.data.method === RESOURCE_READY_NOTIFICATION) {
-      const { html, sandbox, csp } = event.data.params;
+      const { html, sandbox, csp, permissions } = event.data.params;
       if (typeof sandbox === "string") {
         inner.setAttribute("sandbox", sandbox);
+      }
+      // Set Permission Policy allow attribute if permissions are requested
+      const allowAttribute = buildAllowAttribute(permissions);
+      if (allowAttribute) {
+        console.log("[Sandbox] Setting allow attribute:", allowAttribute);
+        inner.setAttribute("allow", allowAttribute);
       }
       if (typeof html === "string") {
         // Inject CSP meta tag at the start of <head> if CSP is provided

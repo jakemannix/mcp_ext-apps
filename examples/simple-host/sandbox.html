@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- CSP is set via HTTP response headers in serve.ts -->
+    <!-- Note: No CSP meta tag here - CSP is set on the actual remote HTML content -->
+    <!-- and needs to be super relaxed otherwise nothing loads -->
+    <title>MCP-UI Proxy</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100vh;
+        width: 100vw;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      iframe {
+        background-color: transparent;
+        border: 0px none transparent;
+        padding: 0px;
+        overflow: hidden;
+        flex-grow: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Security checks
+      if (window.self === window.top) {
+        throw new Error("This file is only to be used in an iframe sandbox.");
+      }
+      if (!document.referrer) {
+        throw new Error("No referrer, cannot validate embedding site.");
+      }
+      if (!document.referrer.match(/^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/)) {
+        throw new Error(`Embedding domain not allowed in referrer ${document.referrer} (update the validation logic to allow your domain)`);
+      }
+
+      // Try to break out of iframe (security test)
+      try {
+        window.top.alert("If you see this, the sandbox is not setup securely.");
+        throw new Error("Managed to break out of iframe, the sandbox is not setup securely.");
+      } catch (e) {
+        // Expected to fail
+      }
+
+      const inner = document.createElement('iframe');
+      inner.style = 'width:100%; height:100%; border:none;';
+      // sandbox will be set from postMessage payload; default minimal before html arrives
+      // Use allow-same-origin for document.write to work
+      inner.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      document.body.appendChild(inner);
+
+      window.addEventListener('message', async (event) => {
+        if (event.source === window.parent) {
+          if (event.data && event.data.method === 'ui/notifications/sandbox-resource-ready') {
+            const { html, sandbox } = event.data.params || {};
+            if (typeof sandbox === 'string') {
+              // Ensure allow-same-origin is present for document.write to work
+              let finalSandbox = sandbox;
+              if (!finalSandbox.includes('allow-same-origin')) {
+                finalSandbox = finalSandbox + ' allow-same-origin';
+              }
+              inner.setAttribute('sandbox', finalSandbox);
+            }
+            if (typeof html === 'string') {
+              // Use document.write instead of srcdoc to avoid CSP base-uri issues
+              // document.write allows the browser to resolve relative URLs correctly
+              // Match the pattern from mcp-ui proxy script (https://github.com/MCP-UI-Org/mcp-ui/pull/140)
+              // This is the main change to support the double iframe exactly the same way as ChatGPT
+              // The iframe is rendered first (created at page load), then we write when HTML arrives
+              try {
+                if (inner.contentDocument) {
+                  inner.contentDocument.open();
+                  inner.contentDocument.write(html);
+                  inner.contentDocument.close();
+                } else {
+                  // Fallback to srcdoc if contentDocument is not accessible
+                  inner.srcdoc = html;
+                }
+              } catch (e) {
+                console.error('Failed to write HTML to iframe:', e);
+                // Fallback to srcdoc if document.write fails
+                inner.srcdoc = html;
+              }
+            }
+          } else {
+            if (inner && inner.contentWindow) {
+              inner.contentWindow.postMessage(event.data, '*');
+            }
+          }
+        } else if (event.source === inner.contentWindow) {
+          // Relay messages from inner to parent
+          window.parent.postMessage(event.data, '*');
+        }
+      });
+
+      // Notify parent that proxy is ready to receive HTML
+      window.parent.postMessage({
+        jsonrpc: '2.0',
+        method: 'ui/notifications/sandbox-proxy-ready',
+        params: {}
+      }, '*');
+    </script>
+  </body>
+</html>

@@ -38,6 +38,7 @@ export {
   type McpUiInitializeResult,
   type McpUiInitializedNotification,
   type McpUiResourceCsp,
+  type McpUiResourcePermissions,
   type McpUiResourceMeta,
 } from "./spec.types.js";
 
@@ -88,6 +89,7 @@ export {
   McpUiInitializeResultSchema,
   McpUiInitializedNotificationSchema,
   McpUiResourceCspSchema,
+  McpUiResourcePermissionsSchema,
   McpUiResourceMetaSchema,
 } from "./generated/schema.js";
 
