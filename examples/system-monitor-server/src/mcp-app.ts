@@ -260,7 +260,7 @@ const app = new App({ name: "System Monitor", version: "1.0.0" });
 async function fetchStats(): Promise<void> {
   try {
     const result = await app.callServerTool({
-      name: "get-system-stats",
+      name: "refresh-stats", // Use app-only tool for polling
       arguments: {},
     });
 

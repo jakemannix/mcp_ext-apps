@@ -47,7 +47,7 @@ Exposes a single `get-scenario-data` tool that returns:
 - Default input values for the sliders
 - Optionally computes custom projections when `customInputs` are provided
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/`)
 

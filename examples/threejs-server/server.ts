@@ -9,7 +9,7 @@ import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
+import { RESOURCE_MIME_TYPE } from "../../dist/src/app";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -160,7 +160,7 @@ function createServer(): McpServer {
           .default(400)
           .describe("Height in pixels"),
       },
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      _meta: { ui: { resourceUri } },
     },
     async ({ code, height }) => {
       return {

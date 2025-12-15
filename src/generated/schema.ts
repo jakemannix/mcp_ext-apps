@@ -425,10 +425,35 @@ export const McpUiResourceMetaSchema = z.object({
 });
 
 /**
+ * @description Request to change the display mode of the UI.
+ * The host will respond with the actual display mode that was set,
+ * which may differ from the requested mode if not supported.
+ * @see {@link app.App.requestDisplayMode} for the method that sends this request
+ */
+export const McpUiRequestDisplayModeRequestSchema = z.object({
+  method: z.literal("ui/request-display-mode"),
+  params: z.object({
+    /** @description The display mode being requested. */
+    mode: McpUiDisplayModeSchema.describe("The display mode being requested."),
+  }),
+});
+
+/**
+ * @description Result from requesting a display mode change.
+ * @see {@link McpUiRequestDisplayModeRequest}
+ */
+export const McpUiRequestDisplayModeResultSchema = z.looseObject({
+  /** @description The display mode that was actually set. May differ from requested if not supported. */
+  mode: McpUiDisplayModeSchema.describe(
+    "The display mode that was actually set. May differ from requested if not supported.",
+  ),
+});
+
+/**
  * @description Tool visibility scope - who can access the tool.
  */
 export const McpUiToolVisibilitySchema = z
-  .union([z.literal("model"), z.literal("apps")])
+  .union([z.literal("model"), z.literal("app")])
   .describe("Tool visibility scope - who can access the tool.");
 
 /**
@@ -441,15 +466,15 @@ export const McpUiToolMetaSchema = z.object({
     .optional()
     .describe("URI of UI resource for rendering tool results."),
   /**
-   * @description Who can access this tool. Default: ["model", "apps"]
+   * @description Who can access this tool. Default: ["model", "app"]
    * - "model": Tool visible to and callable by the agent
-   * - "apps": Tool callable by apps from this server only
+   * - "app": Tool callable by the app from this server only
    */
   visibility: z
     .array(McpUiToolVisibilitySchema)
     .optional()
     .describe(
-      'Who can access this tool. Default: ["model", "apps"]\n- "model": Tool visible to and callable by the agent\n- "apps": Tool callable by apps from this server only',
+      'Who can access this tool. Default: ["model", "app"]\n- "model": Tool visible to and callable by the agent\n- "app": Tool callable by the app from this server only',
     ),
 });
 

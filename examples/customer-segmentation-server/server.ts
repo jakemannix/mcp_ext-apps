@@ -7,7 +7,7 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
+import { RESOURCE_MIME_TYPE } from "../../dist/src/app";
 import { startServer } from "../shared/server-utils.js";
 import {
   generateCustomers,
@@ -72,7 +72,7 @@ function createServer(): McpServer {
         description:
           "Returns customer data with segment information for visualization. Optionally filter by segment.",
         inputSchema: GetCustomerDataInputSchema.shape,
-        _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+        _meta: { ui: { resourceUri } },
       },
       async ({ segment }): Promise<CallToolResult> => {
         const data = getCustomerData(segment);

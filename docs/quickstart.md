@@ -97,7 +97,7 @@ Create `server.ts`:
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps";
+import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps";
 import cors from "cors";
 import express from "express";
 import fs from "node:fs/promises";
@@ -119,7 +119,7 @@ server.registerTool(
     description: "Returns the current server time.",
     inputSchema: {},
     outputSchema: { time: z.string() },
-    _meta: { [RESOURCE_URI_META_KEY]: resourceUri }, // Links tool to UI
+    _meta: { ui: { resourceUri } }, // Links tool to UI
   },
   async () => {
     const time = new Date().toISOString();

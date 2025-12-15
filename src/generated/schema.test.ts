@@ -95,6 +95,14 @@ export type McpUiResourceMetaSchemaInferredType = z.infer<
   typeof generated.McpUiResourceMetaSchema
 >;
 
+export type McpUiRequestDisplayModeRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiRequestDisplayModeRequestSchema
+>;
+
+export type McpUiRequestDisplayModeResultSchemaInferredType = z.infer<
+  typeof generated.McpUiRequestDisplayModeResultSchema
+>;
+
 export type McpUiToolVisibilitySchemaInferredType = z.infer<
   typeof generated.McpUiToolVisibilitySchema
 >;
@@ -225,6 +233,18 @@ expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
 expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
 expectType<spec.McpUiResourceMeta>({} as McpUiResourceMetaSchemaInferredType);
 expectType<McpUiResourceMetaSchemaInferredType>({} as spec.McpUiResourceMeta);
+expectType<spec.McpUiRequestDisplayModeRequest>(
+  {} as McpUiRequestDisplayModeRequestSchemaInferredType,
+);
+expectType<McpUiRequestDisplayModeRequestSchemaInferredType>(
+  {} as spec.McpUiRequestDisplayModeRequest,
+);
+expectType<spec.McpUiRequestDisplayModeResult>(
+  {} as McpUiRequestDisplayModeResultSchemaInferredType,
+);
+expectType<McpUiRequestDisplayModeResultSchemaInferredType>(
+  {} as spec.McpUiRequestDisplayModeResult,
+);
 expectType<spec.McpUiToolVisibility>(
   {} as McpUiToolVisibilitySchemaInferredType,
 );
