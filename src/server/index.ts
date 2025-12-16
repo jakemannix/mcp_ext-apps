@@ -48,8 +48,10 @@ export interface McpUiAppToolConfig extends ToolConfig {
         /**
          * URI of the UI resource to display for this tool.
          * This is converted to `_meta["ui/resourceUri"]`.
-         *
+         * 
          * @example "ui://weather/widget.html"
+         *
+         * @deprecated Use `_meta.ui.resourceUri` instead.
          */
         [RESOURCE_URI_META_KEY]?: string;
       }

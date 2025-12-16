@@ -460,10 +460,13 @@ export const McpUiToolVisibilitySchema = z
  * @description UI-related metadata for tools.
  */
 export const McpUiToolMetaSchema = z.object({
-  /** @description URI of UI resource for rendering tool results. */
-  resourceUri: z
-    .string()
-    .describe("URI of UI resource for rendering tool results."),
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   *
+   * @example "ui://weather/widget.html"
+   */
+  resourceUri: z.string(),
   /**
    * @description Who can access this tool. Default: ["model", "app"]
    * - "model": Tool visible to and callable by the agent

@@ -523,7 +523,12 @@ export type McpUiToolVisibility = "model" | "app";
  * @description UI-related metadata for tools.
  */
 export interface McpUiToolMeta {
-  /** @description URI of UI resource for rendering tool results. */
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   * 
+   * @example "ui://weather/widget.html"
+   */
   resourceUri: string;
   /**
    * @description Who can access this tool. Default: ["model", "app"]

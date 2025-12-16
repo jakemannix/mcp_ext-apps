@@ -3801,7 +3801,6 @@
       "type": "object",
       "properties": {
         "resourceUri": {
-          "description": "URI of UI resource for rendering tool results.",
           "type": "string"
         },
         "visibility": {
