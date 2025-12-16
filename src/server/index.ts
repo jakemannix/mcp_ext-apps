@@ -5,10 +5,10 @@
  */
 
 import {
-  RESOURCE_URI_META_KEY as _RESOURCE_URI_META_KEY,
+  RESOURCE_URI_META_KEY,
+  RESOURCE_MIME_TYPE,
   McpUiResourceMeta,
   McpUiToolMeta,
-  RESOURCE_MIME_TYPE,
 } from "../app.js";
 import type {
   McpServer,
@@ -19,12 +19,9 @@ import type {
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import type { ZodRawShape } from "zod";
 
-// Re-export SDK types for convenience
+// Re-exports for convenience
+export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE };
 export type { ResourceMetadata, ToolCallback, ReadResourceCallback };
-
-// Re-export for convenience
-export const RESOURCE_URI_META_KEY = _RESOURCE_URI_META_KEY;
-export { RESOURCE_MIME_TYPE };
 
 /**
  * Tool configuration (same as McpServer.registerTool).
@@ -43,17 +40,20 @@ export interface ToolConfig {
 export interface McpUiAppToolConfig extends ToolConfig {
   _meta: {
     [key: string]: unknown;
-  } & ({
-    ui: McpUiToolMeta;
-  } | {
-    /**
-     * URI of the UI resource to display for this tool.
-     * This is converted to `_meta["ui/resourceUri"]`.
-     *
-     * @example "ui://weather/widget.html"
-     */
-    [RESOURCE_URI_META_KEY]?: string;
-  });
+  } & (
+    | {
+        ui: McpUiToolMeta;
+      }
+    | {
+        /**
+         * URI of the UI resource to display for this tool.
+         * This is converted to `_meta["ui/resourceUri"]`.
+         *
+         * @example "ui://weather/widget.html"
+         */
+        [RESOURCE_URI_META_KEY]?: string;
+      }
+  );
 }
 
 /**
