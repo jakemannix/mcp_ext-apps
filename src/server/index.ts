@@ -7,6 +7,7 @@
 import {
   RESOURCE_URI_META_KEY as _RESOURCE_URI_META_KEY,
   McpUiResourceMeta,
+  McpUiToolMeta,
   RESOURCE_MIME_TYPE,
 } from "../app.js";
 import type {
@@ -41,8 +42,10 @@ export interface ToolConfig {
  */
 export interface McpUiAppToolConfig extends ToolConfig {
   _meta: {
-    // Soon: `ui: McpUiToolMeta;` (https://github.com/modelcontextprotocol/ext-apps/pull/131)
-
+    [key: string]: unknown;
+  } & ({
+    ui: McpUiToolMeta;
+  } | {
     /**
      * URI of the UI resource to display for this tool.
      * This is converted to `_meta["ui/resourceUri"]`.
@@ -50,8 +53,7 @@ export interface McpUiAppToolConfig extends ToolConfig {
      * @example "ui://weather/widget.html"
      */
     [RESOURCE_URI_META_KEY]?: string;
-    [key: string]: unknown;
-  };
+  });
 }
 
 /**

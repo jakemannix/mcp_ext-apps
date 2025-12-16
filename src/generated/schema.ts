@@ -463,7 +463,6 @@ export const McpUiToolMetaSchema = z.object({
   /** @description URI of UI resource for rendering tool results. */
   resourceUri: z
     .string()
-    .optional()
     .describe("URI of UI resource for rendering tool results."),
   /**
    * @description Who can access this tool. Default: ["model", "app"]

@@ -3822,6 +3822,7 @@
           }
         }
       },
+      "required": ["resourceUri"],
       "additionalProperties": false
     },
     "McpUiToolResultNotification": {
