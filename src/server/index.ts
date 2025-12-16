@@ -8,6 +8,7 @@ import {
   RESOURCE_URI_META_KEY,
   RESOURCE_MIME_TYPE,
   McpUiResourceMeta,
+  McpUiToolMeta,
 } from "../app.js";
 import type {
   McpServer,
@@ -38,25 +39,31 @@ export interface ToolConfig {
  */
 export interface McpUiAppToolConfig extends ToolConfig {
   _meta: {
-    // Soon: `ui: McpUiToolMeta;` (https://github.com/modelcontextprotocol/ext-apps/pull/131)
-
-    /**
-     * URI of the UI resource to display for this tool.
-     * This is converted to `_meta["ui/resourceUri"]`.
-     *
-     * @example "ui://weather/widget.html"
-     */
-    [RESOURCE_URI_META_KEY]: string;
     [key: string]: unknown;
-  };
+  } & (
+    | {
+        ui: McpUiToolMeta;
+      }
+    | {
+        /**
+         * URI of the UI resource to display for this tool.
+         * This is converted to `_meta["ui/resourceUri"]`.
+         *
+         * @example "ui://weather/widget.html"
+         *
+         * @deprecated Use `_meta.ui.resourceUri` instead.
+         */
+        [RESOURCE_URI_META_KEY]?: string;
+      }
+  );
 }
 
 /**
  * MCP App Resource configuration for `registerAppResource`.
  */
 export interface McpUiAppResourceConfig extends ResourceMetadata {
-  _meta?: {
-    ui?: McpUiResourceMeta;
+  _meta: {
+    ui: McpUiResourceMeta;
     [key: string]: unknown;
   };
 }
@@ -95,7 +102,23 @@ export function registerAppTool(
   config: McpUiAppToolConfig,
   handler: ToolCallback<ZodRawShape>,
 ): void {
-  server.registerTool(name, config, handler);
+  // Normalize metadata for backward compatibility:
+  // - If _meta.ui.resourceUri is set, also set the legacy flat key
+  // - If the legacy flat key is set, also set _meta.ui.resourceUri
+  const meta = config._meta;
+  const uiMeta = meta.ui as McpUiToolMeta | undefined;
+  const legacyUri = meta[RESOURCE_URI_META_KEY] as string | undefined;
+
+  let normalizedMeta = meta;
+  if (uiMeta?.resourceUri && !legacyUri) {
+    // New format -> also set legacy key
+    normalizedMeta = { ...meta, [RESOURCE_URI_META_KEY]: uiMeta.resourceUri };
+  } else if (legacyUri && !uiMeta?.resourceUri) {
+    // Legacy format -> also set new format
+    normalizedMeta = { ...meta, ui: { ...uiMeta, resourceUri: legacyUri } };
+  }
+
+  server.registerTool(name, { ...config, _meta: normalizedMeta }, handler);
 }
 
 /**

@@ -14,7 +14,11 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { App } from "./app";
-import { AppBridge, type McpUiHostCapabilities } from "./app-bridge";
+import {
+  AppBridge,
+  getToolUiResourceUri,
+  type McpUiHostCapabilities,
+} from "./app-bridge";
 
 /** Wait for pending microtasks to complete */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -704,6 +708,110 @@ describe("App <-> AppBridge integration", () => {
       await flush();
 
       expect(receivedNotifications).toHaveLength(1);
+    });
+  });
+});
+
+describe("getToolUiResourceUri", () => {
+  describe("new nested format (_meta.ui.resourceUri)", () => {
+    it("extracts resourceUri from _meta.ui.resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/app.html" },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+
+    it("extracts resourceUri when visibility is also present", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: {
+            resourceUri: "ui://server/app.html",
+            visibility: ["model"],
+          },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("deprecated flat format (_meta['ui/resourceUri'])", () => {
+    it("extracts resourceUri from deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { "ui/resourceUri": "ui://server/app.html" },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("format precedence", () => {
+    it("prefers new nested format over deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/new.html" },
+          "ui/resourceUri": "ui://server/old.html",
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/new.html");
+    });
+  });
+
+  describe("missing resourceUri", () => {
+    it("returns undefined when no resourceUri in empty _meta", () => {
+      const tool = { name: "test-tool", _meta: {} };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined when _meta is missing", () => {
+      const tool = {} as { _meta?: Record<string, unknown> };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined for app-only tools with visibility but no resourceUri", () => {
+      const tool = {
+        name: "refresh-stats",
+        _meta: {
+          ui: { visibility: ["app"] },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+  });
+
+  describe("validation", () => {
+    it("throws for invalid URI (not starting with ui://)", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: "https://example.com" } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for non-string resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: 123 } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for null resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: null } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
     });
   });
 });

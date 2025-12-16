@@ -450,6 +450,37 @@ export const McpUiRequestDisplayModeResultSchema = z.looseObject({
 });
 
 /**
+ * @description Tool visibility scope - who can access the tool.
+ */
+export const McpUiToolVisibilitySchema = z
+  .union([z.literal("model"), z.literal("app")])
+  .describe("Tool visibility scope - who can access the tool.");
+
+/**
+ * @description UI-related metadata for tools.
+ */
+export const McpUiToolMetaSchema = z.object({
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   *
+   * @example "ui://weather/widget.html"
+   */
+  resourceUri: z.string(),
+  /**
+   * @description Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility: z
+    .array(McpUiToolVisibilitySchema)
+    .optional()
+    .describe(
+      'Who can access this tool. Default: ["model", "app"]\n- "model": Tool visible to and callable by the agent\n- "app": Tool callable by the app from this server only',
+    ),
+});
+
+/**
  * @description Request to send a message to the host's chat interface.
  * @see {@link app.App.sendMessage} for the method that sends this request
  */

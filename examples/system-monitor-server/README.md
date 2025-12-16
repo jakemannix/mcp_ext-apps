@@ -46,7 +46,7 @@ Exposes a single `get-system-stats` tool that returns:
 - Memory usage (used/total/percentage)
 - System info (hostname, platform, uptime)
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/mcp-app.ts`)
 

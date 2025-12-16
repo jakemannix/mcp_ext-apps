@@ -77,7 +77,52 @@ import {
 } from "./types";
 export * from "./types";
 export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE } from "./app";
+import { RESOURCE_URI_META_KEY } from "./app";
 export { PostMessageTransport } from "./message-transport";
+
+/**
+ * Extract UI resource URI from tool metadata.
+ *
+ * Supports both the new nested format (`_meta.ui.resourceUri`) and the
+ * deprecated flat format (`_meta["ui/resourceUri"]`). The new nested format
+ * takes precedence if both are present.
+ *
+ * @param tool - A tool object with optional `_meta` property
+ * @returns The UI resource URI if valid, undefined if not present
+ * @throws Error if resourceUri is present but invalid (not starting with "ui://")
+ *
+ * @example
+ * ```typescript
+ * // New nested format (preferred)
+ * const uri = getToolUiResourceUri({
+ *   _meta: { ui: { resourceUri: "ui://server/app.html" } }
+ * });
+ *
+ * // Deprecated flat format (still supported)
+ * const uri = getToolUiResourceUri({
+ *   _meta: { "ui/resourceUri": "ui://server/app.html" }
+ * });
+ * ```
+ */
+export function getToolUiResourceUri(tool: {
+  _meta?: Record<string, unknown>;
+}): string | undefined {
+  // Try new nested format first: _meta.ui.resourceUri
+  const uiMeta = tool._meta?.ui as { resourceUri?: unknown } | undefined;
+  let uri: unknown = uiMeta?.resourceUri;
+
+  // Fall back to deprecated flat format: _meta["ui/resourceUri"]
+  if (uri === undefined) {
+    uri = tool._meta?.[RESOURCE_URI_META_KEY];
+  }
+
+  if (typeof uri === "string" && uri.startsWith("ui://")) {
+    return uri;
+  } else if (uri !== undefined) {
+    throw new Error(`Invalid UI resource URI: ${JSON.stringify(uri)}`);
+  }
+  return undefined;
+}
 
 /**
  * Options for configuring AppBridge behavior.
