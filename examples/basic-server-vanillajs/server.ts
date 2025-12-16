@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { RESOURCE_MIME_TYPE } from "../../dist/src/app";
+import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -28,7 +28,7 @@ function createServer(): McpServer {
       title: "Get Time",
       description: "Returns the current server time as an ISO 8601 string.",
       inputSchema: {},
-      _meta: { ui: { resourceUri: RESOURCE_URI } },
+      _meta: { ui: { resourceUri: RESOURCE_URI } as McpUiToolMeta },
     },
     async (): Promise<CallToolResult> => {
       const time = new Date().toISOString();

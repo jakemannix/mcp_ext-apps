@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE } from "../../dist/src/app";
+import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
 import { startServer } from "../shared/server-utils.js";
 
 // Schemas - types are derived from these using z.infer
@@ -152,7 +152,7 @@ function createServer(): McpServer {
         ui: {
           resourceUri,
           visibility: ["model"],
-        },
+        } as McpUiToolMeta,
       },
     },
     getStats,
@@ -168,7 +168,7 @@ function createServer(): McpServer {
       _meta: {
         ui: {
           visibility: ["app"],
-        },
+        } as McpUiToolMeta,
       },
     },
     getStats,
