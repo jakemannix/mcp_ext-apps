@@ -327,17 +327,23 @@ function handleToolResultData(result: CallToolResult): void {
     return;
   }
 
-  try {
-    // Prefer structuredContent (STRUCTURED_CONTENT_ONLY mode), fall back to parsing text
-    let response: ToolResponse;
-    if (result.structuredContent) {
-      response = result.structuredContent as ToolResponse;
-    } else if (result.content?.[0]?.type === "text") {
+  // Prefer structuredContent (STRUCTURED_CONTENT_ONLY mode), fall back to parsing text
+  let response: ToolResponse;
+  if (result.structuredContent) {
+    response = result.structuredContent as ToolResponse;
+  } else if (result.content?.[0]?.type === "text") {
+    try {
       response = JSON.parse(result.content[0].text);
-    } else {
-      console.error("No valid content in result:", result);
+    } catch (e) {
+      console.error("Failed to parse tool result:", result.content[0].text, e);
       return;
     }
+  } else {
+    console.error("No valid content in result:", result);
+    return;
+  }
+
+  try {
     const { page, links, error } = response;
 
     // Ensure the source node exists

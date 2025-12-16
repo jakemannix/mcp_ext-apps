@@ -386,7 +386,12 @@ async function fetchData(): Promise<void> {
         )
         .map((c) => c.text)
         .join("");
-      data = JSON.parse(text);
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        log.error("Failed to parse tool result:", text, e);
+        return;
+      }
     }
 
     state.customers = data.customers;

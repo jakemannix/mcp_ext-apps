@@ -275,7 +275,12 @@ async function fetchStats(): Promise<void> {
         )
         .map((c) => c.text)
         .join("");
-      stats = JSON.parse(text);
+      try {
+        stats = JSON.parse(text);
+      } catch (e) {
+        log.error("Failed to parse tool result:", text, e);
+        return;
+      }
     }
 
     // Initialize chart on first data if needed

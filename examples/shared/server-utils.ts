@@ -30,11 +30,13 @@ export const STRUCTURED_CONTENT_ONLY =
  */
 export function makeToolResult(data: Record<string, unknown>): CallToolResult {
   if (STRUCTURED_CONTENT_ONLY) {
+    console.log("[makeToolResult] STRUCTURED_CONTENT_ONLY mode:", { structuredContent: data });
     return {
       content: [],
       structuredContent: data,
     };
   }
+  console.log("[makeToolResult] Legacy mode:", { text: JSON.stringify(data).slice(0, 100) + "..." });
   return {
     content: [{ type: "text", text: JSON.stringify(data) }],
   };

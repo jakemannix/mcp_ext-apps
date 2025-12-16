@@ -24,7 +24,12 @@ function extractTime(result: CallToolResult): string {
       .filter((c): c is { type: "text"; text: string } => c.type === "text")
       .map((c) => c.text)
       .join("");
-    data = JSON.parse(text) as { time: string };
+    try {
+      data = JSON.parse(text) as { time: string };
+    } catch (e) {
+      log.error("Failed to parse tool result:", text, e);
+      return "[PARSE ERROR]";
+    }
   }
   return data.time;
 }

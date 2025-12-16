@@ -607,6 +607,11 @@ const app = new App({ name: "Budget Allocator", version: "1.0.0" });
 app.ontoolresult = (result) => {
   log.info("Received tool result:", result);
 
+  if (result.isError) {
+    log.error("Tool returned error:", result);
+    return;
+  }
+
   // Prefer structuredContent (STRUCTURED_CONTENT_ONLY mode), fall back to parsing text
   let data: BudgetDataResponse | undefined;
   if (result.structuredContent) {
@@ -619,7 +624,12 @@ app.ontoolresult = (result) => {
       .map((c) => c.text)
       .join("");
     if (text) {
-      data = JSON.parse(text) as BudgetDataResponse;
+      try {
+        data = JSON.parse(text) as BudgetDataResponse;
+      } catch (e) {
+        log.error("Failed to parse tool result:", text, e);
+        return;
+      }
     }
   }
 
