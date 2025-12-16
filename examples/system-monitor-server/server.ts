@@ -9,7 +9,10 @@ import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 // Schemas - types are derived from these using z.infer
@@ -111,7 +114,8 @@ function createServer(): McpServer {
   // Register the get-system-stats tool and its associated UI resource
   const resourceUri = "ui://system-monitor/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-system-stats",
     {
       title: "Get System Stats",
@@ -149,7 +153,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE, description: "System Monitor UI" },
