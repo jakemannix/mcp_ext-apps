@@ -13,7 +13,10 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -235,14 +238,15 @@ function createServer(): McpServer {
     version: "1.0.0",
   });
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-budget-data",
     {
       title: "Get Budget Data",
       description:
         "Returns budget configuration with 24 months of historical allocations and industry benchmarks by company stage",
       inputSchema: {},
-      _meta: { ui: { resourceUri } as McpUiToolMeta },
+      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async (): Promise<CallToolResult> => {
       const response: BudgetDataResponse = {
@@ -277,7 +281,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     {

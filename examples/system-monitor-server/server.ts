@@ -9,7 +9,10 @@ import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 // Schemas - types are derived from these using z.infer
@@ -108,73 +111,50 @@ function createServer(): McpServer {
     version: "1.0.0",
   });
 
-  // VISIBILITY DEMO:
-  // - get-system-stats: visibility ["model"] - model calls this, returns widget
-  // - refresh-stats: visibility ["app"] - hidden from model, app calls for polling
+  // Register the get-system-stats tool and its associated UI resource
   const resourceUri = "ui://system-monitor/mcp-app.html";
 
-  async function getStats(): Promise<CallToolResult> {
-    const cpuSnapshots = getCpuSnapshots();
-    const cpuInfo = os.cpus()[0];
-    const memory = await getMemoryStats();
-    const uptimeSeconds = os.uptime();
-
-    const stats: SystemStats = {
-      cpu: {
-        cores: cpuSnapshots,
-        model: cpuInfo?.model ?? "Unknown",
-        count: os.cpus().length,
-      },
-      memory,
-      system: {
-        hostname: os.hostname(),
-        platform: `${os.platform()} ${os.arch()}`,
-        arch: os.arch(),
-        uptime: uptimeSeconds,
-        uptimeFormatted: formatUptime(uptimeSeconds),
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    return {
-      content: [{ type: "text", text: JSON.stringify(stats) }],
-    };
-  }
-
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-system-stats",
     {
       title: "Get System Stats",
       description:
         "Returns current system statistics including per-core CPU usage, memory, and system info.",
       inputSchema: {},
-      _meta: {
-        ui: {
-          resourceUri,
-          visibility: ["model"],
-        } as McpUiToolMeta,
-      },
+      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
-    getStats,
+    async (): Promise<CallToolResult> => {
+      const cpuSnapshots = getCpuSnapshots();
+      const cpuInfo = os.cpus()[0];
+      const memory = await getMemoryStats();
+      const uptimeSeconds = os.uptime();
+
+      const stats: SystemStats = {
+        cpu: {
+          cores: cpuSnapshots,
+          model: cpuInfo?.model ?? "Unknown",
+          count: os.cpus().length,
+        },
+        memory,
+        system: {
+          hostname: os.hostname(),
+          platform: `${os.platform()} ${os.arch()}`,
+          arch: os.arch(),
+          uptime: uptimeSeconds,
+          uptimeFormatted: formatUptime(uptimeSeconds),
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(stats) }],
+      };
+    },
   );
 
-  // App-only tool for polling - hidden from model's tool list
-  server.registerTool(
-    "refresh-stats",
-    {
-      title: "Refresh Stats",
-      description: "Refresh system statistics (app-only, for polling)",
-      inputSchema: {},
-      _meta: {
-        ui: {
-          visibility: ["app"],
-        } as McpUiToolMeta,
-      },
-    },
-    getStats,
-  );
-
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE, description: "System Monitor UI" },

@@ -8,7 +8,10 @@ import * as cheerio from "cheerio";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -76,7 +79,8 @@ function createServer(): McpServer {
   // Register the get-first-degree-links tool and its associated UI resource
   const resourceUri = "ui://wiki-explorer/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-first-degree-links",
     {
       title: "Get First-Degree Links",
@@ -89,7 +93,7 @@ function createServer(): McpServer {
           .default("https://en.wikipedia.org/wiki/Model_Context_Protocol")
           .describe("Wikipedia page URL"),
       }),
-      _meta: { ui: { resourceUri } as McpUiToolMeta },
+      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async ({ url }): Promise<CallToolResult> => {
       let title = url;
@@ -124,7 +128,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE },

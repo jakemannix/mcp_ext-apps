@@ -4,7 +4,10 @@ import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, type McpUiToolMeta } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -156,14 +159,15 @@ function createServer(): McpServer {
   // Register tool and resource
   const resourceUri = "ui://get-cohort-data/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-cohort-data",
     {
       title: "Get Cohort Retention Data",
       description:
         "Returns cohort retention heatmap data showing customer retention over time by signup month",
       inputSchema: GetCohortDataInputSchema.shape,
-      _meta: { ui: { resourceUri } as McpUiToolMeta },
+      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
     },
     async ({ metric, periodType, cohortCount, maxPeriods }) => {
       const data = generateCohortData(
@@ -179,7 +183,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
