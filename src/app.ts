@@ -16,6 +16,7 @@ import {
   PingRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { AppNotification, AppRequest, AppResult } from "./types";
+import { PostMessageTransport } from "./message-transport";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
@@ -823,7 +824,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @example Open documentation link
    * ```typescript
    * try {
-   *   await app.sendOpenLink({ url: "https://docs.example.com" });
+   *   await app.openLink({ url: "https://docs.example.com" });
    * } catch (error) {
    *   console.error("Failed to open link:", error);
    *   // Optionally show fallback: display URL for manual copy
@@ -832,10 +833,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * @see {@link McpUiOpenLinkRequest} for request structure
    */
-  sendOpenLink(
-    params: McpUiOpenLinkRequest["params"],
-    options?: RequestOptions,
-  ) {
+  openLink(params: McpUiOpenLinkRequest["params"], options?: RequestOptions) {
     return this.request(
       <McpUiOpenLinkRequest>{
         method: "ui/open-link",
@@ -845,6 +843,9 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
       options,
     );
   }
+
+  /** @deprecated Use {@link openLink} instead */
+  sendOpenLink: App["openLink"] = this.openLink;
 
   /**
    * Request a change to the display mode.
@@ -1025,7 +1026,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @see {@link PostMessageTransport} for the typical transport implementation
    */
   override async connect(
-    transport: Transport,
+    transport: Transport = new PostMessageTransport(window.parent),
     options?: RequestOptions,
   ): Promise<void> {
     await super.connect(transport);

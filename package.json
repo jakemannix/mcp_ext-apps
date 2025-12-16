@@ -23,6 +23,10 @@
       "types": "./dist/src/app-bridge.d.ts",
       "default": "./dist/src/app-bridge.js"
     },
+    "./server": {
+      "types": "./dist/src/server/index.d.ts",
+      "default": "./dist/src/server/index.js"
+    },
     "./schema.json": "./dist/src/generated/schema.json"
   },
   "files": [
@@ -55,6 +59,7 @@
   },
   "author": "Olivier Chafik",
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@playwright/test": "^1.52.0",
     "@types/bun": "^1.3.2",
     "@types/react": "^19.2.2",
@@ -66,6 +71,8 @@
     "express": "^5.1.0",
     "husky": "^9.1.7",
     "nodemon": "^3.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "ts-to-zod": "^5.1.0",
     "tsx": "^4.21.0",
     "typedoc": "^0.28.14",
@@ -73,13 +80,21 @@
     "zod": "^4.1.13"
   },
   "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "react": "^17.0.0 || ^18.0.0 || ^19.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0",
     "zod": "^3.25.0 || ^4.0.0"
   },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.24.3",
-    "prettier": "^3.6.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "prettier": "^3.6.2"
   },
   "optionalDependencies": {
     "@oven/bun-darwin-aarch64": "^1.3.4",

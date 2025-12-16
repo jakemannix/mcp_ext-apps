@@ -3796,6 +3796,34 @@
       "required": ["method", "params"],
       "additionalProperties": false
     },
+    "McpUiToolMeta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "resourceUri": {
+          "type": "string"
+        },
+        "visibility": {
+          "description": "Who can access this tool. Default: [\"model\", \"app\"]\n- \"model\": Tool visible to and callable by the agent\n- \"app\": Tool callable by the app from this server only",
+          "type": "array",
+          "items": {
+            "description": "Tool visibility scope - who can access the tool.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "model"
+              },
+              {
+                "type": "string",
+                "const": "app"
+              }
+            ]
+          }
+        }
+      },
+      "required": ["resourceUri"],
+      "additionalProperties": false
+    },
     "McpUiToolResultNotification": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -4154,6 +4182,20 @@
       },
       "required": ["method", "params"],
       "additionalProperties": false
+    },
+    "McpUiToolVisibility": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Tool visibility scope - who can access the tool.",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "model"
+        },
+        {
+          "type": "string",
+          "const": "app"
+        }
+      ]
     }
   }
 }
