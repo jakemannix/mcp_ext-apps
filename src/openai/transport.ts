@@ -245,6 +245,10 @@ export class OpenAITransport implements Transport {
       theme: this.openai.theme,
       locale: this.openai.locale,
       displayMode: this.openai.displayMode,
+      // If requestDisplayMode is available, ChatGPT supports all three modes
+      availableDisplayModes: this.openai.requestDisplayMode
+        ? ["inline", "pip", "fullscreen"]
+        : undefined,
       viewport: this.openai.maxHeight
         ? { width: 0, height: 0, maxHeight: this.openai.maxHeight }
         : undefined,
@@ -252,17 +256,29 @@ export class OpenAITransport implements Transport {
       userAgent,
     };
 
+    // Dynamically determine capabilities based on what window.openai supports
+    const hostCapabilities: Record<string, unknown> = {
+      // Logging is always available (we map to console.log)
+      logging: {},
+    };
+
+    // Only advertise serverTools if callTool is available
+    if (this.openai.callTool) {
+      hostCapabilities.serverTools = {};
+    }
+
+    // Only advertise openLinks if openExternal is available
+    if (this.openai.openExternal) {
+      hostCapabilities.openLinks = {};
+    }
+
     return this.createSuccessResponse(id, {
       protocolVersion: LATEST_PROTOCOL_VERSION,
       hostInfo: {
         name: "ChatGPT",
         version: "1.0.0",
       },
-      hostCapabilities: {
-        serverTools: {},
-        openLinks: {},
-        logging: {},
-      },
+      hostCapabilities,
       hostContext,
     });
   }
@@ -494,6 +510,8 @@ export class OpenAITransport implements Transport {
                     text: JSON.stringify(this.openai.toolOutput),
                   },
                 ],
+            // Include _meta from toolResponseMetadata if available
+            _meta: this.openai.toolResponseMetadata,
           },
         } as JSONRPCNotification);
       });
