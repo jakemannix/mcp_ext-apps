@@ -128,6 +128,75 @@ describe("OpenAITransport", () => {
         },
       });
     });
+
+    test("dynamically reports capabilities based on available methods", async () => {
+      // Remove callTool to test dynamic detection
+      delete mockOpenAI.callTool;
+
+      const transport = new OpenAITransport();
+      let response: unknown;
+      transport.onmessage = (msg) => {
+        response = msg;
+      };
+
+      await transport.send({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "ui/initialize",
+        params: {
+          protocolVersion: "2025-11-21",
+          appInfo: { name: "TestApp", version: "1.0.0" },
+          appCapabilities: {},
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const result = (response as { result: { hostCapabilities: unknown } })
+        .result.hostCapabilities as Record<string, unknown>;
+
+      // serverTools should NOT be present since callTool is missing
+      expect(result.serverTools).toBeUndefined();
+      // openLinks should be present since openExternal exists
+      expect(result.openLinks).toBeDefined();
+      // logging is always available
+      expect(result.logging).toBeDefined();
+    });
+
+    test("includes availableDisplayModes when requestDisplayMode is available", async () => {
+      mockOpenAI.requestDisplayMode = mock(() =>
+        Promise.resolve(),
+      ) as unknown as OpenAIGlobal["requestDisplayMode"];
+
+      const transport = new OpenAITransport();
+      let response: unknown;
+      transport.onmessage = (msg) => {
+        response = msg;
+      };
+
+      await transport.send({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "ui/initialize",
+        params: {
+          protocolVersion: "2025-11-21",
+          appInfo: { name: "TestApp", version: "1.0.0" },
+          appCapabilities: {},
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(response).toMatchObject({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          hostContext: {
+            availableDisplayModes: ["inline", "pip", "fullscreen"],
+          },
+        },
+      });
+    });
   });
 
   describe("tools/call request", () => {
@@ -332,6 +401,32 @@ describe("OpenAITransport", () => {
           (m as { method?: string }).method === "ui/notifications/tool-result",
       );
       expect(toolResultNotification).toBeDefined();
+    });
+
+    test("includes _meta from toolResponseMetadata in tool result", async () => {
+      mockOpenAI.toolResponseMetadata = { widgetId: "abc123", version: 2 };
+
+      const transport = new OpenAITransport();
+      const messages: unknown[] = [];
+      transport.onmessage = (msg) => {
+        messages.push(msg);
+      };
+
+      transport.deliverInitialState();
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const toolResultNotification = messages.find(
+        (m: unknown) =>
+          (m as { method?: string }).method === "ui/notifications/tool-result",
+      );
+      expect(toolResultNotification).toMatchObject({
+        jsonrpc: "2.0",
+        method: "ui/notifications/tool-result",
+        params: {
+          _meta: { widgetId: "abc123", version: 2 },
+        },
+      });
     });
 
     test("does not deliver notifications when data is missing", async () => {
