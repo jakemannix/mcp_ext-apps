@@ -17,7 +17,6 @@ import {
   PingRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { AppNotification, AppRequest, AppResult } from "./types";
-import { PostMessageTransport } from "./message-transport";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
@@ -49,8 +48,12 @@ import {
   McpUiRequestDisplayModeResultSchema,
 } from "./types";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { PostMessageTransport } from "./message-transport";
+import { OpenAITransport, isOpenAIEnvironment } from "./openai/transport.js";
 
 export { PostMessageTransport } from "./message-transport";
+export { OpenAITransport, isOpenAIEnvironment } from "./openai/transport";
+export * from "./openai/types";
 export * from "./types";
 export {
   applyHostStyleVariables,
@@ -103,7 +106,7 @@ export const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
  *
  * @see ProtocolOptions from @modelcontextprotocol/sdk for inherited options
  */
-type AppOptions = ProtocolOptions & {
+export type AppOptions = ProtocolOptions & {
   /**
    * Automatically report size changes to the host using ResizeObserver.
    *
@@ -114,6 +117,19 @@ type AppOptions = ProtocolOptions & {
    * @default true
    */
   autoResize?: boolean;
+
+  /**
+   * Enable experimental OpenAI compatibility.
+   *
+   * When enabled (default), the App will auto-detect the environment:
+   * - If `window.openai` exists → use OpenAI Apps SDK
+   * - Otherwise → use MCP Apps protocol via PostMessageTransport
+   *
+   * Set to `false` to force MCP-only mode.
+   *
+   * @default true
+   */
+  experimentalOAICompatibility?: boolean;
 };
 
 type RequestHandlerExtra = Parameters<
@@ -222,7 +238,10 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   constructor(
     private _appInfo: Implementation,
     private _capabilities: McpUiAppCapabilities = {},
-    private options: AppOptions = { autoResize: true },
+    private options: AppOptions = {
+      autoResize: true,
+      experimentalOAICompatibility: true,
+    },
   ) {
     super(options);
 
@@ -1038,49 +1057,72 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   }
 
   /**
+   * Create the default transport based on detected platform.
+   * @internal
+   */
+  private createDefaultTransport(): Transport {
+    const experimentalOAI = this.options?.experimentalOAICompatibility ?? true;
+    if (experimentalOAI && isOpenAIEnvironment()) {
+      return new OpenAITransport();
+    }
+    return new PostMessageTransport(window.parent, window.parent);
+  }
+
+  /**
    * Establish connection with the host and perform initialization handshake.
    *
    * This method performs the following steps:
-   * 1. Connects the transport layer
-   * 2. Sends `ui/initialize` request with app info and capabilities
-   * 3. Receives host capabilities and context in response
-   * 4. Sends `ui/notifications/initialized` notification
-   * 5. Sets up auto-resize using {@link setupSizeChangedNotifications} if enabled (default)
+   * 1. Auto-detects platform if no transport is provided
+   * 2. Connects the transport layer
+   * 3. Sends `ui/initialize` request with app info and capabilities
+   * 4. Receives host capabilities and context in response
+   * 5. Sends `ui/notifications/initialized` notification
+   * 6. Sets up auto-resize using {@link setupSizeChangedNotifications} if enabled (default)
+   * 7. For OpenAI mode: delivers initial tool input/result from window.openai
    *
    * If initialization fails, the connection is automatically closed and an error
    * is thrown.
    *
-   * @param transport - Transport layer (typically PostMessageTransport)
+   * @param transport - Optional transport layer. If not provided, auto-detects
+   *   based on the `platform` option:
+   *   - `'openai'` or `window.openai` exists → uses {@link OpenAITransport}
+   *   - `'mcp'` or no `window.openai` → uses {@link PostMessageTransport}
    * @param options - Request options for the initialize request
    *
    * @throws {Error} If initialization fails or connection is lost
    *
-   * @example Connect with PostMessageTransport
+   * @example Auto-detect platform (recommended)
    * ```typescript
    * const app = new App(
    *   { name: "MyApp", version: "1.0.0" },
    *   {}
    * );
    *
-   * try {
-   *   await app.connect(new PostMessageTransport(window.parent));
-   *   console.log("Connected successfully!");
-   * } catch (error) {
-   *   console.error("Failed to connect:", error);
-   * }
+   * // Auto-detects: OpenAI if window.openai exists, MCP otherwise
+   * await app.connect();
+   * ```
+   *
+   * @example Explicit MCP transport
+   * ```typescript
+   * await app.connect(new PostMessageTransport(window.parent));
+   * ```
+   *
+   * @example Explicit OpenAI transport
+   * ```typescript
+   * await app.connect(new OpenAITransport());
    * ```
    *
    * @see {@link McpUiInitializeRequest} for the initialization request structure
    * @see {@link McpUiInitializedNotification} for the initialized notification
-   * @see {@link PostMessageTransport} for the typical transport implementation
+   * @see {@link PostMessageTransport} for MCP-compatible hosts
+   * @see {@link OpenAITransport} for OpenAI/ChatGPT hosts
    */
   override async connect(
-    transport: Transport = new PostMessageTransport(
-      window.parent,
-      window.parent,
-    ),
+    transport?: Transport,
     options?: RequestOptions,
   ): Promise<void> {
+    transport ??= this.createDefaultTransport();
+
     await super.connect(transport);
 
     try {
@@ -1111,6 +1153,11 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
 
       if (this.options?.autoResize) {
         this.setupSizeChangedNotifications();
+      }
+
+      // For OpenAI mode: deliver initial state from window.openai
+      if (transport instanceof OpenAITransport) {
+        transport.deliverInitialState();
       }
     } catch (error) {
       // Disconnect if initialization fails.
