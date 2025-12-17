@@ -498,11 +498,38 @@ export class OpenAITransport implements Transport {
     // Deliver tool output if available (check for both null and undefined)
     if (this.openai.toolOutput != null) {
       queueMicrotask(() => {
-        // Normalize toolOutput to MCP content array format
-        let content: Array<{ type: string; text?: string; [key: string]: unknown }>;
+        // Normalize toolOutput to MCP CallToolResult format
+        let content: Array<{
+          type: string;
+          text?: string;
+          [key: string]: unknown;
+        }>;
+        let structuredContent: Record<string, unknown> | undefined;
         const output = this.openai.toolOutput;
 
-        if (Array.isArray(output)) {
+        // Check if output is already a CallToolResult-like object with content/structuredContent
+        if (
+          typeof output === "object" &&
+          output !== null &&
+          ("content" in output || "structuredContent" in output)
+        ) {
+          const result = output as {
+            content?: unknown;
+            structuredContent?: Record<string, unknown>;
+          };
+          // Prefer structuredContent if available
+          if (result.structuredContent !== undefined) {
+            structuredContent = result.structuredContent;
+            // Generate content from structuredContent if not provided
+            content = Array.isArray(result.content)
+              ? result.content
+              : [{ type: "text", text: JSON.stringify(result.structuredContent) }];
+          } else if (Array.isArray(result.content)) {
+            content = result.content;
+          } else {
+            content = [{ type: "text", text: JSON.stringify(output) }];
+          }
+        } else if (Array.isArray(output)) {
           // Already an array of content blocks
           content = output;
         } else if (
@@ -521,6 +548,10 @@ export class OpenAITransport implements Transport {
         ) {
           // Object with just text field - treat as text content
           content = [{ type: "text", text: (output as { text: string }).text }];
+        } else if (typeof output === "object" && output !== null) {
+          // Plain object - use as structuredContent and generate text content
+          structuredContent = output as Record<string, unknown>;
+          content = [{ type: "text", text: JSON.stringify(output) }];
         } else {
           // Unknown shape - stringify it
           content = [{ type: "text", text: JSON.stringify(output) }];
@@ -531,6 +562,7 @@ export class OpenAITransport implements Transport {
           method: "ui/notifications/tool-result",
           params: {
             content,
+            structuredContent,
             // Include _meta from toolResponseMetadata if available (use undefined not null)
             _meta: this.openai.toolResponseMetadata ?? undefined,
           },
