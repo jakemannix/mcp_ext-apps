@@ -12,6 +12,8 @@ import { z } from "zod";
 import {
   RESOURCE_MIME_TYPE,
   RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
@@ -178,9 +180,8 @@ function createServer(): McpServer {
     },
   );
 
-  // Tool 2: learn_threejs
-  registerAppTool(
-    server,
+  // Tool 2: learn_threejs (not a UI tool, just returns documentation)
+  server.registerTool(
     "learn_threejs",
     {
       title: "Learn Three.js",
