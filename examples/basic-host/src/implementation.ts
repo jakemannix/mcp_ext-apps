@@ -1,4 +1,4 @@
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY, type McpUiSandboxProxyReadyNotification, AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
+import { RESOURCE_MIME_TYPE, getToolUiResourceUri, type McpUiSandboxProxyReadyNotification, AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -77,22 +77,12 @@ export function callTool(
 
   const toolCallInfo: ToolCallInfo = { serverInfo, tool, input, resultPromise };
 
-  const uiResourceUri = getUiResourceUri(tool);
+  const uiResourceUri = getToolUiResourceUri(tool);
   if (uiResourceUri) {
     toolCallInfo.appResourcePromise = getUiResource(serverInfo, uiResourceUri);
   }
 
   return toolCallInfo;
-}
-
-
-function getUiResourceUri(tool: Tool): string | undefined {
-  const uri = tool._meta?.[RESOURCE_URI_META_KEY];
-  if (typeof uri === "string" && uri.startsWith("ui://")) {
-    return uri;
-  } else if (uri !== undefined) {
-    throw new Error(`Invalid UI resource URI: ${JSON.stringify(uri)}`);
-  }
 }
 
 
@@ -186,11 +176,19 @@ export async function initializeApp(
   log.info("Sending tool call input to MCP App:", input);
   appBridge.sendToolInput({ arguments: input });
 
-  // Schedule tool call result to be sent to MCP App
-  resultPromise.then((result) => {
-    log.info("Sending tool call result to MCP App:", result);
-    appBridge.sendToolResult(result);
-  });
+  // Schedule tool call result (or cancellation) to be sent to MCP App
+  resultPromise.then(
+    (result) => {
+      log.info("Sending tool call result to MCP App:", result);
+      appBridge.sendToolResult(result);
+    },
+    (error) => {
+      log.error("Tool call failed, sending cancellation to MCP App:", error);
+      appBridge.sendToolCancelled({
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    },
+  );
 }
 
 /**

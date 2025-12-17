@@ -13,15 +13,15 @@ import {
   ListToolsRequest,
   ListToolsRequestSchema,
   LoggingMessageNotification,
-  Notification,
   PingRequestSchema,
-  Request,
-  Result,
 } from "@modelcontextprotocol/sdk/types.js";
+import { AppNotification, AppRequest, AppResult } from "./types";
+import { PostMessageTransport } from "./message-transport";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
   McpUiHostCapabilities,
+  McpUiHostContext,
   McpUiHostContextChangedNotification,
   McpUiHostContextChangedNotificationSchema,
   McpUiInitializedNotification,
@@ -31,18 +31,30 @@ import {
   McpUiMessageResultSchema,
   McpUiOpenLinkRequest,
   McpUiOpenLinkResultSchema,
+  McpUiResourceTeardownRequest,
+  McpUiResourceTeardownRequestSchema,
+  McpUiResourceTeardownResult,
   McpUiSizeChangedNotification,
+  McpUiToolCancelledNotification,
+  McpUiToolCancelledNotificationSchema,
   McpUiToolInputNotification,
   McpUiToolInputNotificationSchema,
   McpUiToolInputPartialNotification,
   McpUiToolInputPartialNotificationSchema,
   McpUiToolResultNotification,
   McpUiToolResultNotificationSchema,
+  McpUiRequestDisplayModeRequest,
+  McpUiRequestDisplayModeResultSchema,
 } from "./types";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
 export { PostMessageTransport } from "./message-transport";
 export * from "./types";
+export {
+  applyHostStyleVariables,
+  getDocumentTheme,
+  applyDocumentTheme,
+} from "./styles";
 
 /**
  * Metadata key for associating a resource URI with a tool call.
@@ -183,9 +195,10 @@ type RequestHandlerExtra = Parameters<
  * });
  * ```
  */
-export class App extends Protocol<Request, Notification, Result> {
+export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   private _hostCapabilities?: McpUiHostCapabilities;
   private _hostInfo?: Implementation;
+  private _hostContext?: McpUiHostContext;
 
   /**
    * Create a new MCP App instance.
@@ -214,6 +227,10 @@ export class App extends Protocol<Request, Notification, Result> {
       console.log("Received ping:", request.params);
       return {};
     });
+
+    // Set up default handler to update _hostContext when notifications arrive.
+    // Users can override this by setting onhostcontextchanged.
+    this.onhostcontextchanged = () => {};
   }
 
   /**
@@ -269,6 +286,42 @@ export class App extends Protocol<Request, Notification, Result> {
    */
   getHostVersion(): Implementation | undefined {
     return this._hostInfo;
+  }
+
+  /**
+   * Get the host context discovered during initialization.
+   *
+   * Returns the host context that was provided in the initialization response,
+   * including tool info, theme, viewport, locale, and other environment details.
+   * This context is automatically updated when the host sends
+   * `ui/notifications/host-context-changed` notifications.
+   *
+   * Returns `undefined` if called before connection is established.
+   *
+   * @returns Host context, or `undefined` if not yet connected
+   *
+   * @example Access host context after connection
+   * ```typescript
+   * await app.connect(transport);
+   * const context = app.getHostContext();
+   * if (context === undefined) {
+   *   console.error("Not connected");
+   *   return;
+   * }
+   * if (context.theme === "dark") {
+   *   document.body.classList.add("dark-theme");
+   * }
+   * if (context.toolInfo) {
+   *   console.log("Tool:", context.toolInfo.tool.name);
+   * }
+   * ```
+   *
+   * @see {@link connect} for the initialization handshake
+   * @see {@link onhostcontextchanged} for context change notifications
+   * @see {@link McpUiHostContext} for the context structure
+   */
+  getHostContext(): McpUiHostContext | undefined {
+    return this._hostContext;
   }
 
   /**
@@ -389,6 +442,41 @@ export class App extends Protocol<Request, Notification, Result> {
   }
 
   /**
+   * Convenience handler for receiving tool cancellation notifications from the host.
+   *
+   * Set this property to register a handler that will be called when the host
+   * notifies that tool execution was cancelled. This can occur for various reasons
+   * including user action, sampling error, classifier intervention, or other
+   * interruptions. Apps should update their state and display appropriate feedback.
+   *
+   * This setter is a convenience wrapper around `setNotificationHandler()` that
+   * automatically handles the notification schema and extracts the params for you.
+   *
+   * Register handlers before calling {@link connect} to avoid missing notifications.
+   *
+   * @param callback - Function called when tool execution is cancelled
+   *
+   * @example Handle tool cancellation
+   * ```typescript
+   * app.ontoolcancelled = (params) => {
+   *   console.log("Tool cancelled:", params.reason);
+   *   showCancelledMessage(params.reason ?? "Operation was cancelled");
+   * };
+   * ```
+   *
+   * @see {@link setNotificationHandler} for the underlying method
+   * @see {@link McpUiToolCancelledNotification} for the notification structure
+   * @see {@link ontoolresult} for successful tool completion
+   */
+  set ontoolcancelled(
+    callback: (params: McpUiToolCancelledNotification["params"]) => void,
+  ) {
+    this.setNotificationHandler(McpUiToolCancelledNotificationSchema, (n) =>
+      callback(n.params),
+    );
+  }
+
+  /**
    * Convenience handler for host context changes (theme, viewport, locale, etc.).
    *
    * Set this property to register a handler that will be called when the host's
@@ -423,7 +511,53 @@ export class App extends Protocol<Request, Notification, Result> {
   ) {
     this.setNotificationHandler(
       McpUiHostContextChangedNotificationSchema,
-      (n) => callback(n.params),
+      (n) => {
+        // Merge the partial update into the stored context
+        this._hostContext = { ...this._hostContext, ...n.params };
+        callback(n.params);
+      },
+    );
+  }
+
+  /**
+   * Convenience handler for graceful shutdown requests from the host.
+   *
+   * Set this property to register a handler that will be called when the host
+   * requests the app to prepare for teardown. This allows the app to perform
+   * cleanup operations (save state, close connections, etc.) before being unmounted.
+   *
+   * The handler can be sync or async. The host will wait for the returned promise
+   * to resolve before proceeding with teardown.
+   *
+   * This setter is a convenience wrapper around `setRequestHandler()` that
+   * automatically handles the request schema.
+   *
+   * Register handlers before calling {@link connect} to avoid missing requests.
+   *
+   * @param callback - Function called when teardown is requested.
+   *   Can return void or a Promise that resolves when cleanup is complete.
+   *
+   * @example Perform cleanup before teardown
+   * ```typescript
+   * app.onteardown = async () => {
+   *   await saveState();
+   *   closeConnections();
+   *   console.log("App ready for teardown");
+   * };
+   * ```
+   *
+   * @see {@link setRequestHandler} for the underlying method
+   * @see {@link McpUiResourceTeardownRequest} for the request structure
+   */
+  set onteardown(
+    callback: (
+      params: McpUiResourceTeardownRequest["params"],
+      extra: RequestHandlerExtra,
+    ) => McpUiResourceTeardownResult | Promise<McpUiResourceTeardownResult>,
+  ) {
+    this.setRequestHandler(
+      McpUiResourceTeardownRequestSchema,
+      (request, extra) => callback(request.params, extra),
     );
   }
 
@@ -514,7 +648,7 @@ export class App extends Protocol<Request, Notification, Result> {
    * Verify that the host supports the capability required for the given request method.
    * @internal
    */
-  assertCapabilityForMethod(method: Request["method"]): void {
+  assertCapabilityForMethod(method: AppRequest["method"]): void {
     // TODO
   }
 
@@ -522,7 +656,7 @@ export class App extends Protocol<Request, Notification, Result> {
    * Verify that the app declared the capability required for the given request method.
    * @internal
    */
-  assertRequestHandlerCapability(method: Request["method"]): void {
+  assertRequestHandlerCapability(method: AppRequest["method"]): void {
     switch (method) {
       case "tools/call":
       case "tools/list":
@@ -533,6 +667,7 @@ export class App extends Protocol<Request, Notification, Result> {
         }
         return;
       case "ping":
+      case "ui/resource-teardown":
         return;
       default:
         throw new Error(`No handler for method ${method} registered`);
@@ -543,7 +678,7 @@ export class App extends Protocol<Request, Notification, Result> {
    * Verify that the app supports the capability required for the given notification method.
    * @internal
    */
-  assertNotificationCapability(method: Notification["method"]): void {
+  assertNotificationCapability(method: AppNotification["method"]): void {
     // TODO
   }
 
@@ -689,7 +824,7 @@ export class App extends Protocol<Request, Notification, Result> {
    * @example Open documentation link
    * ```typescript
    * try {
-   *   await app.sendOpenLink({ url: "https://docs.example.com" });
+   *   await app.openLink({ url: "https://docs.example.com" });
    * } catch (error) {
    *   console.error("Failed to open link:", error);
    *   // Optionally show fallback: display URL for manual copy
@@ -698,16 +833,54 @@ export class App extends Protocol<Request, Notification, Result> {
    *
    * @see {@link McpUiOpenLinkRequest} for request structure
    */
-  sendOpenLink(
-    params: McpUiOpenLinkRequest["params"],
-    options?: RequestOptions,
-  ) {
+  openLink(params: McpUiOpenLinkRequest["params"], options?: RequestOptions) {
     return this.request(
       <McpUiOpenLinkRequest>{
         method: "ui/open-link",
         params,
       },
       McpUiOpenLinkResultSchema,
+      options,
+    );
+  }
+
+  /** @deprecated Use {@link openLink} instead */
+  sendOpenLink: App["openLink"] = this.openLink;
+
+  /**
+   * Request a change to the display mode.
+   *
+   * Requests the host to change the UI container to the specified display mode
+   * (e.g., "inline", "fullscreen", "pip"). The host will respond with the actual
+   * display mode that was set, which may differ from the requested mode if
+   * the requested mode is not available (check `availableDisplayModes` in host context).
+   *
+   * @param params - The display mode being requested
+   * @param options - Request options (timeout, etc.)
+   * @returns Result containing the actual display mode that was set
+   *
+   * @example Request fullscreen mode
+   * ```typescript
+   * const context = app.getHostContext();
+   * if (context?.availableDisplayModes?.includes("fullscreen")) {
+   *   const result = await app.requestDisplayMode({ mode: "fullscreen" });
+   *   console.log("Display mode set to:", result.mode);
+   * }
+   * ```
+   *
+   * @see {@link McpUiRequestDisplayModeRequest} for request structure
+   * @see {@link McpUiHostContext} for checking availableDisplayModes
+   */
+  requestDisplayMode(
+    params: McpUiRequestDisplayModeRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      <McpUiRequestDisplayModeRequest>{
+        method: "ui/request-display-mode",
+        params,
+      },
+      McpUiRequestDisplayModeResultSchema,
       options,
     );
   }
@@ -853,7 +1026,7 @@ export class App extends Protocol<Request, Notification, Result> {
    * @see {@link PostMessageTransport} for the typical transport implementation
    */
   override async connect(
-    transport: Transport,
+    transport: Transport = new PostMessageTransport(window.parent),
     options?: RequestOptions,
   ): Promise<void> {
     await super.connect(transport);
@@ -878,6 +1051,7 @@ export class App extends Protocol<Request, Notification, Result> {
 
       this._hostCapabilities = result.hostCapabilities;
       this._hostInfo = result.hostInfo;
+      this._hostContext = result.hostContext;
 
       await this.notification(<McpUiInitializedNotification>{
         method: "ui/notifications/initialized",

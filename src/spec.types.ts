@@ -37,6 +37,110 @@ export type McpUiTheme = "light" | "dark";
 export type McpUiDisplayMode = "inline" | "fullscreen" | "pip";
 
 /**
+ * @description CSS variable keys available to MCP apps for theming.
+ */
+export type McpUiStyleVariableKey =
+  // Background colors
+  | "--color-background-primary"
+  | "--color-background-secondary"
+  | "--color-background-tertiary"
+  | "--color-background-inverse"
+  | "--color-background-ghost"
+  | "--color-background-info"
+  | "--color-background-danger"
+  | "--color-background-success"
+  | "--color-background-warning"
+  | "--color-background-disabled"
+  // Text colors
+  | "--color-text-primary"
+  | "--color-text-secondary"
+  | "--color-text-tertiary"
+  | "--color-text-inverse"
+  | "--color-text-info"
+  | "--color-text-danger"
+  | "--color-text-success"
+  | "--color-text-warning"
+  | "--color-text-disabled"
+  // Border colors
+  | "--color-border-primary"
+  | "--color-border-secondary"
+  | "--color-border-tertiary"
+  | "--color-border-inverse"
+  | "--color-border-ghost"
+  | "--color-border-info"
+  | "--color-border-danger"
+  | "--color-border-success"
+  | "--color-border-warning"
+  | "--color-border-disabled"
+  // Ring colors
+  | "--color-ring-primary"
+  | "--color-ring-secondary"
+  | "--color-ring-inverse"
+  | "--color-ring-info"
+  | "--color-ring-danger"
+  | "--color-ring-success"
+  | "--color-ring-warning"
+  // Typography - Family
+  | "--font-sans"
+  | "--font-mono"
+  // Typography - Weight
+  | "--font-weight-normal"
+  | "--font-weight-medium"
+  | "--font-weight-semibold"
+  | "--font-weight-bold"
+  // Typography - Text Size
+  | "--font-text-xs-size"
+  | "--font-text-sm-size"
+  | "--font-text-md-size"
+  | "--font-text-lg-size"
+  // Typography - Heading Size
+  | "--font-heading-xs-size"
+  | "--font-heading-sm-size"
+  | "--font-heading-md-size"
+  | "--font-heading-lg-size"
+  | "--font-heading-xl-size"
+  | "--font-heading-2xl-size"
+  | "--font-heading-3xl-size"
+  // Typography - Text Line Height
+  | "--font-text-xs-line-height"
+  | "--font-text-sm-line-height"
+  | "--font-text-md-line-height"
+  | "--font-text-lg-line-height"
+  // Typography - Heading Line Height
+  | "--font-heading-xs-line-height"
+  | "--font-heading-sm-line-height"
+  | "--font-heading-md-line-height"
+  | "--font-heading-lg-line-height"
+  | "--font-heading-xl-line-height"
+  | "--font-heading-2xl-line-height"
+  | "--font-heading-3xl-line-height"
+  // Border radius
+  | "--border-radius-xs"
+  | "--border-radius-sm"
+  | "--border-radius-md"
+  | "--border-radius-lg"
+  | "--border-radius-xl"
+  | "--border-radius-full"
+  // Border width
+  | "--border-width-regular"
+  // Shadows
+  | "--shadow-hairline"
+  | "--shadow-sm"
+  | "--shadow-md"
+  | "--shadow-lg";
+
+/**
+ * @description Style variables for theming MCP apps.
+ *
+ * Individual style keys are optional - hosts may provide any subset of these values.
+ * Values are strings containing CSS values (colors, sizes, font stacks, etc.).
+ *
+ * Note: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`
+ * for compatibility with Zod schema generation. Both are functionally equivalent for validation.
+ */
+export type McpUiStyles = Record<McpUiStyleVariableKey, string | undefined>;
+
+/**
  * @description Request to open an external URL in the host's default browser.
  * @see {@link app.App.sendOpenLink} for the method that sends this request
  */
@@ -168,9 +272,32 @@ export interface McpUiToolResultNotification {
 }
 
 /**
+ * @description Notification that tool execution was cancelled (Host -> Guest UI).
+ * Host MUST send this if tool execution was cancelled for any reason (user action,
+ * sampling error, classifier intervention, etc.).
+ */
+export interface McpUiToolCancelledNotification {
+  method: "ui/notifications/tool-cancelled";
+  params: {
+    /** @description Optional reason for the cancellation (e.g., "user action", "timeout"). */
+    reason?: string;
+  };
+}
+
+/**
+ * @description Style configuration for theming MCP apps.
+ */
+export interface McpUiHostStyles {
+  /** @description CSS variables for theming the app. */
+  variables?: McpUiStyles;
+}
+
+/**
  * @description Rich context about the host environment provided to Guest UIs.
  */
 export interface McpUiHostContext {
+  /** @description Allow additional properties for forward compatibility. */
+  [key: string]: unknown;
   /** @description Metadata of the tool call that instantiated this App. */
   toolInfo?: {
     /** @description JSON-RPC id of the tools/call request. */
@@ -180,6 +307,8 @@ export interface McpUiHostContext {
   };
   /** @description Current color theme preference. */
   theme?: McpUiTheme;
+  /** @description Style configuration for theming the app. */
+  styles?: McpUiHostStyles;
   /** @description How the UI is currently displayed. */
   displayMode?: McpUiDisplayMode;
   /** @description Display modes the host supports. */
@@ -235,7 +364,7 @@ export interface McpUiHostContextChangedNotification {
 
 /**
  * @description Request for graceful shutdown of the Guest UI (Host -> Guest UI).
- * @see {@link app-bridge.AppBridge.sendResourceTeardown} for the host method that sends this
+ * @see {@link app-bridge.AppBridge.teardownResource} for the host method that sends this
  */
 export interface McpUiResourceTeardownRequest {
   method: "ui/resource-teardown";
@@ -355,4 +484,56 @@ export interface McpUiResourceMeta {
   domain?: string;
   /** @description Visual boundary preference - true if UI prefers a visible border. */
   prefersBorder?: boolean;
+}
+
+/**
+ * @description Request to change the display mode of the UI.
+ * The host will respond with the actual display mode that was set,
+ * which may differ from the requested mode if not supported.
+ * @see {@link app.App.requestDisplayMode} for the method that sends this request
+ */
+export interface McpUiRequestDisplayModeRequest {
+  method: "ui/request-display-mode";
+  params: {
+    /** @description The display mode being requested. */
+    mode: McpUiDisplayMode;
+  };
+}
+
+/**
+ * @description Result from requesting a display mode change.
+ * @see {@link McpUiRequestDisplayModeRequest}
+ */
+export interface McpUiRequestDisplayModeResult {
+  /** @description The display mode that was actually set. May differ from requested if not supported. */
+  mode: McpUiDisplayMode;
+  /**
+   * Index signature required for MCP SDK `Protocol` class compatibility.
+   * Note: The schema intentionally omits this to enforce strict validation.
+   */
+  [key: string]: unknown;
+}
+
+/**
+ * @description Tool visibility scope - who can access the tool.
+ */
+export type McpUiToolVisibility = "model" | "app";
+
+/**
+ * @description UI-related metadata for tools.
+ */
+export interface McpUiToolMeta {
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   *
+   * @example "ui://weather/widget.html"
+   */
+  resourceUri: string;
+  /**
+   * @description Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: McpUiToolVisibility[];
 }

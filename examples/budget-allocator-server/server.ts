@@ -6,19 +6,21 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "../shared/server-utils.js";
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
 // ---------------------------------------------------------------------------
@@ -226,71 +228,84 @@ function generateHistory(
 // MCP Server Setup
 // ---------------------------------------------------------------------------
 
-const server = new McpServer({
-  name: "Budget Allocator Server",
-  version: "1.0.0",
-});
-
 const resourceUri = "ui://budget-allocator/mcp-app.html";
 
-server.registerTool(
-  "get-budget-data",
-  {
-    title: "Get Budget Data",
-    description:
-      "Returns budget configuration with 24 months of historical allocations and industry benchmarks by company stage",
-    inputSchema: {},
-    _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
-  },
-  async (): Promise<CallToolResult> => {
-    const response: BudgetDataResponse = {
-      config: {
-        categories: CATEGORIES.map(({ id, name, color, defaultPercent }) => ({
-          id,
-          name,
-          color,
-          defaultPercent,
-        })),
-        presetBudgets: [50000, 100000, 250000, 500000],
-        defaultBudget: 100000,
-        currency: "USD",
-        currencySymbol: "$",
-      },
-      analytics: {
-        history: generateHistory(CATEGORIES),
-        benchmarks: BENCHMARKS,
-        stages: ["Seed", "Series A", "Series B", "Growth"],
-        defaultStage: "Series A",
-      },
-    };
+/**
+ * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
+ */
+function createServer(): McpServer {
+  const server = new McpServer({
+    name: "Budget Allocator Server",
+    version: "1.0.0",
+  });
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(response),
+  registerAppTool(
+    server,
+    "get-budget-data",
+    {
+      title: "Get Budget Data",
+      description:
+        "Returns budget configuration with 24 months of historical allocations and industry benchmarks by company stage",
+      inputSchema: {},
+      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+    },
+    async (): Promise<CallToolResult> => {
+      const response: BudgetDataResponse = {
+        config: {
+          categories: CATEGORIES.map(({ id, name, color, defaultPercent }) => ({
+            id,
+            name,
+            color,
+            defaultPercent,
+          })),
+          presetBudgets: [50000, 100000, 250000, 500000],
+          defaultBudget: 100000,
+          currency: "USD",
+          currencySymbol: "$",
         },
-      ],
-    };
-  },
-);
+        analytics: {
+          history: generateHistory(CATEGORIES),
+          benchmarks: BENCHMARKS,
+          stages: ["Seed", "Series A", "Series B", "Growth"],
+          defaultStage: "Series A",
+        },
+      };
 
-server.registerResource(
-  resourceUri,
-  resourceUri,
-  { description: "Interactive Budget Allocator UI" },
-  async (): Promise<ReadResourceResult> => {
-    const html = await fs.readFile(
-      path.join(DIST_DIR, "mcp-app.html"),
-      "utf-8",
-    );
-    return {
-      contents: [
-        { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
-      ],
-    };
-  },
-);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(response),
+          },
+        ],
+      };
+    },
+  );
+
+  registerAppResource(
+    server,
+    resourceUri,
+    resourceUri,
+    {
+      mimeType: RESOURCE_MIME_TYPE,
+      description: "Interactive Budget Allocator UI",
+    },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
+      return {
+        contents: [
+          { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+        ],
+      };
+    },
+  );
+
+  return server;
+}
 
 // ---------------------------------------------------------------------------
 // Server Startup
@@ -298,59 +313,14 @@ server.registerResource(
 
 async function main() {
   if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Budget Allocator Server running in stdio mode");
+    await createServer().connect(new StdioServerTransport());
   } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, (err) => {
-      if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-      }
-      console.log(
-        `Budget Allocator Server listening on http://localhost:${PORT}/mcp`,
-      );
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
+    const port = parseInt(process.env.PORT ?? "3103", 10);
+    await startServer(createServer, { port, name: "Budget Allocator Server" });
   }
 }
 
-main().catch(console.error);
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

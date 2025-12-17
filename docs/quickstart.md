@@ -97,12 +97,15 @@ Create `server.ts`:
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps";
+import {
+  RESOURCE_MIME_TYPE,
+  type McpUiToolMeta,
+} from "@modelcontextprotocol/ext-apps";
 import cors from "cors";
 import express from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { z } from "zod";
+import * as z from "zod";
 
 const server = new McpServer({
   name: "My MCP App Server",
@@ -119,7 +122,7 @@ server.registerTool(
     description: "Returns the current server time.",
     inputSchema: {},
     outputSchema: { time: z.string() },
-    _meta: { [RESOURCE_URI_META_KEY]: resourceUri }, // Links tool to UI
+    _meta: { ui: { resourceUri } as McpUiToolMeta }, // Links tool to UI
   },
   async () => {
     const time = new Date().toISOString();
@@ -130,17 +133,22 @@ server.registerTool(
   },
 );
 
-server.registerResource(resourceUri, resourceUri, {}, async () => {
-  const html = await fs.readFile(
-    path.join(import.meta.dirname, "dist", "mcp-app.html"),
-    "utf-8",
-  );
-  return {
-    contents: [
-      { uri: resourceUri, mimeType: "text/html;profile=mcp-app", text: html },
-    ],
-  };
-});
+server.registerResource(
+  resourceUri,
+  resourceUri,
+  { mimeType: "text/html;profile=mcp-app" },
+  async () => {
+    const html = await fs.readFile(
+      path.join(import.meta.dirname, "dist", "mcp-app.html"),
+      "utf-8",
+    );
+    return {
+      contents: [
+        { uri: resourceUri, mimeType: "text/html;profile=mcp-app", text: html },
+      ],
+    };
+  },
+);
 
 // Express server for MCP endpoint
 const app = express();
