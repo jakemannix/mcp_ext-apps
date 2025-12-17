@@ -39,8 +39,16 @@ if (!command || !COMMANDS.includes(command)) {
   process.exit(1);
 }
 
-// Build the SERVERS environment variable (JSON array of URLs)
+const AGGREGATOR = "aggregator-server";
+
+// Separate aggregator from regular servers
+const aggregator = servers.find((s) => s.dir === AGGREGATOR);
+const regularServers = servers.filter((s) => s.dir !== AGGREGATOR);
+
+// Build the SERVERS environment variable (JSON array of URLs) - all servers for basic-host
 const serversEnv = JSON.stringify(servers.map((s) => s.url));
+// Backend servers for aggregator - excludes itself
+const backendServersEnv = JSON.stringify(regularServers.map((s) => s.url));
 
 console.log(`Running command: ${command}`);
 console.log(
@@ -50,12 +58,22 @@ console.log("");
 
 // Build command list for concurrently
 const commands: Parameters<typeof concurrently>[0] = [
-  // Server examples
-  ...servers.map(({ dir, port }) => ({
+  // Regular server examples
+  ...regularServers.map(({ dir, port }) => ({
     command: `npm run --workspace examples/${dir} ${command}`,
     name: dir,
     env: { PORT: String(port) },
   })),
+  // Aggregator server with BACKEND_SERVERS env (excludes itself)
+  ...(aggregator
+    ? [
+        {
+          command: `npm run --workspace examples/${AGGREGATOR} ${command}`,
+          name: AGGREGATOR,
+          env: { PORT: String(aggregator.port), BACKEND_SERVERS: backendServersEnv },
+        },
+      ]
+    : []),
   // Basic host with SERVERS env
   {
     command: `npm run --workspace examples/${BASIC_HOST} ${command}`,
