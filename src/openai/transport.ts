@@ -498,18 +498,39 @@ export class OpenAITransport implements Transport {
     // Deliver tool output if available (check for both null and undefined)
     if (this.openai.toolOutput != null) {
       queueMicrotask(() => {
+        // Normalize toolOutput to MCP content array format
+        let content: Array<{ type: string; text?: string; [key: string]: unknown }>;
+        const output = this.openai.toolOutput;
+
+        if (Array.isArray(output)) {
+          // Already an array of content blocks
+          content = output;
+        } else if (
+          typeof output === "object" &&
+          output !== null &&
+          "type" in output &&
+          typeof (output as { type: unknown }).type === "string"
+        ) {
+          // Single content block object like {type: "text", text: "..."}
+          content = [output as { type: string; text?: string }];
+        } else if (
+          typeof output === "object" &&
+          output !== null &&
+          "text" in output &&
+          typeof (output as { text: unknown }).text === "string"
+        ) {
+          // Object with just text field - treat as text content
+          content = [{ type: "text", text: (output as { text: string }).text }];
+        } else {
+          // Unknown shape - stringify it
+          content = [{ type: "text", text: JSON.stringify(output) }];
+        }
+
         this.onmessage?.({
           jsonrpc: "2.0",
           method: "ui/notifications/tool-result",
           params: {
-            content: Array.isArray(this.openai.toolOutput)
-              ? this.openai.toolOutput
-              : [
-                  {
-                    type: "text",
-                    text: JSON.stringify(this.openai.toolOutput),
-                  },
-                ],
+            content,
             // Include _meta from toolResponseMetadata if available (use undefined not null)
             _meta: this.openai.toolResponseMetadata ?? undefined,
           },
