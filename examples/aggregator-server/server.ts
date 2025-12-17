@@ -21,7 +21,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import type { CallToolResult, ReadResourceResult, Resource, Tool } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ReadResourceResult,
+  Resource,
+  Tool,
+} from "@modelcontextprotocol/sdk/types.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
@@ -46,7 +51,10 @@ let backends: BackendServer[] = [];
 let backendsPromise: Promise<void> | null = null;
 
 function sanitizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 async function connectToBackend(url: string): Promise<BackendServer | null> {
@@ -70,7 +78,9 @@ async function connectToBackend(url: string): Promise<BackendServer | null> {
         // Server may not support resources
       }
 
-      log.info(`Connected to ${name}: ${tools.size} tools, ${resources.size} resources`);
+      log.info(
+        `Connected to ${name}: ${tools.size} tools, ${resources.size} resources`,
+      );
       return { name, url, client, tools, resources };
     } catch {
       if (attempt < maxRetries) {
@@ -103,15 +113,24 @@ function startBackendDiscovery(): void {
 }
 
 function prefixUri(prefix: string, uri: string): string {
-  return uri.startsWith("ui://") ? `ui://${prefix}/${uri.slice(5)}` : `${prefix}/${uri}`;
+  return uri.startsWith("ui://")
+    ? `ui://${prefix}/${uri.slice(5)}`
+    : `${prefix}/${uri}`;
 }
 
 function rewriteMeta(prefix: string, meta: Tool["_meta"]): Tool["_meta"] {
   if (!meta) return undefined;
   const result = { ...meta };
+  // Rewrite ui.resourceUri
   const ui = result.ui as { resourceUri?: string } | undefined;
-  if (ui?.resourceUri) result.ui = { ...ui, resourceUri: prefixUri(prefix, ui.resourceUri) };
-  if (result["ui/resourceUri"]) result["ui/resourceUri"] = prefixUri(prefix, result["ui/resourceUri"] as string);
+  if (ui?.resourceUri)
+    result.ui = { ...ui, resourceUri: prefixUri(prefix, ui.resourceUri) };
+  // Rewrite legacy flat key
+  if (result["ui/resourceUri"])
+    result["ui/resourceUri"] = prefixUri(prefix, result["ui/resourceUri"] as string);
+  // Rewrite OpenAI outputTemplate key
+  if (result["openai/outputTemplate"])
+    result["openai/outputTemplate"] = prefixUri(prefix, result["openai/outputTemplate"] as string);
   return result;
 }
 
@@ -129,12 +148,17 @@ async function createServerAsync(): Promise<McpServer> {
         {
           title: tool.title ?? name,
           description: `[${backend.name}] ${tool.description ?? ""}`.trim(),
-          inputSchema: tool.inputSchema?.properties ?? {},
+          inputSchema: tool.inputSchema,
+          outputSchema: tool.outputSchema,
+          annotations: tool.annotations,
           _meta: rewriteMeta(prefix, tool._meta),
         },
         async (args): Promise<CallToolResult> => {
           log.info(`Forwarding: ${prefix}/${name}`);
-          return (await backend.client.callTool({ name, arguments: args })) as CallToolResult;
+          return (await backend.client.callTool({
+            name,
+            arguments: args,
+          })) as CallToolResult;
         },
       );
     }
@@ -143,11 +167,21 @@ async function createServerAsync(): Promise<McpServer> {
       server.registerResource(
         `[${backend.name}] ${resource.name}`,
         prefixUri(prefix, uri),
-        { description: resource.description, mimeType: resource.mimeType },
+        {
+          description: resource.description,
+          mimeType: resource.mimeType,
+          annotations: resource.annotations,
+          _meta: rewriteMeta(prefix, resource._meta),
+        },
         async (): Promise<ReadResourceResult> => {
           log.info(`Forwarding resource: ${prefix}/${uri}`);
           const result = await backend.client.readResource({ uri });
-          return { contents: result.contents.map((c) => ({ ...c, uri: prefixUri(prefix, c.uri) })) };
+          return {
+            contents: result.contents.map((c) => ({
+              ...c,
+              uri: prefixUri(prefix, c.uri),
+            })),
+          };
         },
       );
     }
@@ -161,7 +195,10 @@ async function createServerAsync(): Promise<McpServer> {
 }
 
 type Transport = StreamableHTTPServerTransport | SSEServerTransport;
-interface Session { transport: Transport; server: McpServer }
+interface Session {
+  transport: Transport;
+  server: McpServer;
+}
 
 async function startHttpServer(port: number): Promise<void> {
   const sessions = new Map<string, Session>();
@@ -173,30 +210,61 @@ async function startHttpServer(port: number): Promise<void> {
       const sessionId = req.headers["mcp-session-id"] as string | undefined;
       let session = sessionId ? sessions.get(sessionId) : undefined;
 
-      if (session && !(session.transport instanceof StreamableHTTPServerTransport)) {
-        return res.status(400).json({ jsonrpc: "2.0", error: { code: -32000, message: "Session uses different transport" }, id: null });
+      if (
+        session &&
+        !(session.transport instanceof StreamableHTTPServerTransport)
+      ) {
+        return res
+          .status(400)
+          .json({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message: "Session uses different transport",
+            },
+            id: null,
+          });
       }
 
       if (!session) {
         if (req.method !== "POST" || !isInitializeRequest(req.body)) {
-          return res.status(400).json({ jsonrpc: "2.0", error: { code: -32000, message: "Bad request: not initialized" }, id: null });
+          return res
+            .status(400)
+            .json({
+              jsonrpc: "2.0",
+              error: { code: -32000, message: "Bad request: not initialized" },
+              id: null,
+            });
         }
 
         const serverInstance = await createServerAsync();
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (id) => sessions.set(id, { transport, server: serverInstance }),
+          onsessioninitialized: (id) =>
+            sessions.set(id, { transport, server: serverInstance }),
         });
-        transport.onclose = () => { if (transport.sessionId) sessions.delete(transport.sessionId); };
+        transport.onclose = () => {
+          if (transport.sessionId) sessions.delete(transport.sessionId);
+        };
         await serverInstance.connect(transport);
         session = { transport, server: serverInstance };
       }
 
-      await (session.transport as StreamableHTTPServerTransport).handleRequest(req, res, req.body);
+      await (session.transport as StreamableHTTPServerTransport).handleRequest(
+        req,
+        res,
+        req.body,
+      );
     } catch (error) {
       console.error("MCP error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: null });
+        res
+          .status(500)
+          .json({
+            jsonrpc: "2.0",
+            error: { code: -32603, message: "Internal server error" },
+            id: null,
+          });
       }
     }
   });
@@ -218,20 +286,35 @@ async function startHttpServer(port: number): Promise<void> {
     try {
       const session = sessions.get(req.query.sessionId as string);
       if (!session || !(session.transport instanceof SSEServerTransport)) {
-        return res.status(404).json({ jsonrpc: "2.0", error: { code: -32001, message: "Session not found" }, id: null });
+        return res
+          .status(404)
+          .json({
+            jsonrpc: "2.0",
+            error: { code: -32001, message: "Session not found" },
+            id: null,
+          });
       }
       await session.transport.handlePostMessage(req, res, req.body);
     } catch (error) {
       console.error("Message error:", error);
       if (!res.headersSent) {
-        res.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: null });
+        res
+          .status(500)
+          .json({
+            jsonrpc: "2.0",
+            error: { code: -32603, message: "Internal server error" },
+            id: null,
+          });
       }
     }
   });
 
   return new Promise<void>((resolve, reject) => {
     const httpServer = app.listen(port);
-    httpServer.on("listening", () => { log.info(`Listening on http://localhost:${port}/mcp`); resolve(); });
+    httpServer.on("listening", () => {
+      log.info(`Listening on http://localhost:${port}/mcp`);
+      resolve();
+    });
     httpServer.on("error", reject);
 
     const shutdown = () => {
@@ -256,4 +339,7 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
