@@ -429,6 +429,29 @@ describe("OpenAITransport", () => {
       });
     });
 
+    test("converts null _meta to undefined in tool result", async () => {
+      // Simulate null being set (e.g., from JSON parsing where null is valid)
+      (mockOpenAI as unknown as { toolResponseMetadata: null }).toolResponseMetadata = null;
+
+      const transport = new OpenAITransport();
+      const messages: unknown[] = [];
+      transport.onmessage = (msg) => {
+        messages.push(msg);
+      };
+
+      transport.deliverInitialState();
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const toolResultNotification = messages.find(
+        (m: unknown) =>
+          (m as { method?: string }).method === "ui/notifications/tool-result",
+      ) as { params?: { _meta?: unknown } } | undefined;
+      expect(toolResultNotification).toBeDefined();
+      // _meta should be undefined, not null (SDK rejects null)
+      expect(toolResultNotification?.params?._meta).toBeUndefined();
+    });
+
     test("does not deliver notifications when data is missing", async () => {
       delete mockOpenAI.toolInput;
       delete mockOpenAI.toolOutput;
