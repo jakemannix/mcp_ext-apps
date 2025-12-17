@@ -495,8 +495,8 @@ export class OpenAITransport implements Transport {
       });
     }
 
-    // Deliver tool output if available
-    if (this.openai.toolOutput !== undefined) {
+    // Deliver tool output if available (check for both null and undefined)
+    if (this.openai.toolOutput != null) {
       queueMicrotask(() => {
         this.onmessage?.({
           jsonrpc: "2.0",

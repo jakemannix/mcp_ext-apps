@@ -431,7 +431,9 @@ describe("OpenAITransport", () => {
 
     test("converts null _meta to undefined in tool result", async () => {
       // Simulate null being set (e.g., from JSON parsing where null is valid)
-      (mockOpenAI as unknown as { toolResponseMetadata: null }).toolResponseMetadata = null;
+      (
+        mockOpenAI as unknown as { toolResponseMetadata: null }
+      ).toolResponseMetadata = null;
 
       const transport = new OpenAITransport();
       const messages: unknown[] = [];
@@ -450,6 +452,28 @@ describe("OpenAITransport", () => {
       expect(toolResultNotification).toBeDefined();
       // _meta should be undefined, not null (SDK rejects null)
       expect(toolResultNotification?.params?._meta).toBeUndefined();
+    });
+
+    test("does not deliver tool-result when toolOutput is null", async () => {
+      // Simulate null being set (e.g., from JSON parsing)
+      (mockOpenAI as unknown as { toolOutput: null }).toolOutput = null;
+
+      const transport = new OpenAITransport();
+      const messages: unknown[] = [];
+      transport.onmessage = (msg) => {
+        messages.push(msg);
+      };
+
+      transport.deliverInitialState();
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const toolResultNotification = messages.find(
+        (m: unknown) =>
+          (m as { method?: string }).method === "ui/notifications/tool-result",
+      );
+      // Should NOT deliver tool-result when toolOutput is null
+      expect(toolResultNotification).toBeUndefined();
     });
 
     test("does not deliver notifications when data is missing", async () => {
