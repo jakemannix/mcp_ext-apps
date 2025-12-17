@@ -60,7 +60,7 @@ Examples:
 // Detect environment
 const isCI = Boolean(process.env.CI);
 const registryUrl = getRegistryUrl();
-const isInternalRegistry = !registryUrl.includes("registry.npmjs.org");
+const isInternalRegistry = !isPublicNpmRegistry(registryUrl);
 
 function getRegistryUrl() {
   try {
@@ -68,6 +68,33 @@ function getRegistryUrl() {
   } catch {
     return "https://registry.npmjs.org/";
   }
+}
+
+function isPublicNpmRegistry(urlString) {
+  try {
+    const url = new URL(urlString);
+    // Check exact hostname match to prevent subdomain/path spoofing
+    return url.hostname === "registry.npmjs.org";
+  } catch {
+    return false;
+  }
+}
+
+function validatePathForShell(path) {
+  // Reject paths with characters that could enable shell injection
+  // Allow only alphanumeric, dash, underscore, dot, forward slash, and space
+  const safePathPattern = /^[a-zA-Z0-9_\-./\s]+$/;
+  if (!safePathPattern.test(path)) {
+    throw new Error(
+      `Unsafe characters in path: ${path}\n` +
+        "Path contains characters that could be interpreted by the shell.",
+    );
+  }
+  // Also reject paths that could escape the docker mount (e.g., containing ..)
+  if (path.includes("..")) {
+    throw new Error("Path cannot contain '..' segments");
+  }
+  return path;
 }
 
 function log(msg) {
@@ -83,21 +110,30 @@ function verbose(msg) {
 // ============================================================================
 
 if (FIX_DOCKER) {
-  log("🐳 Regenerating package-lock.json using Docker (public npm registry)...\n");
+  log(
+    "🐳 Regenerating package-lock.json using Docker (public npm registry)...\n",
+  );
 
   if (!commandExists("docker")) {
     console.error("❌ Docker is not installed or not in PATH.");
-    console.error("   Install Docker or use --local to regenerate with your current registry.");
+    console.error(
+      "   Install Docker or use --local to regenerate with your current registry.",
+    );
     process.exit(1);
   }
 
   try {
+    // Validate projectRoot before using in shell command to prevent injection
+    const safePath = validatePathForShell(projectRoot);
+
     // Read current prepare script to restore it later
-    const pkgJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
+    const pkgJson = JSON.parse(
+      readFileSync(join(projectRoot, "package.json"), "utf-8"),
+    );
     const prepareScript = pkgJson.scripts?.prepare || "";
 
     execSync(
-      `docker run --rm -v "${projectRoot}:/app" -w /app node:20 bash -c '
+      `docker run --rm -v "${safePath}:/app" -w /app node:20 bash -c '
         # Temporarily disable prepare script
         node -e "
           const fs = require(\\\"fs\\\");
@@ -117,7 +153,7 @@ if (FIX_DOCKER) {
           fs.writeFileSync(\\\"package.json\\\", JSON.stringify(pkg, null, 2));
         "
       '`,
-      { stdio: "inherit", cwd: projectRoot }
+      { stdio: "inherit", cwd: projectRoot },
     );
 
     log("\n✅ Regenerated package-lock.json from public npm registry.");
@@ -200,7 +236,9 @@ log("\n" + "─".repeat(60));
 
 if (isCI) {
   log("\n⚠️  CI Environment Detected");
-  log("   The package-lock.json contains packages not available in the registry.");
+  log(
+    "   The package-lock.json contains packages not available in the registry.",
+  );
   log("   This PR should regenerate the lockfile using:");
   log("     node scripts/preflight.mjs --fix");
   process.exit(1);
@@ -212,7 +250,9 @@ if (isInternalRegistry) {
   log("\n   Options:");
   log("   1. Regenerate lockfile from your registry (versions may differ):");
   log("        node scripts/preflight.mjs --local");
-  log("\n   2. Request the missing packages be synced to your internal registry.");
+  log(
+    "\n   2. Request the missing packages be synced to your internal registry.",
+  );
 } else {
   log("\n💡 To fix, regenerate the lockfile from the public registry:");
   log("     node scripts/preflight.mjs --fix");
