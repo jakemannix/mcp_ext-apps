@@ -248,9 +248,13 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
       return {};
     });
 
-    // Set up default handler to update _hostContext when notifications arrive.
-    // Users can override this by setting onhostcontextchanged.
+    // Set up default handlers for notifications.
+    // Users can override these by setting the corresponding on* properties.
     this.onhostcontextchanged = () => {};
+    this.ontoolinput = () => {};
+    this.ontoolinputpartial = () => {};
+    this.ontoolresult = () => {};
+    this.ontoolcancelled = () => {};
   }
 
   /**

@@ -510,8 +510,8 @@ export class OpenAITransport implements Transport {
                     text: JSON.stringify(this.openai.toolOutput),
                   },
                 ],
-            // Include _meta from toolResponseMetadata if available
-            _meta: this.openai.toolResponseMetadata,
+            // Include _meta from toolResponseMetadata if available (use undefined not null)
+            _meta: this.openai.toolResponseMetadata ?? undefined,
           },
         } as JSONRPCNotification);
       });
