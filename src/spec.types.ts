@@ -326,14 +326,14 @@ export interface McpUiHostContext {
   availableDisplayModes?: string[];
   /** @description Current and maximum dimensions available to the UI. */
   viewport?: {
-    /** @description Current viewport width in pixels. */
+    /** @description Viewport width in pixels (if fixed). Only pass width or maxWidth, not both. */
     width?: number;
-    /** @description Current viewport height in pixels. */
+    /** @description Viewport height in pixels (if fixed). Only pass height or maxHeight, not both. */
     height?: number;
-    /** @description Maximum available height in pixels (if constrained). */
-    maxHeight?: number;
-    /** @description Maximum available width in pixels (if constrained). */
+    /** @description Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.*/
     maxWidth?: number;
+    /** @description Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both. */
+    maxHeight?: number;
   };
   /** @description User's language and region preference in BCP 47 format. */
   locale?: string;

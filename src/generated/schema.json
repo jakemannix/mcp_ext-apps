@@ -633,19 +633,19 @@
               "type": "object",
               "properties": {
                 "width": {
-                  "description": "Current viewport width in pixels.",
+                  "description": "Viewport width in pixels (if fixed). Only pass width or maxWidth, not both.",
                   "type": "number"
                 },
                 "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
-                },
-                "maxHeight": {
-                  "description": "Maximum available height in pixels (if constrained).",
+                  "description": "Viewport height in pixels (if fixed). Only pass height or maxHeight, not both.",
                   "type": "number"
                 },
                 "maxWidth": {
-                  "description": "Maximum available width in pixels (if constrained).",
+                  "description": "Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.",
+                  "type": "number"
+                },
+                "maxHeight": {
+                  "description": "Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both.",
                   "type": "number"
                 }
               },
@@ -1258,19 +1258,19 @@
           "type": "object",
           "properties": {
             "width": {
-              "description": "Current viewport width in pixels.",
+              "description": "Viewport width in pixels (if fixed). Only pass width or maxWidth, not both.",
               "type": "number"
             },
             "height": {
-              "description": "Current viewport height in pixels.",
-              "type": "number"
-            },
-            "maxHeight": {
-              "description": "Maximum available height in pixels (if constrained).",
+              "description": "Viewport height in pixels (if fixed). Only pass height or maxHeight, not both.",
               "type": "number"
             },
             "maxWidth": {
-              "description": "Maximum available width in pixels (if constrained).",
+              "description": "Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.",
+              "type": "number"
+            },
+            "maxHeight": {
+              "description": "Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both.",
               "type": "number"
             }
           },
@@ -2416,19 +2416,19 @@
               "type": "object",
               "properties": {
                 "width": {
-                  "description": "Current viewport width in pixels.",
+                  "description": "Viewport width in pixels (if fixed). Only pass width or maxWidth, not both.",
                   "type": "number"
                 },
                 "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
-                },
-                "maxHeight": {
-                  "description": "Maximum available height in pixels (if constrained).",
+                  "description": "Viewport height in pixels (if fixed). Only pass height or maxHeight, not both.",
                   "type": "number"
                 },
                 "maxWidth": {
-                  "description": "Maximum available width in pixels (if constrained).",
+                  "description": "Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.",
+                  "type": "number"
+                },
+                "maxHeight": {
+                  "description": "Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both.",
                   "type": "number"
                 }
               },

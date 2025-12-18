@@ -565,26 +565,34 @@ export const McpUiHostContextSchema = z.looseObject({
   /** @description Current and maximum dimensions available to the UI. */
   viewport: z
     .object({
-      /** @description Current viewport width in pixels. */
+      /** @description Viewport width in pixels (if fixed). Only pass width or maxWidth, not both. */
       width: z
         .number()
         .optional()
-        .describe("Current viewport width in pixels."),
-      /** @description Current viewport height in pixels. */
+        .describe(
+          "Viewport width in pixels (if fixed). Only pass width or maxWidth, not both.",
+        ),
+      /** @description Viewport height in pixels (if fixed). Only pass height or maxHeight, not both. */
       height: z
         .number()
         .optional()
-        .describe("Current viewport height in pixels."),
-      /** @description Maximum available height in pixels (if constrained). */
-      maxHeight: z
-        .number()
-        .optional()
-        .describe("Maximum available height in pixels (if constrained)."),
-      /** @description Maximum available width in pixels (if constrained). */
+        .describe(
+          "Viewport height in pixels (if fixed). Only pass height or maxHeight, not both.",
+        ),
+      /** @description Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.*/
       maxWidth: z
         .number()
         .optional()
-        .describe("Maximum available width in pixels (if constrained)."),
+        .describe(
+          "Maximum available viewport width in pixels (if constrained). Only pass width or maxWidth, not both.",
+        ),
+      /** @description Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both. */
+      maxHeight: z
+        .number()
+        .optional()
+        .describe(
+          "Maximum available viewport height in pixels (if constrained). Only pass height or maxHeight, not both.",
+        ),
     })
     .optional()
     .describe("Current and maximum dimensions available to the UI."),

@@ -463,14 +463,14 @@ interface HostContext {
   availableDisplayModes?: string[];
   /** Current and maximum dimensions available to the UI. */
   viewport?: {
-    /** Current viewport width in pixels. */
+    /** Viewport width (if fixed). Only pass width or maxWidth, not both. */
     width?: number;
-    /** Current viewport height in pixels. */
+    /** Viewport height (if fixed). Only pass height or maxHeight, not both. */
     height?: number;
-    /** Maximum available height in pixels (if constrained). */
-    maxHeight?: number;
-    /** Maximum available width in pixels (if constrained). */
+    /** Maximum available viewport width in pixels (if constrained). */
     maxWidth?: number;
+    /** Maximum available viewport height in pixels (if constrained). */
+    maxHeight?: number;
   };
   /** User's language/region preference (BCP 47, e.g., "en-US") */
   locale?: string;
