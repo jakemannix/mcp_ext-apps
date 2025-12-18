@@ -35,6 +35,12 @@ function GetTimeApp() {
     appInfo: IMPLEMENTATION,
     capabilities: {},
     onAppCreated: (app) => {
+      app.onteardown = async () => {
+        log.info("App is being torn down");
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate cleanup work
+        log.info("App teardown complete");
+        return {};
+      };
       app.ontoolinput = async (input) => {
         log.info("Received tool call input:", input);
       };
@@ -104,7 +110,7 @@ function GetTimeAppInner({ app, toolResult }: GetTimeAppInnerProps) {
 
   const handleOpenLink = useCallback(async () => {
     log.info("Sending open link request to Host:", linkUrl);
-    const { isError } = await app.sendOpenLink({ url: linkUrl });
+    const { isError } = await app.openLink({ url: linkUrl });
     log.info("Open link request", isError ? "rejected" : "accepted");
   }, [app, linkUrl]);
 

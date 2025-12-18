@@ -1,20 +1,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "../shared/server-utils.js";
 
 // Schemas - types are derived from these using z.infer
 const CpuCoreSchema = z.object({
@@ -106,16 +107,17 @@ async function getMemoryStats(): Promise<MemoryStats> {
   };
 }
 
-const server = new McpServer({
-  name: "System Monitor Server",
-  version: "1.0.0",
-});
+function createServer(): McpServer {
+  const server = new McpServer({
+    name: "System Monitor Server",
+    version: "1.0.0",
+  });
 
-// Register the get-system-stats tool and its associated UI resource
-{
+  // Register the get-system-stats tool and its associated UI resource
   const resourceUri = "ui://system-monitor/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-system-stats",
     {
       title: "Get System Stats",
@@ -153,10 +155,11 @@ const server = new McpServer({
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
-    { description: "System Monitor UI" },
+    { mimeType: RESOURCE_MIME_TYPE, description: "System Monitor UI" },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
@@ -174,64 +177,20 @@ const server = new McpServer({
       };
     },
   );
+
+  return server;
 }
 
 async function main() {
   if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("System Monitor Server running in stdio mode");
+    await createServer().connect(new StdioServerTransport());
   } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, (err) => {
-      if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-      }
-      console.log(
-        `System Monitor Server listening on http://localhost:${PORT}/mcp`,
-      );
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
+    const port = parseInt(process.env.PORT ?? "3107", 10);
+    await startServer(createServer, { port, name: "System Monitor Server" });
   }
 }
 
-main().catch(console.error);
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

@@ -1,8 +1,11 @@
 # SEP-1865: MCP Apps: Interactive User Interfaces for MCP
 
 **Track:** Extensions
-**Authors:** Ido Salomon, Liad Yosef, Olivier Chafik, Jerome Swannack, Jonathan Hefner, Anton Pidkuiko, Nick Cooper, Bryan Ashley, Alexei Christakis
+
+**Authors:** Ido Salomon, Liad Yosef, Olivier Chafik, Jerome Swannack, Jonathan Hefner, Anton Pidkuiko, Nick Cooper, Bryan Ashley, Alexi Christakis
+
 **Status:** Draft
+
 **Created:** 2025-11-21
 
 ## Abstract
@@ -151,11 +154,12 @@ interface UIResourceMeta {
   /**
    * Visual boundary preference
    *
-   * Boolean indicating the UI prefers a visible border. Useful for widgets
-   * that might blend with host background.
+   * Boolean controlling whether a visible border and background is provided by the host. Specifying an
+   * explicit value for this is recommended because hosts' defaults may vary.
    *
-   * - `true`: Request visible border (host decides styling)
-   * - `false` or omitted: No preference
+   * - `true`: Request visible border + background
+   * - `false`: Request no visible border + background
+   * - omitted: host decides border
    */
   prefersBorder?: boolean,
 }
@@ -241,21 +245,35 @@ Example:
 
 ### Resource Discovery
 
-Tools are associated with UI resources through the `_meta` field:
+Tools are associated with UI resources through the `_meta.ui` field:
 
 ```typescript
+interface McpUiToolMeta {
+  /** URI of UI resource for rendering tool results */
+  resourceUri?: string;
+  /**
+   * Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: Array<"model" | "app">;
+}
+
 interface Tool {
   name: string;
   description: string;
   inputSchema: object;
   _meta?: {
-    // Required: URI of the UI resource to use for rendering
+    ui?: McpUiToolMeta;
+    /** @deprecated Use `ui.resourceUri` instead. Will be removed before GA. */
     "ui/resourceUri"?: string;
   };
 }
 ```
 
-Example:
+> **Deprecation notice:** The flat `_meta["ui/resourceUri"]` format is deprecated. Use `_meta.ui.resourceUri` instead. The deprecated format will be removed before GA.
+
+Example (tool visible to both model and app):
 
 ```json
 {
@@ -268,19 +286,47 @@ Example:
     }
   },
   "_meta": {
-    "ui/resourceUri": "ui://weather-server/dashboard-template"
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["model", "app"]
+    }
+  }
+}
+```
+
+Example (app-only tool, hidden from model):
+
+```json
+{
+  "name": "refresh_dashboard",
+  "description": "Refresh dashboard data",
+  "inputSchema": { "type": "object" },
+  "_meta": {
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["app"]
+    }
   }
 }
 ```
 
 #### Behavior:
 
-- If `ui/resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
+- If `ui.resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
 - If host does not support MCP Apps, tool behaves as standard tool (text-only fallback)
 - Resource MUST exist on the server
-- Host MUST use `resources/read` to fetch the referenced resource URI.
+- Host MUST use `resources/read` to fetch the referenced resource URI
 - Host MAY prefetch and cache UI resource content for performance optimization
 - Since UI resources are primarily discovered through tool metadata, Servers MAY omit UI-only resources from `resources/list` and `notifications/resources/list_changed`
+
+#### Visibility:
+
+- `visibility` defaults to `["model", "app"]` if omitted
+- `"model"`: Tool is visible to and callable by the agent
+- `"app"`: Tool is callable by the app from the same server connection only
+- **tools/list behavior:** Host MUST NOT include tools in the agent's tool list when their visibility does not include `"model"` (e.g., `visibility: ["app"]`)
+- **tools/call behavior:** Host MUST reject `tools/call` requests from apps for tools that don't include `"app"` in visibility
+- Cross-server tool calls are always blocked for app-only tools
 
 #### Benefits:
 
@@ -354,7 +400,7 @@ If the Host is a web page, it MUST wrap the Guest UI and communicate with it thr
 
 1. The Host and the Sandbox MUST have different origins.
 2. The Sandbox MUST have the following permissions: `allow-scripts`, `allow-same-origin`.
-3. The Sandbox MUST send a `ui/notifications/sandbox-ready` notification to the host when it’s ready to process an `ui/sandbox-resource-ready` notification.
+3. The Sandbox MUST send a `ui/notifications/sandbox-proxy-ready` notification to the host when it's ready to process an `ui/notifications/sandbox-resource-ready` notification.
 4. Once the Sandbox is ready, the Host MUST send the raw HTML resource to load in a `ui/notifications/sandbox-resource-ready` notification.
 5. The Sandbox MUST load the raw HTML of the Guest UI with CSP settings that:
    - Enforce the domains declared in `ui.csp` metadata
@@ -388,7 +434,7 @@ UI iframes can use the following subset of standard MCP protocol messages:
 
 ### Host Context in `McpUiInitializeResult`
 
-When the Guest UI sends an `ui/initialize` request to the Host, the Host SHOULD include UI-specific context in the `McpUiInitializeResult`’s `hostContext` field:
+When the Guest UI sends an `ui/initialize` request to the Host, the Host SHOULD include UI-specific context in the `McpUiInitializeResult`'s `hostContext` field:
 
 ```typescript
 interface HostContext {
@@ -401,6 +447,16 @@ interface HostContext {
   };
   /** Current color theme preference */
   theme?: "light" | "dark";
+  /** Style configuration for theming. See Theming section for standardized variable names. */
+  styles?: {
+    /** CSS variables for theming */
+    variables?: Record<McpUiStyleVariableKey, string | undefined>;
+    /** CSS blocks that apps can inject */
+    css?: {
+      /** CSS for font loading (@font-face rules or @import statements) */
+      fonts?: string;
+    };
+  };
   /** How the UI is currently displayed */
   displayMode?: "inline" | "fullscreen" | "pip";
   /** Display modes the host supports */
@@ -435,8 +491,6 @@ interface HostContext {
 }
 ```
 
-All fields are optional. Hosts SHOULD provide relevant context. Guest UIs SHOULD handle missing fields gracefully.
-
 Example:
 
 ```json
@@ -450,10 +504,189 @@ Example:
     "hostInfo": { "name": "claude-desktop", "version": "1.0.0" },
     "hostContext": {
       "theme": "dark",
+      "styles": {
+        "variables": {
+          "--color-background-primary": "light-dark(#ffffff, #171717)",
+          "--color-text-primary": "light-dark(#171717, #fafafa)",
+          "--font-sans": "Anthropic Sans, sans-serif",
+          ...
+        },
+        "css": {
+          "fonts": "@font-face { font-family: \"Custom Font Name\"; src: url(\"https://...\"); }"
+        }
+      },
       "displayMode": "inline",
       "viewport": { "width": 400, "height": 300 }
     }
   }
+}
+```
+
+### Theming
+
+Hosts can optionally pass CSS custom properties via `HostContext.styles.variables` for visual cohesion with the host environment.
+
+#### Current Standardized Variables
+
+```typescript
+/** CSS variable keys available to MCP apps for theming. */
+type McpUiStyleVariableKey =
+  // Background colors
+  | "--color-background-primary"
+  | "--color-background-secondary"
+  | "--color-background-tertiary"
+  | "--color-background-inverse"
+  | "--color-background-ghost"
+  | "--color-background-info"
+  | "--color-background-danger"
+  | "--color-background-success"
+  | "--color-background-warning"
+  | "--color-background-disabled"
+  // Text colors
+  | "--color-text-primary"
+  | "--color-text-secondary"
+  | "--color-text-tertiary"
+  | "--color-text-inverse"
+  | "--color-text-info"
+  | "--color-text-danger"
+  | "--color-text-success"
+  | "--color-text-warning"
+  | "--color-text-disabled"
+  | "--color-text-ghost"
+  // Border colors
+  | "--color-border-primary"
+  | "--color-border-secondary"
+  | "--color-border-tertiary"
+  | "--color-border-inverse"
+  | "--color-border-ghost"
+  | "--color-border-info"
+  | "--color-border-danger"
+  | "--color-border-success"
+  | "--color-border-warning"
+  | "--color-border-disabled"
+  // Ring colors
+  | "--color-ring-primary"
+  | "--color-ring-secondary"
+  | "--color-ring-inverse"
+  | "--color-ring-info"
+  | "--color-ring-danger"
+  | "--color-ring-success"
+  | "--color-ring-warning"
+  // Typography - Family
+  | "--font-sans"
+  | "--font-mono"
+  // Typography - Weight
+  | "--font-weight-normal"
+  | "--font-weight-medium"
+  | "--font-weight-semibold"
+  | "--font-weight-bold"
+  // Typography - Text Size
+  | "--font-text-xs-size"
+  | "--font-text-sm-size"
+  | "--font-text-md-size"
+  | "--font-text-lg-size"
+  // Typography - Heading Size
+  | "--font-heading-xs-size"
+  | "--font-heading-sm-size"
+  | "--font-heading-md-size"
+  | "--font-heading-lg-size"
+  | "--font-heading-xl-size"
+  | "--font-heading-2xl-size"
+  | "--font-heading-3xl-size"
+  // Typography - Text Line Height
+  | "--font-text-xs-line-height"
+  | "--font-text-sm-line-height"
+  | "--font-text-md-line-height"
+  | "--font-text-lg-line-height"
+  // Typography - Heading Line Height
+  | "--font-heading-xs-line-height"
+  | "--font-heading-sm-line-height"
+  | "--font-heading-md-line-height"
+  | "--font-heading-lg-line-height"
+  | "--font-heading-xl-line-height"
+  | "--font-heading-2xl-line-height"
+  | "--font-heading-3xl-line-height"
+  // Border radius
+  | "--border-radius-xs"
+  | "--border-radius-sm"
+  | "--border-radius-md"
+  | "--border-radius-lg"
+  | "--border-radius-xl"
+  | "--border-radius-full"
+  // Border width
+  | "--border-width-regular"
+  // Shadows
+  | "--shadow-hairline"
+  | "--shadow-sm"
+  | "--shadow-md"
+  | "--shadow-lg";
+```
+
+#### Host Behavior
+
+- Hosts can provide any subset of standardized variables, or not pass `styles` at all
+  - However, unexpected clashes may occur if hosts pass some color variables but not others for example, since apps are instructed to fallback on their own default values for unspecified style variables
+- Hosts should use the CSS `light-dark()` function for theme-aware values (i.e. light mode and dark mode colors)
+
+#### App Behavior
+
+- Apps should set default fallback values for the set of these variables that they use, to account for hosts who don't pass some or all style variables. This ensures graceful degradation when hosts omit `styles` or specific variables:
+```
+:root {
+  --color-text-primary: light-dark(#171717, #000000);
+  --border-radius-small: 8px;
+  ...
+}
+```
+- Apps can use the `applyHostStyleVariables` utility (or `useHostStyleVariables` if they prefer a React hook) to easily populate the host-provided CSS variables into their style sheet
+- Apps can use the `applyDocumentTheme` utility (or `useDocumentTheme` if they prefer a React hook) to easily respond to Host Context `theme` changes in a way that is compatible with the host's light/dark color variables 
+
+Example usage of standardized CSS variables:
+
+```css
+.container {
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+```
+
+#### Custom Fonts
+
+Hosts can provide custom fonts via `styles.css.fonts`, which can contain `@font-face` rules for self-hosted fonts, `@import` statements for font services like Google Fonts, or both:
+
+```typescript
+hostContext.styles.variables["--font-sans"] = '"Font Name", sans-serif';
+
+// Self-hosted fonts
+hostContext.styles.css.fonts = `
+  @font-face {
+    font-family: "Font Name";
+    src: url("https://url-where-font-is-hosted.com/.../Regular.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Font Name";
+    src: url("https://url-where-font-is-hosted.com/.../Medium.otf") format("opentype");
+    font-weight: 500;
+    font-style: medium;
+    font-display: swap;
+  }
+`;
+
+// Google Fonts
+hostContext.styles.css.fonts = `
+  @import url('https://fonts.googleapis.com/css2?family=Font+Name&display=swap');
+`;
+```
+
+Apps can use the `applyHostFonts` utility to inject the font CSS into the document:
+
+```typescript
+if (hostContext.styles?.css?.fonts) {
+  applyHostFonts(hostContext.styles.css.fonts);
 }
 ```
 
@@ -530,8 +763,42 @@ Host SHOULD open the URL in the user's default browser or a new tab.
   }
 }
 ```
+Host behavior:
+* Host SHOULD add the message to the conversation context, preserving the specified role.
+* Host MAY request user consent.
 
-Host SHOULD add the message to the conversation thread, preserving the specified role.
+`ui/request-display-mode` - Request host to change display mode
+
+```typescript
+// Request
+{
+  jsonrpc: "2.0",
+  id: 3,
+  method: "ui/request-display-mode",
+  params: {
+    mode: "inline" | "fullscreen" | "pip"  // Requested display mode
+  }
+}
+
+// Success Response
+{
+  jsonrpc: "2.0",
+  id: 3,
+  result: {
+    mode: "inline" | "fullscreen" | "pip"  // Actual display mode set
+  }
+}
+```
+
+Host behavior:
+* App MUST check if the requested mode is in `availableDisplayModes` from host context.
+* It is up to the host whether it switches to the requested mode, but the host MUST return the resulting mode (whether updated or not) in the response.
+* If the requested mode is not available, Host SHOULD return the current display mode in the response.
+* Host MAY coerce modes on certain platforms (e.g., "pip" to "fullscreen" on mobile).
+
+Guest UI behavior:
+* Guest UI SHOULD check `availableDisplayModes` in host context before requesting a mode change.
+* Guest UI MUST handle the response mode differing from the requested mode.
 
 `ui/update-model-context` - Update the model context
 
@@ -704,12 +971,12 @@ Host MAY send this notification when any context field changes (e.g., theme togg
 
 These messages are reserved for web-based hosts that implement the recommended double-iframe sandbox architecture:
 
-`ui/notifications/sandbox-ready` (Sandbox Proxy → Host) - Sandbox proxy is ready
+`ui/notifications/sandbox-proxy-ready` (Sandbox Proxy → Host) - Sandbox proxy is ready
 
 ```typescript
 {
   jsonrpc: "2.0",
-  method: "ui/notifications/sandbox-ready",
+  method: "ui/notifications/sandbox-proxy-ready",
   params: {}
 }
 ```
@@ -742,7 +1009,7 @@ sequenceDiagram
 
   autonumber
   S -->> H: resources/list (includes ui:// resources)
-  S -->> H: tools/list (includes tools with ui/resourceUri metadata)
+  S -->> H: tools/list (includes tools with _meta.ui metadata)
 ```
 
 #### 2. UI Initialization (Desktop/Native Hosts)
@@ -756,13 +1023,13 @@ sequenceDiagram
 
   autonumber
   par UI Tool call
-    H ->> S: tools/call to Tool with ui/resourceUri metadata
+    H ->> S: tools/call to Tool with _meta.ui metadata
   and UI initialization
     alt Desktop/Native hosts
       H ->> H: Render Guest UI in an iframe (HTML from the ui:// resource)
     else Web hosts
       H ->> H: Render Sandbox Proxy in an iframe (different origin)
-      P ->> H: ui/notifications/sandbox-ready
+      P ->> H: ui/notifications/sandbox-proxy-ready
       H -->> P: ui/notifications/sandbox-resource-ready (HTML content)
       P -> P: Render inner iframe with HTML
 
@@ -947,7 +1214,7 @@ await client.callTool("get_weather", { location: "New York" });
 
 This pattern enables interactive, self-updating widgets.
 
-Note: The called tool may not appear in `tools/list` responses. MCP servers MAY expose private tools specifically designed for UI interaction that are not visible to the agent. UI implementations SHOULD attempt to call tools by name regardless of discoverability. The specification for Private Tools will be covered in a future SEP.
+Note: Tools with `visibility: ["app"]` are hidden from the agent but remain callable by apps via `tools/call`. This enables UI-only interactions (refresh buttons, form submissions) without exposing implementation details to the model. See the Visibility section under Resource Discovery for details.
 
 ### Client\<\>Server Capability Negotiation
 
@@ -1000,7 +1267,7 @@ if (hasUISupport) {
     description: "Get weather with interactive dashboard",
     inputSchema: { /* ... */ },
     _meta: {
-      "ui/resourceUri": "ui://weather-server/dashboard"
+      ui: { resourceUri: "ui://weather-server/dashboard" }
     }
   });
 } else {
@@ -1090,6 +1357,42 @@ This proposal synthesizes feedback from the UI CWG and MCP-UI community, host im
 
 - **Include external URLs in MVP:** This is one of the easiest content types for servers to adopt, as it's possible to embed regular apps. However, it was deferred due to concerns around model visibility, inability to screenshot content, and review process.
 - **Support multiple content types:** Deferred to maintain a lean MVP.
+
+#### 4. Host Theming via CSS Variables
+
+**Decision:** Provide a standardized set of CSS custom properties for visual cohesion.
+
+**Rationale:**
+
+- CSS variables are universal, framework-agnostic, and require no runtime
+- Apps apply styles via `var(--name)` with fallbacks for graceful degradation
+- Limited variable set (colors, typography, borders) ensures hosts can realistically provide all values
+- Spacing intentionally excluded—layouts break when spacing varies from original design
+- No UI component library—no single library works across all host environments
+
+**Alternatives considered:**
+
+- **Full design system:** Rejected as too prescriptive; hosts have different aesthetics
+- **Inline styles in tool results:** Rejected; separating theming from data enables caching and updates
+- **CSS-in-JS injection:** Rejected; framework-specific and security concerns with injected code
+
+#### 5. Tool Visibility via Metadata
+
+**Decision:** Use `_meta.ui.visibility` array to control tool accessibility between model and app.
+
+**Rationale:**
+
+- Nested `_meta.ui` structure groups all UI-related metadata cleanly
+- Array format (`["model", "app"]`) allows flexible combinations
+- Default `["model", "app"]` allows both agent and app to access tools
+- `"app"` scope is per-server, preventing cross-server tool calls
+- Cleaner than OpenAI's two-field approach (`widgetAccessible` + `visibility`)
+
+**Alternatives considered:**
+
+- **Two separate fields:** OpenAI uses `widgetAccessible` and `visibility` separately. Rejected as redundant; single `visibility` array covers all cases.
+- **Boolean `private` flag:** Simpler but less flexible; doesn't express model-only tools.
+- **Flat `ui/visibility` key:** Rejected in favor of nested structure for consistency with future `_meta.ui` fields.
 
 ### Backward Compatibility
 

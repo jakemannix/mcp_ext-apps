@@ -2,10 +2,23 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
-import { EmptyResultSchema } from "@modelcontextprotocol/sdk/types.js";
+import {
+  EmptyResultSchema,
+  ListPromptsResultSchema,
+  ListResourcesResultSchema,
+  ListResourceTemplatesResultSchema,
+  PromptListChangedNotificationSchema,
+  ReadResourceResultSchema,
+  ResourceListChangedNotificationSchema,
+  ToolListChangedNotificationSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
 import { App } from "./app";
-import { AppBridge, type McpUiHostCapabilities } from "./app-bridge";
+import {
+  AppBridge,
+  getToolUiResourceUri,
+  type McpUiHostCapabilities,
+} from "./app-bridge";
 
 /** Wait for pending microtasks to complete */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -91,6 +104,38 @@ describe("App <-> AppBridge integration", () => {
       const appCaps = bridge.getAppCapabilities();
       expect(appCaps).toEqual(appCapabilities);
     });
+
+    it("App receives initial hostContext after connect", async () => {
+      // Need fresh transports for new bridge
+      const [newAppTransport, newBridgeTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      const testHostContext = {
+        theme: "dark" as const,
+        locale: "en-US",
+        viewport: { width: 800, height: 600 },
+      };
+      const newBridge = new AppBridge(
+        createMockClient() as Client,
+        testHostInfo,
+        testHostCapabilities,
+        { hostContext: testHostContext },
+      );
+      const newApp = new App(testAppInfo, {}, { autoResize: false });
+
+      await newBridge.connect(newBridgeTransport);
+      await newApp.connect(newAppTransport);
+
+      const hostContext = newApp.getHostContext();
+      expect(hostContext).toEqual(testHostContext);
+
+      await newAppTransport.close();
+      await newBridgeTransport.close();
+    });
+
+    it("getHostContext returns undefined before connect", () => {
+      expect(app.getHostContext()).toBeUndefined();
+    });
   });
 
   describe("Host -> App notifications", () => {
@@ -140,6 +185,36 @@ describe("App <-> AppBridge integration", () => {
       });
     });
 
+    it("sendToolCancelled triggers app.ontoolcancelled", async () => {
+      const receivedCancellations: unknown[] = [];
+      app.ontoolcancelled = (params) => {
+        receivedCancellations.push(params);
+      };
+
+      await app.connect(appTransport);
+      await bridge.sendToolCancelled({
+        reason: "User cancelled the operation",
+      });
+
+      expect(receivedCancellations).toHaveLength(1);
+      expect(receivedCancellations[0]).toEqual({
+        reason: "User cancelled the operation",
+      });
+    });
+
+    it("sendToolCancelled works without reason", async () => {
+      const receivedCancellations: unknown[] = [];
+      app.ontoolcancelled = (params) => {
+        receivedCancellations.push(params);
+      };
+
+      await app.connect(appTransport);
+      await bridge.sendToolCancelled({});
+
+      expect(receivedCancellations).toHaveLength(1);
+      expect(receivedCancellations[0]).toEqual({});
+    });
+
     it("setHostContext triggers app.onhostcontextchanged", async () => {
       const receivedContexts: unknown[] = [];
       app.onhostcontextchanged = (params) => {
@@ -172,6 +247,158 @@ describe("App <-> AppBridge integration", () => {
         { theme: "dark", locale: "en-US" },
         { theme: "light" },
       ]);
+    });
+
+    it("getHostContext merges updates from onhostcontextchanged", async () => {
+      // Need fresh transports for new bridge
+      const [newAppTransport, newBridgeTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      // Set up bridge with initial context
+      const initialContext = {
+        theme: "light" as const,
+        locale: "en-US",
+      };
+      const newBridge = new AppBridge(
+        createMockClient() as Client,
+        testHostInfo,
+        testHostCapabilities,
+        { hostContext: initialContext },
+      );
+      const newApp = new App(testAppInfo, {}, { autoResize: false });
+
+      await newBridge.connect(newBridgeTransport);
+
+      // Set up handler before connecting app
+      newApp.onhostcontextchanged = () => {
+        // User handler (can be empty, we're testing getHostContext behavior)
+      };
+
+      await newApp.connect(newAppTransport);
+
+      // Verify initial context
+      expect(newApp.getHostContext()).toEqual(initialContext);
+
+      // Update context
+      newBridge.setHostContext({ theme: "dark", locale: "en-US" });
+      await flush();
+
+      // getHostContext should reflect merged state
+      const updatedContext = newApp.getHostContext();
+      expect(updatedContext?.theme).toBe("dark");
+      expect(updatedContext?.locale).toBe("en-US");
+
+      await newAppTransport.close();
+      await newBridgeTransport.close();
+    });
+
+    it("getHostContext updates even without user setting onhostcontextchanged", async () => {
+      // Need fresh transports for new bridge
+      const [newAppTransport, newBridgeTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      // Set up bridge with initial context
+      const initialContext = {
+        theme: "light" as const,
+        locale: "en-US",
+      };
+      const newBridge = new AppBridge(
+        createMockClient() as Client,
+        testHostInfo,
+        testHostCapabilities,
+        { hostContext: initialContext },
+      );
+      const newApp = new App(testAppInfo, {}, { autoResize: false });
+
+      await newBridge.connect(newBridgeTransport);
+      // Note: We do NOT set app.onhostcontextchanged here
+      await newApp.connect(newAppTransport);
+
+      // Verify initial context
+      expect(newApp.getHostContext()).toEqual(initialContext);
+
+      // Update context from bridge
+      newBridge.setHostContext({ theme: "dark", locale: "en-US" });
+      await flush();
+
+      // getHostContext should still update (default handler should work)
+      const updatedContext = newApp.getHostContext();
+      expect(updatedContext?.theme).toBe("dark");
+
+      await newAppTransport.close();
+      await newBridgeTransport.close();
+    });
+
+    it("getHostContext accumulates multiple partial updates", async () => {
+      // Need fresh transports for new bridge
+      const [newAppTransport, newBridgeTransport] =
+        InMemoryTransport.createLinkedPair();
+
+      const initialContext = {
+        theme: "light" as const,
+        locale: "en-US",
+        viewport: { width: 800, height: 600 },
+      };
+      const newBridge = new AppBridge(
+        createMockClient() as Client,
+        testHostInfo,
+        testHostCapabilities,
+        { hostContext: initialContext },
+      );
+      const newApp = new App(testAppInfo, {}, { autoResize: false });
+
+      await newBridge.connect(newBridgeTransport);
+      await newApp.connect(newAppTransport);
+
+      // Send partial update: only theme changes
+      newBridge.sendHostContextChange({ theme: "dark" });
+      await flush();
+
+      // Send another partial update: only viewport changes
+      newBridge.sendHostContextChange({
+        viewport: { width: 1024, height: 768 },
+      });
+      await flush();
+
+      // getHostContext should have accumulated all updates:
+      // - locale from initial (unchanged)
+      // - theme from first partial update
+      // - viewport from second partial update
+      const context = newApp.getHostContext();
+      expect(context?.theme).toBe("dark");
+      expect(context?.locale).toBe("en-US");
+      expect(context?.viewport).toEqual({ width: 1024, height: 768 });
+
+      await newAppTransport.close();
+      await newBridgeTransport.close();
+    });
+
+    it("teardownResource triggers app.onteardown", async () => {
+      let teardownCalled = false;
+      app.onteardown = async () => {
+        teardownCalled = true;
+        return {};
+      };
+
+      await app.connect(appTransport);
+      await bridge.teardownResource({});
+
+      expect(teardownCalled).toBe(true);
+    });
+
+    it("teardownResource waits for async cleanup", async () => {
+      const cleanupSteps: string[] = [];
+      app.onteardown = async () => {
+        cleanupSteps.push("start");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        cleanupSteps.push("done");
+        return {};
+      };
+
+      await app.connect(appTransport);
+      await bridge.teardownResource({});
+
+      expect(cleanupSteps).toEqual(["start", "done"]);
     });
   });
 
@@ -316,7 +543,7 @@ describe("App <-> AppBridge integration", () => {
       expect(result.isError).toBe(true);
     });
 
-    it("app.sendOpenLink triggers bridge.onopenlink and returns result", async () => {
+    it("app.openLink triggers bridge.onopenlink and returns result", async () => {
       const receivedLinks: string[] = [];
       bridge.onopenlink = async (params) => {
         receivedLinks.push(params.url);
@@ -324,21 +551,48 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      const result = await app.sendOpenLink({ url: "https://example.com" });
+      const result = await app.openLink({ url: "https://example.com" });
 
       expect(receivedLinks).toEqual(["https://example.com"]);
       expect(result).toEqual({});
     });
 
-    it("app.sendOpenLink returns error when host denies", async () => {
+    it("app.openLink returns error when host denies", async () => {
       bridge.onopenlink = async () => {
         return { isError: true };
       };
 
       await app.connect(appTransport);
-      const result = await app.sendOpenLink({ url: "https://blocked.com" });
+      const result = await app.openLink({ url: "https://blocked.com" });
 
       expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("deprecated method aliases", () => {
+    beforeEach(async () => {
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+    });
+
+    it("app.sendOpenLink is an alias for app.openLink", async () => {
+      expect(app.sendOpenLink).toBe(app.openLink);
+    });
+
+    it("bridge.sendResourceTeardown is a deprecated alias for bridge.teardownResource", () => {
+      expect(bridge.sendResourceTeardown).toBe(bridge.teardownResource);
+    });
+
+    it("app.sendOpenLink works as deprecated alias", async () => {
+      const receivedLinks: string[] = [];
+      bridge.onopenlink = async (params) => {
+        receivedLinks.push(params.url);
+        return {};
+      };
+
+      await app.sendOpenLink({ url: "https://example.com" });
+
+      expect(receivedLinks).toEqual(["https://example.com"]);
     });
   });
 
@@ -354,6 +608,299 @@ describe("App <-> AppBridge integration", () => {
       );
 
       expect(result).toEqual({});
+    });
+  });
+
+  describe("AppBridge without MCP client (manual handlers)", () => {
+    let app: App;
+    let bridge: AppBridge;
+    let appTransport: InMemoryTransport;
+    let bridgeTransport: InMemoryTransport;
+
+    beforeEach(() => {
+      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
+      app = new App(testAppInfo, {}, { autoResize: false });
+      // Pass null instead of a client - manual handler registration
+      bridge = new AppBridge(null, testHostInfo, testHostCapabilities);
+    });
+
+    afterEach(async () => {
+      await appTransport.close();
+      await bridgeTransport.close();
+    });
+
+    it("connect() works without client", async () => {
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      // Initialization should still work
+      const hostInfo = app.getHostVersion();
+      expect(hostInfo).toEqual(testHostInfo);
+    });
+
+    it("oncalltool setter registers handler for tools/call requests", async () => {
+      const toolCall = { name: "test-tool", arguments: { arg: "value" } };
+      const resultContent = [{ type: "text" as const, text: "result" }];
+      const receivedCalls: unknown[] = [];
+
+      bridge.oncalltool = async (params) => {
+        receivedCalls.push(params);
+        return { content: resultContent };
+      };
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      // App calls a tool via callServerTool
+      const result = await app.callServerTool(toolCall);
+
+      expect(receivedCalls).toHaveLength(1);
+      expect(receivedCalls[0]).toMatchObject(toolCall);
+      expect(result.content).toEqual(resultContent);
+    });
+
+    it("onlistresources setter registers handler for resources/list requests", async () => {
+      const requestParams = {};
+      const resources = [{ uri: "test://resource", name: "Test" }];
+      const receivedRequests: unknown[] = [];
+
+      bridge.onlistresources = async (params) => {
+        receivedRequests.push(params);
+        return { resources };
+      };
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      // App sends resources/list request via the protocol's request method
+      const result = await app.request(
+        { method: "resources/list", params: requestParams },
+        ListResourcesResultSchema,
+      );
+
+      expect(receivedRequests).toHaveLength(1);
+      expect(receivedRequests[0]).toMatchObject(requestParams);
+      expect(result.resources).toEqual(resources);
+    });
+
+    it("onreadresource setter registers handler for resources/read requests", async () => {
+      const requestParams = { uri: "test://resource" };
+      const contents = [{ uri: "test://resource", text: "content" }];
+      const receivedRequests: unknown[] = [];
+
+      bridge.onreadresource = async (params) => {
+        receivedRequests.push(params);
+        return { contents: [{ uri: params.uri, text: "content" }] };
+      };
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      const result = await app.request(
+        { method: "resources/read", params: requestParams },
+        ReadResourceResultSchema,
+      );
+
+      expect(receivedRequests).toHaveLength(1);
+      expect(receivedRequests[0]).toMatchObject(requestParams);
+      expect(result.contents).toEqual(contents);
+    });
+
+    it("onlistresourcetemplates setter registers handler for resources/templates/list requests", async () => {
+      const requestParams = {};
+      const resourceTemplates = [
+        { uriTemplate: "test://{id}", name: "Test Template" },
+      ];
+      const receivedRequests: unknown[] = [];
+
+      bridge.onlistresourcetemplates = async (params) => {
+        receivedRequests.push(params);
+        return { resourceTemplates };
+      };
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      const result = await app.request(
+        { method: "resources/templates/list", params: requestParams },
+        ListResourceTemplatesResultSchema,
+      );
+
+      expect(receivedRequests).toHaveLength(1);
+      expect(receivedRequests[0]).toMatchObject(requestParams);
+      expect(result.resourceTemplates).toEqual(resourceTemplates);
+    });
+
+    it("onlistprompts setter registers handler for prompts/list requests", async () => {
+      const requestParams = {};
+      const prompts = [{ name: "test-prompt" }];
+      const receivedRequests: unknown[] = [];
+
+      bridge.onlistprompts = async (params) => {
+        receivedRequests.push(params);
+        return { prompts };
+      };
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      const result = await app.request(
+        { method: "prompts/list", params: requestParams },
+        ListPromptsResultSchema,
+      );
+
+      expect(receivedRequests).toHaveLength(1);
+      expect(receivedRequests[0]).toMatchObject(requestParams);
+      expect(result.prompts).toEqual(prompts);
+    });
+
+    it("sendToolListChanged sends notification to app", async () => {
+      const receivedNotifications: unknown[] = [];
+      app.setNotificationHandler(ToolListChangedNotificationSchema, (n) => {
+        receivedNotifications.push(n.params);
+      });
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      bridge.sendToolListChanged();
+      await flush();
+
+      expect(receivedNotifications).toHaveLength(1);
+    });
+
+    it("sendResourceListChanged sends notification to app", async () => {
+      const receivedNotifications: unknown[] = [];
+      app.setNotificationHandler(ResourceListChangedNotificationSchema, (n) => {
+        receivedNotifications.push(n.params);
+      });
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      bridge.sendResourceListChanged();
+      await flush();
+
+      expect(receivedNotifications).toHaveLength(1);
+    });
+
+    it("sendPromptListChanged sends notification to app", async () => {
+      const receivedNotifications: unknown[] = [];
+      app.setNotificationHandler(PromptListChangedNotificationSchema, (n) => {
+        receivedNotifications.push(n.params);
+      });
+
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+
+      bridge.sendPromptListChanged();
+      await flush();
+
+      expect(receivedNotifications).toHaveLength(1);
+    });
+  });
+});
+
+describe("getToolUiResourceUri", () => {
+  describe("new nested format (_meta.ui.resourceUri)", () => {
+    it("extracts resourceUri from _meta.ui.resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/app.html" },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+
+    it("extracts resourceUri when visibility is also present", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: {
+            resourceUri: "ui://server/app.html",
+            visibility: ["model"],
+          },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("deprecated flat format (_meta['ui/resourceUri'])", () => {
+    it("extracts resourceUri from deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { "ui/resourceUri": "ui://server/app.html" },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("format precedence", () => {
+    it("prefers new nested format over deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/new.html" },
+          "ui/resourceUri": "ui://server/old.html",
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/new.html");
+    });
+  });
+
+  describe("missing resourceUri", () => {
+    it("returns undefined when no resourceUri in empty _meta", () => {
+      const tool = { name: "test-tool", _meta: {} };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined when _meta is missing", () => {
+      const tool = {} as { _meta?: Record<string, unknown> };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined for app-only tools with visibility but no resourceUri", () => {
+      const tool = {
+        name: "refresh-stats",
+        _meta: {
+          ui: { visibility: ["app"] },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+  });
+
+  describe("validation", () => {
+    it("throws for invalid URI (not starting with ui://)", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: "https://example.com" } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for non-string resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: 123 } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for null resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: null } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
     });
   });
 });

@@ -1,7 +1,7 @@
 /**
  * @file System Monitor App - displays real-time OS metrics with Chart.js
  */
-import { App, PostMessageTransport } from "@modelcontextprotocol/ext-apps";
+import { App } from "@modelcontextprotocol/ext-apps";
 import { Chart, registerables } from "chart.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -260,7 +260,7 @@ const app = new App({ name: "System Monitor", version: "1.0.0" });
 async function fetchStats(): Promise<void> {
   try {
     const result = await app.callServerTool({
-      name: "get-system-stats",
+      name: "refresh-stats", // Use app-only tool for polling
       arguments: {},
     });
 
@@ -360,7 +360,7 @@ window
 // Register handlers and connect
 app.onerror = log.error;
 
-app.connect(new PostMessageTransport(window.parent));
+app.connect();
 
 // Auto-start polling after a short delay
 setTimeout(startPolling, 500);
