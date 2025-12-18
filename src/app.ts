@@ -16,6 +16,7 @@ import {
   PingRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { AppNotification, AppRequest, AppResult } from "./types";
+import { PostMessageTransport } from "./message-transport";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
@@ -42,6 +43,8 @@ import {
   McpUiToolInputPartialNotificationSchema,
   McpUiToolResultNotification,
   McpUiToolResultNotificationSchema,
+  McpUiRequestDisplayModeRequest,
+  McpUiRequestDisplayModeResultSchema,
 } from "./types";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
@@ -49,6 +52,7 @@ export { PostMessageTransport } from "./message-transport";
 export * from "./types";
 export {
   applyHostStyleVariables,
+  applyHostFonts,
   getDocumentTheme,
   applyDocumentTheme,
 } from "./styles";
@@ -821,7 +825,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @example Open documentation link
    * ```typescript
    * try {
-   *   await app.sendOpenLink({ url: "https://docs.example.com" });
+   *   await app.openLink({ url: "https://docs.example.com" });
    * } catch (error) {
    *   console.error("Failed to open link:", error);
    *   // Optionally show fallback: display URL for manual copy
@@ -830,16 +834,54 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * @see {@link McpUiOpenLinkRequest} for request structure
    */
-  sendOpenLink(
-    params: McpUiOpenLinkRequest["params"],
-    options?: RequestOptions,
-  ) {
+  openLink(params: McpUiOpenLinkRequest["params"], options?: RequestOptions) {
     return this.request(
       <McpUiOpenLinkRequest>{
         method: "ui/open-link",
         params,
       },
       McpUiOpenLinkResultSchema,
+      options,
+    );
+  }
+
+  /** @deprecated Use {@link openLink} instead */
+  sendOpenLink: App["openLink"] = this.openLink;
+
+  /**
+   * Request a change to the display mode.
+   *
+   * Requests the host to change the UI container to the specified display mode
+   * (e.g., "inline", "fullscreen", "pip"). The host will respond with the actual
+   * display mode that was set, which may differ from the requested mode if
+   * the requested mode is not available (check `availableDisplayModes` in host context).
+   *
+   * @param params - The display mode being requested
+   * @param options - Request options (timeout, etc.)
+   * @returns Result containing the actual display mode that was set
+   *
+   * @example Request fullscreen mode
+   * ```typescript
+   * const context = app.getHostContext();
+   * if (context?.availableDisplayModes?.includes("fullscreen")) {
+   *   const result = await app.requestDisplayMode({ mode: "fullscreen" });
+   *   console.log("Display mode set to:", result.mode);
+   * }
+   * ```
+   *
+   * @see {@link McpUiRequestDisplayModeRequest} for request structure
+   * @see {@link McpUiHostContext} for checking availableDisplayModes
+   */
+  requestDisplayMode(
+    params: McpUiRequestDisplayModeRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      <McpUiRequestDisplayModeRequest>{
+        method: "ui/request-display-mode",
+        params,
+      },
+      McpUiRequestDisplayModeResultSchema,
       options,
     );
   }
@@ -985,7 +1027,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @see {@link PostMessageTransport} for the typical transport implementation
    */
   override async connect(
-    transport: Transport,
+    transport: Transport = new PostMessageTransport(window.parent),
     options?: RequestOptions,
   ): Promise<void> {
     await super.connect(transport);

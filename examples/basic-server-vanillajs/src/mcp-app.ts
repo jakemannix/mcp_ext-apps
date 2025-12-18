@@ -1,7 +1,7 @@
 /**
  * @file App that demonstrates a few features using MCP Apps SDK with vanilla JS.
  */
-import { App, PostMessageTransport } from "@modelcontextprotocol/ext-apps";
+import { App } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -92,10 +92,10 @@ sendLogBtn.addEventListener("click", async () => {
 
 openLinkBtn.addEventListener("click", async () => {
   log.info("Sending open link request to Host:", linkUrl.value);
-  const { isError } = await app.sendOpenLink({ url: linkUrl.value });
+  const { isError } = await app.openLink({ url: linkUrl.value });
   log.info("Open link request", isError ? "rejected" : "accepted");
 });
 
 
 // Connect to host
-app.connect(new PostMessageTransport(window.parent));
+app.connect();

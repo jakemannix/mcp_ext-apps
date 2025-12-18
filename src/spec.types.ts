@@ -61,6 +61,7 @@ export type McpUiStyleVariableKey =
   | "--color-text-success"
   | "--color-text-warning"
   | "--color-text-disabled"
+  | "--color-text-ghost"
   // Border colors
   | "--color-border-primary"
   | "--color-border-secondary"
@@ -291,11 +292,21 @@ export interface McpUiToolCancelledNotification {
 }
 
 /**
+ * @description CSS blocks that can be injected by apps.
+ */
+export interface McpUiHostCss {
+  /** @description CSS for font loading (@font-face rules or @import statements). Apps must apply using applyHostFonts(). */
+  fonts?: string;
+}
+
+/**
  * @description Style configuration for theming MCP apps.
  */
 export interface McpUiHostStyles {
   /** @description CSS variables for theming the app. */
   variables?: McpUiStyles;
+  /** @description CSS blocks that apps can inject. */
+  css?: McpUiHostCss;
 }
 
 /**
@@ -370,7 +381,7 @@ export interface McpUiHostContextChangedNotification {
 
 /**
  * @description Request for graceful shutdown of the Guest UI (Host -> Guest UI).
- * @see {@link app-bridge.AppBridge.sendResourceTeardown} for the host method that sends this
+ * @see {@link app-bridge.AppBridge.teardownResource} for the host method that sends this
  */
 export interface McpUiResourceTeardownRequest {
   method: "ui/resource-teardown";
@@ -517,4 +528,56 @@ export interface McpUiResourceMeta {
   domain?: string;
   /** @description Visual boundary preference - true if UI prefers a visible border. */
   prefersBorder?: boolean;
+}
+
+/**
+ * @description Request to change the display mode of the UI.
+ * The host will respond with the actual display mode that was set,
+ * which may differ from the requested mode if not supported.
+ * @see {@link app.App.requestDisplayMode} for the method that sends this request
+ */
+export interface McpUiRequestDisplayModeRequest {
+  method: "ui/request-display-mode";
+  params: {
+    /** @description The display mode being requested. */
+    mode: McpUiDisplayMode;
+  };
+}
+
+/**
+ * @description Result from requesting a display mode change.
+ * @see {@link McpUiRequestDisplayModeRequest}
+ */
+export interface McpUiRequestDisplayModeResult {
+  /** @description The display mode that was actually set. May differ from requested if not supported. */
+  mode: McpUiDisplayMode;
+  /**
+   * Index signature required for MCP SDK `Protocol` class compatibility.
+   * Note: The schema intentionally omits this to enforce strict validation.
+   */
+  [key: string]: unknown;
+}
+
+/**
+ * @description Tool visibility scope - who can access the tool.
+ */
+export type McpUiToolVisibility = "model" | "app";
+
+/**
+ * @description UI-related metadata for tools.
+ */
+export interface McpUiToolMeta {
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   *
+   * @example "ui://weather/widget.html"
+   */
+  resourceUri: string;
+  /**
+   * @description Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: McpUiToolVisibility[];
 }

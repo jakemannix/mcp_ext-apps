@@ -367,6 +367,10 @@
                       },
                       {
                         "type": "string",
+                        "const": "--color-text-ghost"
+                      },
+                      {
+                        "type": "string",
                         "const": "--color-border-primary"
                       },
                       {
@@ -600,6 +604,17 @@
                       {}
                     ]
                   }
+                },
+                "css": {
+                  "description": "CSS blocks that apps can inject.",
+                  "type": "object",
+                  "properties": {
+                    "fonts": {
+                      "description": "CSS for font loading (@font-face rules or",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -978,6 +993,10 @@
                   },
                   {
                     "type": "string",
+                    "const": "--color-text-ghost"
+                  },
+                  {
+                    "type": "string",
                     "const": "--color-border-primary"
                   },
                   {
@@ -1211,6 +1230,17 @@
                   {}
                 ]
               }
+            },
+            "css": {
+              "description": "CSS blocks that apps can inject.",
+              "type": "object",
+              "properties": {
+                "fonts": {
+                  "description": "CSS for font loading (@font-face rules or",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -1334,6 +1364,17 @@
       },
       "additionalProperties": {}
     },
+    "McpUiHostCss": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fonts": {
+          "description": "CSS for font loading (@font-face rules or",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "McpUiHostStyles": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -1419,6 +1460,10 @@
               {
                 "type": "string",
                 "const": "--color-text-disabled"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-ghost"
               },
               {
                 "type": "string",
@@ -1655,6 +1700,17 @@
               {}
             ]
           }
+        },
+        "css": {
+          "description": "CSS blocks that apps can inject.",
+          "type": "object",
+          "properties": {
+            "fonts": {
+              "description": "CSS for font loading (@font-face rules or",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -2111,6 +2167,10 @@
                       },
                       {
                         "type": "string",
+                        "const": "--color-text-ghost"
+                      },
+                      {
+                        "type": "string",
                         "const": "--color-border-primary"
                       },
                       {
@@ -2344,6 +2404,17 @@
                       {}
                     ]
                   }
+                },
+                "css": {
+                  "description": "CSS blocks that apps can inject.",
+                  "type": "object",
+                  "properties": {
+                    "fonts": {
+                      "description": "CSS for font loading (@font-face rules or",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -2875,6 +2946,67 @@
       },
       "additionalProperties": {}
     },
+    "McpUiRequestDisplayModeRequest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "ui/request-display-mode"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "description": "The display mode being requested.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "const": "inline"
+                },
+                {
+                  "type": "string",
+                  "const": "fullscreen"
+                },
+                {
+                  "type": "string",
+                  "const": "pip"
+                }
+              ]
+            }
+          },
+          "required": ["mode"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["method", "params"],
+      "additionalProperties": false
+    },
+    "McpUiRequestDisplayModeResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "description": "The display mode that was actually set. May differ from requested if not supported.",
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "inline"
+            },
+            {
+              "type": "string",
+              "const": "fullscreen"
+            },
+            {
+              "type": "string",
+              "const": "pip"
+            }
+          ]
+        }
+      },
+      "required": ["mode"],
+      "additionalProperties": {}
+    },
     "McpUiResourceCsp": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -3229,6 +3361,10 @@
         },
         {
           "type": "string",
+          "const": "--color-text-ghost"
+        },
+        {
+          "type": "string",
           "const": "--color-border-primary"
         },
         {
@@ -3535,6 +3671,10 @@
           {
             "type": "string",
             "const": "--color-text-disabled"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-ghost"
           },
           {
             "type": "string",
@@ -3862,6 +4002,34 @@
         }
       },
       "required": ["method", "params"],
+      "additionalProperties": false
+    },
+    "McpUiToolMeta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "resourceUri": {
+          "type": "string"
+        },
+        "visibility": {
+          "description": "Who can access this tool. Default: [\"model\", \"app\"]\n- \"model\": Tool visible to and callable by the agent\n- \"app\": Tool callable by the app from this server only",
+          "type": "array",
+          "items": {
+            "description": "Tool visibility scope - who can access the tool.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "model"
+              },
+              {
+                "type": "string",
+                "const": "app"
+              }
+            ]
+          }
+        }
+      },
+      "required": ["resourceUri"],
       "additionalProperties": false
     },
     "McpUiToolResultNotification": {
@@ -4222,6 +4390,20 @@
       },
       "required": ["method", "params"],
       "additionalProperties": false
+    },
+    "McpUiToolVisibility": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Tool visibility scope - who can access the tool.",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "model"
+        },
+        {
+          "type": "string",
+          "const": "app"
+        }
+      ]
     }
   }
 }

@@ -9,7 +9,12 @@ import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "../shared/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -142,7 +147,8 @@ function createServer(): McpServer {
   });
 
   // Tool 1: show_threejs_scene
-  server.registerTool(
+  registerAppTool(
+    server,
     "show_threejs_scene",
     {
       title: "Show Three.js Scene",
@@ -174,7 +180,7 @@ function createServer(): McpServer {
     },
   );
 
-  // Tool 2: learn_threejs
+  // Tool 2: learn_threejs (not a UI tool, just returns documentation)
   server.registerTool(
     "learn_threejs",
     {
@@ -191,7 +197,8 @@ function createServer(): McpServer {
   );
 
   // Resource registration
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE, description: "Three.js Widget UI" },

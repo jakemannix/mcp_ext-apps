@@ -32,7 +32,7 @@ export interface WidgetProps<TToolInput = Record<string, unknown>> {
   /** Send a message to the host's chat */
   sendMessage: App["sendMessage"];
   /** Request the host to open a URL */
-  sendOpenLink: App["sendOpenLink"];
+  openLink: App["openLink"];
   /** Send log messages to the host */
   sendLog: App["sendLog"];
 }
@@ -81,8 +81,8 @@ function McpAppWrapper() {
     (params, options) => app!.sendMessage(params, options),
     [app],
   );
-  const sendOpenLink = useCallback<App["sendOpenLink"]>(
-    (params, options) => app!.sendOpenLink(params, options),
+  const openLink = useCallback<App["openLink"]>(
+    (params, options) => app!.openLink(params, options),
     [app],
   );
   const sendLog = useCallback<App["sendLog"]>(
@@ -106,7 +106,7 @@ function McpAppWrapper() {
       hostContext={hostContext}
       callServerTool={callServerTool}
       sendMessage={sendMessage}
-      sendOpenLink={sendOpenLink}
+      openLink={openLink}
       sendLog={sendLog}
     />
   );

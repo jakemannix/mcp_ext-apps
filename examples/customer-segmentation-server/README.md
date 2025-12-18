@@ -48,7 +48,7 @@ Exposes a single `get-customer-data` tool that returns:
 - Segment summary with counts and colors for each group
 - Optional segment filter parameter
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/mcp-app.ts`)
 

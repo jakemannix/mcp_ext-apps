@@ -1,7 +1,7 @@
 /**
  * @file App that demonstrates a few features using MCP Apps SDK + React.
  */
-import type { App, McpUiResourceTeardownResult } from "@modelcontextprotocol/ext-apps";
+import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StrictMode, useCallback, useEffect, useState } from "react";
@@ -110,7 +110,7 @@ function GetTimeAppInner({ app, toolResult }: GetTimeAppInnerProps) {
 
   const handleOpenLink = useCallback(async () => {
     log.info("Sending open link request to Host:", linkUrl);
-    const { isError } = await app.sendOpenLink({ url: linkUrl });
+    const { isError } = await app.openLink({ url: linkUrl });
     log.info("Open link request", isError ? "rejected" : "accepted");
   }, [app, linkUrl]);
 
