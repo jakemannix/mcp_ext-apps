@@ -578,6 +578,52 @@ Example:
 }
 ```
 
+### Host Capabilities
+
+`HostCapabilities` are sent to the Guest UI as part of the response to `ui/initialize` (inside `McpUiInitializeResult`).
+They describe the features and capabilities that the Host supports.
+
+```typescript
+interface HostCapabilities {
+  /** Experimental features (structure TBD). */
+  experimental?: {};
+  /** Host supports opening external URLs. */
+  openLinks?: {};
+  /** Host can proxy tool calls to the MCP server. */
+  serverTools?: {
+    /** Host supports tools/list_changed notifications. */
+    listChanged?: boolean;
+  };
+  /** Host can proxy resource reads to the MCP server. */
+  serverResources?: {
+    /** Host supports resources/list_changed notifications. */
+    listChanged?: boolean;
+  };
+  /** Host accepts log messages. */
+  logging?: {};
+  /** Sandbox configuration applied by the host. */
+  sandbox?: {
+    /** Permissions granted by the host (camera, microphone, geolocation). */
+    permissions?: {
+      camera?: boolean;
+      microphone?: boolean;
+      geolocation?: boolean;
+    };
+    /** CSP domains approved by the host. */
+    csp?: {
+      /** Approved origins for network requests (fetch/XHR/WebSocket). */
+      connectDomains?: string[];
+      /** Approved origins for static resources (scripts, images, styles, fonts). */
+      resourceDomains?: string[];
+      /** Approved origins for nested iframes (frame-src directive). */
+      frameDomains?: string[];
+      /** Approved base URIs for the document (base-uri directive). */
+      baseUriDomains?: string[];
+    };
+  };
+}
+```
+
 ### Theming
 
 Hosts can optionally pass CSS custom properties via `HostContext.styles.variables` for visual cohesion with the host environment.

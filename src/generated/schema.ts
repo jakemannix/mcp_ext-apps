@@ -325,6 +325,55 @@ export const McpUiResourceTeardownResultSchema = z.record(
 );
 
 /**
+ * @description Content Security Policy configuration for UI resources.
+ */
+export const McpUiResourceCspSchema = z.object({
+  /** @description Origins for network requests (fetch/XHR/WebSocket). */
+  connectDomains: z
+    .array(z.string())
+    .optional()
+    .describe("Origins for network requests (fetch/XHR/WebSocket)."),
+  /** @description Origins for static resources (scripts, images, styles, fonts). */
+  resourceDomains: z
+    .array(z.string())
+    .optional()
+    .describe("Origins for static resources (scripts, images, styles, fonts)."),
+  /** @description Origins for nested iframes (frame-src directive). */
+  frameDomains: z
+    .array(z.string())
+    .optional()
+    .describe("Origins for nested iframes (frame-src directive)."),
+  /** @description Allowed base URIs for the document (base-uri directive). */
+  baseUriDomains: z
+    .array(z.string())
+    .optional()
+    .describe("Allowed base URIs for the document (base-uri directive)."),
+});
+
+/**
+ * @description Capabilities provided by the Guest UI (App).
+ * @see {@link McpUiInitializeRequest} for the initialization request that includes these capabilities
+ */
+export const McpUiAppCapabilitiesSchema = z.object({
+  /** @description Experimental features (structure TBD). */
+  experimental: z
+    .object({})
+    .optional()
+    .describe("Experimental features (structure TBD)."),
+  /** @description App exposes MCP-style tools that the host can call. */
+  tools: z
+    .object({
+      /** @description App supports tools/list_changed notifications. */
+      listChanged: z
+        .boolean()
+        .optional()
+        .describe("App supports tools/list_changed notifications."),
+    })
+    .optional()
+    .describe("App exposes MCP-style tools that the host can call."),
+});
+
+/**
  * @description Capabilities supported by the host application.
  * @see {@link McpUiInitializeResult} for the initialization result that includes these capabilities
  */
@@ -363,45 +412,20 @@ export const McpUiHostCapabilitiesSchema = z.object({
     .describe("Host can proxy resource reads to the MCP server."),
   /** @description Host accepts log messages. */
   logging: z.object({}).optional().describe("Host accepts log messages."),
-  /** @description CSP overrides the host supports for sandbox proxies. */
-  csp: z
+  /** @description Sandbox configuration applied by the host. */
+  sandbox: z
     .object({
-      /** @description Host supports frame-src domain allowlisting. */
-      frameDomains: z
-        .boolean()
-        .optional()
-        .describe("Host supports frame-src domain allowlisting."),
-      /** @description Host supports base-uri domain allowlisting. */
-      baseUriDomains: z
-        .boolean()
-        .optional()
-        .describe("Host supports base-uri domain allowlisting."),
+      /** @description Permissions granted by the host (camera, microphone, geolocation). */
+      permissions: McpUiResourcePermissionsSchema.optional().describe(
+        "Permissions granted by the host (camera, microphone, geolocation).",
+      ),
+      /** @description CSP domains approved by the host. */
+      csp: McpUiResourceCspSchema.optional().describe(
+        "CSP domains approved by the host.",
+      ),
     })
     .optional()
-    .describe("CSP overrides the host supports for sandbox proxies."),
-});
-
-/**
- * @description Capabilities provided by the Guest UI (App).
- * @see {@link McpUiInitializeRequest} for the initialization request that includes these capabilities
- */
-export const McpUiAppCapabilitiesSchema = z.object({
-  /** @description Experimental features (structure TBD). */
-  experimental: z
-    .object({})
-    .optional()
-    .describe("Experimental features (structure TBD)."),
-  /** @description App exposes MCP-style tools that the host can call. */
-  tools: z
-    .object({
-      /** @description App supports tools/list_changed notifications. */
-      listChanged: z
-        .boolean()
-        .optional()
-        .describe("App supports tools/list_changed notifications."),
-    })
-    .optional()
-    .describe("App exposes MCP-style tools that the host can call."),
+    .describe("Sandbox configuration applied by the host."),
 });
 
 /**
@@ -411,32 +435,6 @@ export const McpUiAppCapabilitiesSchema = z.object({
 export const McpUiInitializedNotificationSchema = z.object({
   method: z.literal("ui/notifications/initialized"),
   params: z.object({}).optional(),
-});
-
-/**
- * @description Content Security Policy configuration for UI resources.
- */
-export const McpUiResourceCspSchema = z.object({
-  /** @description Origins for network requests (fetch/XHR/WebSocket). */
-  connectDomains: z
-    .array(z.string())
-    .optional()
-    .describe("Origins for network requests (fetch/XHR/WebSocket)."),
-  /** @description Origins for static resources (scripts, images, styles, fonts). */
-  resourceDomains: z
-    .array(z.string())
-    .optional()
-    .describe("Origins for static resources (scripts, images, styles, fonts)."),
-  /** @description Origins for nested iframes (frame-src directive). */
-  frameDomains: z
-    .array(z.string())
-    .optional()
-    .describe("Origins for nested iframes (frame-src directive)."),
-  /** @description Allowed base URIs for the document (base-uri directive). */
-  baseUriDomains: z
-    .array(z.string())
-    .optional()
-    .describe("Allowed base URIs for the document (base-uri directive)."),
 });
 
 /**

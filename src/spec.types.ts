@@ -420,12 +420,12 @@ export interface McpUiHostCapabilities {
   };
   /** @description Host accepts log messages. */
   logging?: {};
-  /** @description CSP overrides the host supports for sandbox proxies. */
-  csp?: {
-    /** @description Host supports frame-src domain allowlisting. */
-    frameDomains?: boolean;
-    /** @description Host supports base-uri domain allowlisting. */
-    baseUriDomains?: boolean;
+  /** @description Sandbox configuration applied by the host. */
+  sandbox?: {
+    /** @description Permissions granted by the host (camera, microphone, geolocation). */
+    permissions?: McpUiResourcePermissions;
+    /** @description CSP domains approved by the host. */
+    csp?: McpUiResourceCsp;
   };
 }
 

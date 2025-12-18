@@ -90,17 +90,63 @@
           "properties": {},
           "additionalProperties": false
         },
-        "csp": {
-          "description": "CSP overrides the host supports for sandbox proxies.",
+        "sandbox": {
+          "description": "Sandbox configuration applied by the host.",
           "type": "object",
           "properties": {
-            "frameDomains": {
-              "description": "Host supports frame-src domain allowlisting.",
-              "type": "boolean"
+            "permissions": {
+              "description": "Permissions granted by the host (camera, microphone, geolocation).",
+              "type": "object",
+              "properties": {
+                "camera": {
+                  "description": "Request camera access (Permission Policy `camera` feature).",
+                  "type": "boolean"
+                },
+                "microphone": {
+                  "description": "Request microphone access (Permission Policy `microphone` feature).",
+                  "type": "boolean"
+                },
+                "geolocation": {
+                  "description": "Request geolocation access (Permission Policy `geolocation` feature).",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             },
-            "baseUriDomains": {
-              "description": "Host supports base-uri domain allowlisting.",
-              "type": "boolean"
+            "csp": {
+              "description": "CSP domains approved by the host.",
+              "type": "object",
+              "properties": {
+                "connectDomains": {
+                  "description": "Origins for network requests (fetch/XHR/WebSocket).",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "resourceDomains": {
+                  "description": "Origins for static resources (scripts, images, styles, fonts).",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "frameDomains": {
+                  "description": "Origins for nested iframes (frame-src directive).",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "baseUriDomains": {
+                  "description": "Allowed base URIs for the document (base-uri directive).",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -1898,17 +1944,63 @@
               "properties": {},
               "additionalProperties": false
             },
-            "csp": {
-              "description": "CSP overrides the host supports for sandbox proxies.",
+            "sandbox": {
+              "description": "Sandbox configuration applied by the host.",
               "type": "object",
               "properties": {
-                "frameDomains": {
-                  "description": "Host supports frame-src domain allowlisting.",
-                  "type": "boolean"
+                "permissions": {
+                  "description": "Permissions granted by the host (camera, microphone, geolocation).",
+                  "type": "object",
+                  "properties": {
+                    "camera": {
+                      "description": "Request camera access (Permission Policy `camera` feature).",
+                      "type": "boolean"
+                    },
+                    "microphone": {
+                      "description": "Request microphone access (Permission Policy `microphone` feature).",
+                      "type": "boolean"
+                    },
+                    "geolocation": {
+                      "description": "Request geolocation access (Permission Policy `geolocation` feature).",
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
                 },
-                "baseUriDomains": {
-                  "description": "Host supports base-uri domain allowlisting.",
-                  "type": "boolean"
+                "csp": {
+                  "description": "CSP domains approved by the host.",
+                  "type": "object",
+                  "properties": {
+                    "connectDomains": {
+                      "description": "Origins for network requests (fetch/XHR/WebSocket).",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "resourceDomains": {
+                      "description": "Origins for static resources (scripts, images, styles, fonts).",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "frameDomains": {
+                      "description": "Origins for nested iframes (frame-src directive).",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "baseUriDomains": {
+                      "description": "Allowed base URIs for the document (base-uri directive).",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

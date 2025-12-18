@@ -57,10 +57,21 @@
       inner.setAttribute('sandbox', 'allow-scripts allow-same-origin');
       document.body.appendChild(inner);
 
+      // Build iframe allow attribute from permissions
+      function buildAllowAttribute(permissions) {
+        if (!permissions) return '';
+        const allowList = [];
+        if (permissions.camera) allowList.push('camera');
+        if (permissions.microphone) allowList.push('microphone');
+        if (permissions.geolocation) allowList.push('geolocation');
+        return allowList.join('; ');
+      }
+
       window.addEventListener('message', async (event) => {
         if (event.source === window.parent) {
           if (event.data && event.data.method === 'ui/notifications/sandbox-resource-ready') {
-            const { html, sandbox } = event.data.params || {};
+            const { html, sandbox, permissions } = event.data.params || {};
+            // Note: csp is not extracted here - CSP is set via HTTP response headers in serve.ts
             if (typeof sandbox === 'string') {
               // Ensure allow-same-origin is present for document.write to work
               let finalSandbox = sandbox;
@@ -68,6 +79,11 @@
                 finalSandbox = finalSandbox + ' allow-same-origin';
               }
               inner.setAttribute('sandbox', finalSandbox);
+            }
+            // Set Permission Policy allow attribute if permissions are provided
+            const allowAttribute = buildAllowAttribute(permissions);
+            if (allowAttribute) {
+              inner.setAttribute('allow', allowAttribute);
             }
             if (typeof html === 'string') {
               // Use document.write instead of srcdoc to avoid CSP base-uri issues

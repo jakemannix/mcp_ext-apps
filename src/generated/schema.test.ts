@@ -79,20 +79,20 @@ export type McpUiResourceTeardownResultSchemaInferredType = z.infer<
   typeof generated.McpUiResourceTeardownResultSchema
 >;
 
-export type McpUiHostCapabilitiesSchemaInferredType = z.infer<
-  typeof generated.McpUiHostCapabilitiesSchema
+export type McpUiResourceCspSchemaInferredType = z.infer<
+  typeof generated.McpUiResourceCspSchema
 >;
 
 export type McpUiAppCapabilitiesSchemaInferredType = z.infer<
   typeof generated.McpUiAppCapabilitiesSchema
 >;
 
-export type McpUiInitializedNotificationSchemaInferredType = z.infer<
-  typeof generated.McpUiInitializedNotificationSchema
+export type McpUiHostCapabilitiesSchemaInferredType = z.infer<
+  typeof generated.McpUiHostCapabilitiesSchema
 >;
 
-export type McpUiResourceCspSchemaInferredType = z.infer<
-  typeof generated.McpUiResourceCspSchema
+export type McpUiInitializedNotificationSchemaInferredType = z.infer<
+  typeof generated.McpUiInitializedNotificationSchema
 >;
 
 export type McpUiResourceMetaSchemaInferredType = z.infer<
@@ -221,17 +221,19 @@ expectType<spec.McpUiResourceTeardownResult>(
 expectType<McpUiResourceTeardownResultSchemaInferredType>(
   {} as spec.McpUiResourceTeardownResult,
 );
-expectType<spec.McpUiHostCapabilities>(
-  {} as McpUiHostCapabilitiesSchemaInferredType,
-);
-expectType<McpUiHostCapabilitiesSchemaInferredType>(
-  {} as spec.McpUiHostCapabilities,
-);
+expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
+expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
 expectType<spec.McpUiAppCapabilities>(
   {} as McpUiAppCapabilitiesSchemaInferredType,
 );
 expectType<McpUiAppCapabilitiesSchemaInferredType>(
   {} as spec.McpUiAppCapabilities,
+);
+expectType<spec.McpUiHostCapabilities>(
+  {} as McpUiHostCapabilitiesSchemaInferredType,
+);
+expectType<McpUiHostCapabilitiesSchemaInferredType>(
+  {} as spec.McpUiHostCapabilities,
 );
 expectType<spec.McpUiInitializedNotification>(
   {} as McpUiInitializedNotificationSchemaInferredType,
@@ -239,8 +241,6 @@ expectType<spec.McpUiInitializedNotification>(
 expectType<McpUiInitializedNotificationSchemaInferredType>(
   {} as spec.McpUiInitializedNotification,
 );
-expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
-expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
 expectType<spec.McpUiResourceMeta>({} as McpUiResourceMetaSchemaInferredType);
 expectType<McpUiResourceMetaSchemaInferredType>({} as spec.McpUiResourceMeta);
 expectType<spec.McpUiRequestDisplayModeRequest>(
