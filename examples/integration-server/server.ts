@@ -1,9 +1,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ReadResourceResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
+import {
+  registerAppTool,
+  registerAppResource,
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -29,7 +37,12 @@ export function createServer(): McpServer {
     },
     async (): Promise<CallToolResult> => {
       return {
-        content: [{ type: "text", text: JSON.stringify({ time: new Date().toISOString() }) }],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ time: new Date().toISOString() }),
+          },
+        ],
       };
     },
   );
@@ -40,9 +53,14 @@ export function createServer(): McpServer {
     RESOURCE_URI,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
       return {
-        contents: [{ uri: RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: html }],
+        contents: [
+          { uri: RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: html },
+        ],
       };
     },
   );
