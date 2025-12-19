@@ -107,7 +107,7 @@ async function getMemoryStats(): Promise<MemoryStats> {
   };
 }
 
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "System Monitor Server",
     version: "1.0.0",

@@ -152,7 +152,7 @@ function generateCohortData(
   };
 }
 
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Cohort Heatmap Server",
     version: "1.0.0",

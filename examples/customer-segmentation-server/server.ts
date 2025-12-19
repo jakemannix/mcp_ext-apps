@@ -60,7 +60,7 @@ function getCustomerData(segmentFilter?: string): {
  * Creates a new MCP server instance with tools and resources registered.
  * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Customer Segmentation Server",
     version: "1.0.0",

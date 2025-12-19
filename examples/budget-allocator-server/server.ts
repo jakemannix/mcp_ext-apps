@@ -234,7 +234,7 @@ const resourceUri = "ui://budget-allocator/mcp-app.html";
  * Creates a new MCP server instance with tools and resources registered.
  * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Budget Allocator Server",
     version: "1.0.0",

@@ -72,7 +72,7 @@ function extractWikiLinks(pageUrl: URL, html: string): PageInfo[] {
   }));
 }
 
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Wiki Explorer",
     version: "1.0.0",
