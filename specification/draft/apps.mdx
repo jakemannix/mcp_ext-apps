@@ -1032,9 +1032,9 @@ sequenceDiagram
     else Message
       UI ->> H: ui/message
       H -->> H: Process message and follow up
-    else Notify
+    else Log
       UI ->> H: notifications/message
-      H ->> H: Process notification and store in context
+      H ->> H: Log message (for debugging/telemetry)
     else Resource read
       UI ->> H: resources/read
       H ->> S: resources/read
@@ -1293,7 +1293,7 @@ This proposal synthesizes feedback from the UI CWG and MCP-UI community, host im
 
 **Alternatives considered:**
 
-- **Custom message protocol:** Current MCP-UI approach with message types like tool, intent, prompt, etc. These message types can be translated to a subset of the proposed JSON-RPC messages.
+- **Custom message protocol:** Current MCP-UI approach with message types like tool, prompt, etc. These message types can be translated to a subset of the proposed JSON-RPC messages.
 - **Global API object:** Rejected because it requires host-specific injection and doesn't work with external iframe sources. Syntactic sugar may still be added on the server/UI side.
 
 #### 3. Support Raw HTML Content Type
