@@ -196,6 +196,41 @@ export interface McpUiMessageResult {
 }
 
 /**
+ * @description Request to send a follow-up message to the host's chat.
+ *
+ * Use this to continue the conversation based on user interaction with the app.
+ * For example, when a user clicks on a data point, the app can send a follow-up
+ * message asking for more details about that item.
+ *
+ * @see {@link app.App.sendFollowUpMessage} for the method that sends this request
+ */
+export interface McpUiFollowUpMessageRequest {
+  method: "ui/follow-up-message";
+  params: {
+    /** @description Message role, currently only "user" is supported. */
+    role: "user";
+    /** @description Message content blocks (text, image, etc.). */
+    content: ContentBlock[];
+  };
+}
+
+/**
+ * @description Result from sending a follow-up message.
+ * @see {@link McpUiFollowUpMessageRequest}
+ */
+export interface McpUiFollowUpMessageResult {
+  /** @description True if the host rejected or failed to send the message. */
+  isError?: boolean;
+  /** @description Error message explaining why the request failed. Only present when isError is true. */
+  errorMessage?: string;
+  /**
+   * Index signature required for MCP SDK `Protocol` class compatibility.
+   * Note: The schema intentionally omits this to enforce strict validation.
+   */
+  [key: string]: unknown;
+}
+
+/**
  * @description Notification that the sandbox proxy iframe is ready to receive content.
  * @internal
  * @see https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#sandbox-proxy

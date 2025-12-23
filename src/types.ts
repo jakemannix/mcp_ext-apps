@@ -22,6 +22,8 @@ export {
   type McpUiOpenLinkResult,
   type McpUiMessageRequest,
   type McpUiMessageResult,
+  type McpUiFollowUpMessageRequest,
+  type McpUiFollowUpMessageResult,
   type McpUiSandboxProxyReadyNotification,
   type McpUiSandboxResourceReadyNotification,
   type McpUiSizeChangedNotification,
@@ -51,6 +53,7 @@ import type {
   McpUiInitializeRequest,
   McpUiOpenLinkRequest,
   McpUiMessageRequest,
+  McpUiFollowUpMessageRequest,
   McpUiResourceTeardownRequest,
   McpUiRequestDisplayModeRequest,
   McpUiHostContextChangedNotification,
@@ -65,6 +68,7 @@ import type {
   McpUiInitializeResult,
   McpUiOpenLinkResult,
   McpUiMessageResult,
+  McpUiFollowUpMessageResult,
   McpUiResourceTeardownResult,
   McpUiRequestDisplayModeResult,
 } from "./spec.types.js";
@@ -79,6 +83,8 @@ export {
   McpUiOpenLinkResultSchema,
   McpUiMessageRequestSchema,
   McpUiMessageResultSchema,
+  McpUiFollowUpMessageRequestSchema,
+  McpUiFollowUpMessageResultSchema,
   McpUiSandboxProxyReadyNotificationSchema,
   McpUiSandboxResourceReadyNotificationSchema,
   McpUiSizeChangedNotificationSchema,
@@ -129,7 +135,7 @@ import {
  * All request types in the MCP Apps protocol.
  *
  * Includes:
- * - MCP UI requests (initialize, open-link, message, resource-teardown, request-display-mode)
+ * - MCP UI requests (initialize, open-link, message, follow-up-message, resource-teardown, request-display-mode)
  * - MCP server requests forwarded from the app (tools/call, resources/*, prompts/list)
  * - Protocol requests (ping)
  */
@@ -137,6 +143,7 @@ export type AppRequest =
   | McpUiInitializeRequest
   | McpUiOpenLinkRequest
   | McpUiMessageRequest
+  | McpUiFollowUpMessageRequest
   | McpUiResourceTeardownRequest
   | McpUiRequestDisplayModeRequest
   | CallToolRequest
@@ -184,6 +191,7 @@ export type AppResult =
   | McpUiInitializeResult
   | McpUiOpenLinkResult
   | McpUiMessageResult
+  | McpUiFollowUpMessageResult
   | McpUiResourceTeardownResult
   | McpUiRequestDisplayModeResult
   | CallToolResult

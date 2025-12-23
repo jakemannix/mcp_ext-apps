@@ -39,6 +39,10 @@ export type McpUiMessageResultSchemaInferredType = z.infer<
   typeof generated.McpUiMessageResultSchema
 >;
 
+export type McpUiFollowUpMessageResultSchemaInferredType = z.infer<
+  typeof generated.McpUiFollowUpMessageResultSchema
+>;
+
 export type McpUiSandboxProxyReadyNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiSandboxProxyReadyNotificationSchema
 >;
@@ -119,6 +123,10 @@ export type McpUiMessageRequestSchemaInferredType = z.infer<
   typeof generated.McpUiMessageRequestSchema
 >;
 
+export type McpUiFollowUpMessageRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiFollowUpMessageRequestSchema
+>;
+
 export type McpUiToolResultNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiToolResultNotificationSchema
 >;
@@ -165,6 +173,12 @@ expectType<McpUiOpenLinkResultSchemaInferredType>(
 );
 expectType<spec.McpUiMessageResult>({} as McpUiMessageResultSchemaInferredType);
 expectType<McpUiMessageResultSchemaInferredType>({} as spec.McpUiMessageResult);
+expectType<spec.McpUiFollowUpMessageResult>(
+  {} as McpUiFollowUpMessageResultSchemaInferredType,
+);
+expectType<McpUiFollowUpMessageResultSchemaInferredType>(
+  {} as spec.McpUiFollowUpMessageResult,
+);
 expectType<spec.McpUiSandboxProxyReadyNotification>(
   {} as McpUiSandboxProxyReadyNotificationSchemaInferredType,
 );
@@ -264,6 +278,12 @@ expectType<spec.McpUiMessageRequest>(
 );
 expectType<McpUiMessageRequestSchemaInferredType>(
   {} as spec.McpUiMessageRequest,
+);
+expectType<spec.McpUiFollowUpMessageRequest>(
+  {} as McpUiFollowUpMessageRequestSchemaInferredType,
+);
+expectType<McpUiFollowUpMessageRequestSchemaInferredType>(
+  {} as spec.McpUiFollowUpMessageRequest,
 );
 expectType<spec.McpUiToolResultNotification>(
   {} as McpUiToolResultNotificationSchemaInferredType,

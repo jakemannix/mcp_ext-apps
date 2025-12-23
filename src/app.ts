@@ -20,6 +20,8 @@ import { PostMessageTransport } from "./message-transport";
 import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
+  McpUiFollowUpMessageRequest,
+  McpUiFollowUpMessageResultSchema,
   McpUiHostCapabilities,
   McpUiHostContext,
   McpUiHostContextChangedNotification,
@@ -779,6 +781,48 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
         params,
       },
       McpUiMessageResultSchema,
+      options,
+    );
+  }
+
+  /**
+   * Send a follow-up message to the host's chat.
+   *
+   * Use this to continue the conversation based on user interaction with the app.
+   * For example, when a user clicks on a data point, the app can send a follow-up
+   * message asking for more details about that item.
+   *
+   * @param params - Message role and content
+   * @param options - Request options (timeout, etc.)
+   * @returns Result indicating success or error
+   *
+   * @throws {Error} If the host rejects the request
+   * @throws {Error} If the request times out or the connection is lost
+   *
+   * @example Send a follow-up question based on user interaction
+   * ```typescript
+   * try {
+   *   await app.sendFollowUpMessage({
+   *     role: "user",
+   *     content: [{ type: "text", text: "Tell me more about this item" }]
+   *   });
+   * } catch (error) {
+   *   console.error("Failed to send message:", error);
+   * }
+   * ```
+   *
+   * @see {@link McpUiFollowUpMessageRequest} for request structure
+   */
+  sendFollowUpMessage(
+    params: McpUiFollowUpMessageRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      <McpUiFollowUpMessageRequest>{
+        method: "ui/follow-up-message",
+        params,
+      },
+      McpUiFollowUpMessageResultSchema,
       options,
     );
   }
