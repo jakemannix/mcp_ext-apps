@@ -767,6 +767,43 @@ Host behavior:
 * Host SHOULD add the message to the conversation context, preserving the specified role.
 * Host MAY request user consent.
 
+`ui/follow-up-message` - Send a follow-up message to continue the conversation
+
+```typescript
+// Request
+{
+  jsonrpc: "2.0",
+  id: 3,
+  method: "ui/follow-up-message",
+  params: {
+    content: ContentBlock[]  // Message content blocks (text, image, etc.)
+  }
+}
+
+// Success Response
+{
+  jsonrpc: "2.0",
+  id: 3,
+  result: {}  // Empty result on success
+}
+
+// Error Response (if denied or failed)
+{
+  jsonrpc: "2.0",
+  id: 3,
+  result: {
+    isError: true
+  }
+}
+```
+
+Use this to continue the conversation based on user interaction with the app or prompt a follow up app. For example, when a user clicks on a data point, the app can send a follow-up message asking for an analysis of that data point, or to display a new app with more details about that data point.
+
+Host behavior:
+* Host SHOULD add the message to the conversation context as a user message.
+* Host MAY request user consent before sending.
+* Host MAY allow user to review and edit the message before sending.
+
 `ui/request-display-mode` - Request host to change display mode
 
 ```typescript
