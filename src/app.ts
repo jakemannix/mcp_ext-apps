@@ -45,6 +45,8 @@ import {
   McpUiToolResultNotificationSchema,
   McpUiRequestDisplayModeRequest,
   McpUiRequestDisplayModeResultSchema,
+  McpUiSetWidgetStateRequest,
+  McpUiSetWidgetStateResultSchema,
 } from "./types";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
@@ -882,6 +884,53 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
         params,
       },
       McpUiRequestDisplayModeResultSchema,
+      options,
+    );
+  }
+
+  /**
+   * Set widget state that will be included in future prompts.
+   *
+   * This allows apps to persist state that Claude can see in subsequent messages.
+   * The state is treated as untrusted third-party content and will be wrapped
+   * in a document block with explicit trust metadata on the backend.
+   *
+   * Call this method whenever your widget's state changes meaningfully in a way
+   * that Claude should be aware of. The state is stored per-conversation and
+   * sent with each completion request.
+   *
+   * @param params - Widget state parameters
+   * @param params.toolId - Unique identifier for this widget/tool instance
+   * @param params.toolName - Human-readable name of the tool (shown in prompts)
+   * @param params.content - JSON string containing the widget's current state
+   * @param options - Request options (timeout, etc.)
+   * @returns Result indicating success or error
+   *
+   * @example Persist chart configuration
+   * ```typescript
+   * await app.setWidgetState({
+   *   toolId: "customer-segmentation-chart",
+   *   toolName: "Customer Segmentation",
+   *   content: JSON.stringify({
+   *     xAxis: "revenue",
+   *     yAxis: "engagement",
+   *     hiddenSegments: ["inactive"]
+   *   })
+   * });
+   * ```
+   *
+   * @see {@link McpUiSetWidgetStateRequest} for request structure
+   */
+  setWidgetState(
+    params: McpUiSetWidgetStateRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      <McpUiSetWidgetStateRequest>{
+        method: "ui/set-widget-state",
+        params,
+      },
+      McpUiSetWidgetStateResultSchema,
       options,
     );
   }

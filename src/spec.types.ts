@@ -548,3 +548,35 @@ export interface McpUiToolMeta {
    */
   visibility?: McpUiToolVisibility[];
 }
+
+/**
+ * @description Request to set widget state that will be included in future prompts.
+ * The state is treated as untrusted third-party content and will be wrapped
+ * in a document block with explicit trust metadata.
+ * @see {@link app.App.setWidgetState} for the method that sends this request
+ */
+export interface McpUiSetWidgetStateRequest {
+  method: "ui/set-widget-state";
+  params: {
+    /** @description Unique identifier for this widget/tool instance. Typically the app_id or tool name. */
+    toolId: string;
+    /** @description Human-readable name of the tool (shown in prompts). */
+    toolName: string;
+    /** @description JSON string containing the widget's current state. This will be included in future completion requests. */
+    content: string;
+  };
+}
+
+/**
+ * @description Result from setting widget state.
+ * @see {@link McpUiSetWidgetStateRequest}
+ */
+export interface McpUiSetWidgetStateResult {
+  /** @description True if the host failed to store the widget state. */
+  isError?: boolean;
+  /**
+   * Index signature required for MCP SDK `Protocol` class compatibility.
+   * Note: The schema intentionally omits this to enforce strict validation.
+   */
+  [key: string]: unknown;
+}

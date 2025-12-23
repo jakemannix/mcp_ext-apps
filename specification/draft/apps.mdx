@@ -800,6 +800,58 @@ Guest UI behavior:
 * Guest UI SHOULD check `availableDisplayModes` in host context before requesting a mode change.
 * Guest UI MUST handle the response mode differing from the requested mode.
 
+`ui/set-widget-state` - Persist widget state for inclusion in future prompts
+
+```typescript
+// Request
+{
+  jsonrpc: "2.0",
+  id: 4,
+  method: "ui/set-widget-state",
+  params: {
+    toolId: string,    // Unique identifier for this widget/tool instance
+    toolName: string,  // Human-readable name of the tool (shown in prompts)
+    content: string    // JSON string containing the widget's current state
+  }
+}
+
+// Success Response
+{
+  jsonrpc: "2.0",
+  id: 4,
+  result: {}  // Empty result on success
+}
+
+// Error Response (if failed)
+{
+  jsonrpc: "2.0",
+  id: 4,
+  error: {
+    code: -32000,  // Implementation-defined error
+    message: "Failed to store widget state"
+  }
+}
+```
+
+This request allows apps to persist state that the model can see in subsequent messages. The state is stored per-conversation and sent with each completion request, enabling the model to be aware of the current widget configuration and user selections.
+
+Host behavior:
+* Host MUST store the widget state associated with the current conversation.
+* Host MUST include all stored widget states in subsequent completion requests to the model.
+* Host SHOULD treat widget state content as untrusted third-party data and wrap it appropriately when presenting to the model.
+* Host MAY implement size limits on widget state content.
+
+Guest UI behavior:
+* Guest UI SHOULD call this method whenever its state changes meaningfully in a way that the model should be aware of.
+* Guest UI SHOULD use a consistent `toolId` for the same widget instance.
+* Guest UI SHOULD serialize state as a JSON string in the `content` field.
+* Guest UI SHOULD include relevant context such as selected items, current view configuration, and user choices.
+
+Example use cases:
+* A chart widget reports which data point the user has selected
+* A form widget reports current field values before submission
+* A data explorer reports active filters and sort order
+
 #### Notifications (Host → UI)
 
 `ui/notifications/tool-input` - Host MUST send this notification with the complete tool arguments after the Guest UI's initialize request completes.

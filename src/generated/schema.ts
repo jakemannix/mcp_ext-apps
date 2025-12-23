@@ -503,6 +503,48 @@ export const McpUiToolMetaSchema = z.object({
 });
 
 /**
+ * @description Request to set widget state that will be included in future prompts.
+ * The state is treated as untrusted third-party content and will be wrapped
+ * in a document block with explicit trust metadata.
+ * @see {@link app.App.setWidgetState} for the method that sends this request
+ */
+export const McpUiSetWidgetStateRequestSchema = z.object({
+  method: z.literal("ui/set-widget-state"),
+  params: z.object({
+    /** @description Unique identifier for this widget/tool instance. Typically the app_id or tool name. */
+    toolId: z
+      .string()
+      .describe(
+        "Unique identifier for this widget/tool instance. Typically the app_id or tool name.",
+      ),
+    /** @description Human-readable name of the tool (shown in prompts). */
+    toolName: z
+      .string()
+      .describe("Human-readable name of the tool (shown in prompts)."),
+    /** @description JSON string containing the widget's current state. This will be included in future completion requests. */
+    content: z
+      .string()
+      .describe(
+        "JSON string containing the widget's current state. This will be included in future completion requests.",
+      ),
+  }),
+});
+
+/**
+ * @description Result from setting widget state.
+ * @see {@link McpUiSetWidgetStateRequest}
+ */
+export const McpUiSetWidgetStateResultSchema = z
+  .object({
+    /** @description True if the host failed to store the widget state. */
+    isError: z
+      .boolean()
+      .optional()
+      .describe("True if the host failed to store the widget state."),
+  })
+  .passthrough();
+
+/**
  * @description Request to send a message to the host's chat interface.
  * @see {@link app.App.sendMessage} for the method that sends this request
  */

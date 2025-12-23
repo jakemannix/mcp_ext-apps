@@ -44,6 +44,8 @@ export {
   type McpUiRequestDisplayModeResult,
   type McpUiToolVisibility,
   type McpUiToolMeta,
+  type McpUiSetWidgetStateRequest,
+  type McpUiSetWidgetStateResult,
 } from "./spec.types.js";
 
 // Import types needed for protocol type unions (not re-exported, just used internally)
@@ -53,6 +55,7 @@ import type {
   McpUiMessageRequest,
   McpUiResourceTeardownRequest,
   McpUiRequestDisplayModeRequest,
+  McpUiSetWidgetStateRequest,
   McpUiHostContextChangedNotification,
   McpUiToolInputNotification,
   McpUiToolInputPartialNotification,
@@ -67,6 +70,7 @@ import type {
   McpUiMessageResult,
   McpUiResourceTeardownResult,
   McpUiRequestDisplayModeResult,
+  McpUiSetWidgetStateResult,
 } from "./spec.types.js";
 
 // Re-export all schemas from generated/schema.ts (already PascalCase)
@@ -101,6 +105,8 @@ export {
   McpUiRequestDisplayModeResultSchema,
   McpUiToolVisibilitySchema,
   McpUiToolMetaSchema,
+  McpUiSetWidgetStateRequestSchema,
+  McpUiSetWidgetStateResultSchema,
 } from "./generated/schema.js";
 
 // Re-export SDK types used in protocol type unions
@@ -129,7 +135,7 @@ import {
  * All request types in the MCP Apps protocol.
  *
  * Includes:
- * - MCP UI requests (initialize, open-link, message, resource-teardown, request-display-mode)
+ * - MCP UI requests (initialize, open-link, message, resource-teardown, request-display-mode, set-widget-state)
  * - MCP server requests forwarded from the app (tools/call, resources/*, prompts/list)
  * - Protocol requests (ping)
  */
@@ -139,6 +145,7 @@ export type AppRequest =
   | McpUiMessageRequest
   | McpUiResourceTeardownRequest
   | McpUiRequestDisplayModeRequest
+  | McpUiSetWidgetStateRequest
   | CallToolRequest
   | ListToolsRequest
   | ListResourcesRequest
@@ -186,6 +193,7 @@ export type AppResult =
   | McpUiMessageResult
   | McpUiResourceTeardownResult
   | McpUiRequestDisplayModeResult
+  | McpUiSetWidgetStateResult
   | CallToolResult
   | ListToolsResult
   | ListResourcesResult

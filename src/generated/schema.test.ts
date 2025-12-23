@@ -115,6 +115,14 @@ export type McpUiToolMetaSchemaInferredType = z.infer<
   typeof generated.McpUiToolMetaSchema
 >;
 
+export type McpUiSetWidgetStateRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiSetWidgetStateRequestSchema
+>;
+
+export type McpUiSetWidgetStateResultSchemaInferredType = z.infer<
+  typeof generated.McpUiSetWidgetStateResultSchema
+>;
+
 export type McpUiMessageRequestSchemaInferredType = z.infer<
   typeof generated.McpUiMessageRequestSchema
 >;
@@ -259,6 +267,18 @@ expectType<McpUiToolVisibilitySchemaInferredType>(
 );
 expectType<spec.McpUiToolMeta>({} as McpUiToolMetaSchemaInferredType);
 expectType<McpUiToolMetaSchemaInferredType>({} as spec.McpUiToolMeta);
+expectType<spec.McpUiSetWidgetStateRequest>(
+  {} as McpUiSetWidgetStateRequestSchemaInferredType,
+);
+expectType<McpUiSetWidgetStateRequestSchemaInferredType>(
+  {} as spec.McpUiSetWidgetStateRequest,
+);
+expectType<spec.McpUiSetWidgetStateResult>(
+  {} as McpUiSetWidgetStateResultSchemaInferredType,
+);
+expectType<McpUiSetWidgetStateResultSchemaInferredType>(
+  {} as spec.McpUiSetWidgetStateResult,
+);
 expectType<spec.McpUiMessageRequest>(
   {} as McpUiMessageRequestSchemaInferredType,
 );

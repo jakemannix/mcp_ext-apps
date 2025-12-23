@@ -3124,6 +3124,48 @@
       "required": ["method", "params"],
       "additionalProperties": false
     },
+    "McpUiSetWidgetStateRequest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "ui/set-widget-state"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "toolId": {
+              "description": "Unique identifier for this widget/tool instance. Typically the app_id or tool name.",
+              "type": "string"
+            },
+            "toolName": {
+              "description": "Human-readable name of the tool (shown in prompts).",
+              "type": "string"
+            },
+            "content": {
+              "description": "JSON string containing the widget's current state. This will be included in future completion requests.",
+              "type": "string"
+            }
+          },
+          "required": ["toolId", "toolName", "content"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["method", "params"],
+      "additionalProperties": false
+    },
+    "McpUiSetWidgetStateResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "isError": {
+          "description": "True if the host failed to store the widget state.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": {}
+    },
     "McpUiSizeChangedNotification": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
