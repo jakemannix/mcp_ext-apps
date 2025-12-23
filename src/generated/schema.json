@@ -385,10 +385,6 @@
         "isError": {
           "description": "True if the host rejected or failed to send the message.",
           "type": "boolean"
-        },
-        "errorMessage": {
-          "description": "Error message explaining why the request failed. Only present when isError is true.",
-          "type": "string"
         }
       },
       "additionalProperties": {}

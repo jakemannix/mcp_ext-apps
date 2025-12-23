@@ -185,13 +185,6 @@ export const McpUiFollowUpMessageResultSchema = z
       .boolean()
       .optional()
       .describe("True if the host rejected or failed to send the message."),
-    /** @description Error message explaining why the request failed. Only present when isError is true. */
-    errorMessage: z
-      .string()
-      .optional()
-      .describe(
-        "Error message explaining why the request failed. Only present when isError is true.",
-      ),
   })
   .passthrough();
 

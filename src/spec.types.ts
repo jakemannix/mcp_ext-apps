@@ -219,8 +219,6 @@ export interface McpUiFollowUpMessageRequest {
 export interface McpUiFollowUpMessageResult {
   /** @description True if the host rejected or failed to send the message. */
   isError?: boolean;
-  /** @description Error message explaining why the request failed. Only present when isError is true. */
-  errorMessage?: string;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
    * Note: The schema intentionally omits this to enforce strict validation.
