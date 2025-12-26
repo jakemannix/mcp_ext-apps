@@ -43,6 +43,7 @@ interface AppState {
   sizeMetric: string;
   hiddenSegments: Set<string>;
   selectedCustomer: Customer | null;
+  isConnected: boolean;
 }
 
 const state: AppState = {
@@ -54,6 +55,7 @@ const state: AppState = {
   sizeMetric: "off",
   hiddenSegments: new Set(),
   selectedCustomer: null,
+  isConnected: false,
 };
 
 // Format numbers for display
@@ -253,8 +255,19 @@ function initChart(): Chart {
           const point = dataset.data[element.index] as unknown as {
             customer: Customer;
           };
-          state.selectedCustomer = point.customer;
-          updateDetailPanel(point.customer);
+          // Toggle selection: unselect if clicking the same customer
+          if (
+            state.selectedCustomer &&
+            state.selectedCustomer.id === point.customer.id
+          ) {
+            state.selectedCustomer = null;
+            resetDetailPanel();
+          } else {
+            state.selectedCustomer = point.customer;
+            updateDetailPanel(point.customer);
+          }
+          // Update model context when selection changes
+          void updateModelContext();
         }
       },
       onHover: (_event, elements) => {
@@ -367,6 +380,48 @@ function resetDetailPanel(): void {
 // Create app instance
 const app = new App({ name: "Customer Segmentation", version: "1.0.0" });
 
+// Update model context with current state
+async function updateModelContext(): Promise<void> {
+  if (!state.isConnected) {
+    log.info("Skipping updateModelContext - not yet connected");
+    return;
+  }
+
+  let contextText: string;
+
+  if (state.selectedCustomer) {
+    const c = state.selectedCustomer;
+    contextText = `Customer Segmentation Widget State:
+- Selected customer: "${c.name}" (${c.segment} segment)
+  - Annual Revenue: ${formatValue(c.annualRevenue, "annualRevenue")}
+  - Engagement Score: ${c.engagementScore}
+  - NPS: ${c.nps >= 0 ? "+" : ""}${c.nps}
+  - Employees: ${c.employeeCount}
+  - Account Age: ${c.accountAge} months
+  - Support Tickets: ${c.supportTickets}
+- Total customers loaded: ${state.customers.length}
+- Chart view: ${METRIC_LABELS[state.xAxis]} vs ${METRIC_LABELS[state.yAxis]}`;
+  } else {
+    contextText = `Customer Segmentation Widget State:
+- No customer selected
+- Total customers loaded: ${state.customers.length}
+- Segments: ${state.segments.map((s) => `${s.name} (${s.count})`).join(", ")}
+- Chart view: ${METRIC_LABELS[state.xAxis]} vs ${METRIC_LABELS[state.yAxis]}`;
+  }
+
+  log.info("martina: Updating model context:", contextText);
+
+  try {
+    await app.sendUpdateModelContext({
+      role: "user",
+      content: [{ type: "text", text: contextText }],
+    });
+    log.info("martina: Model context updated successfully");
+  } catch (error) {
+    log.error("martina: Failed to update model context:", error);
+  }
+}
+
 // Fetch data from server
 async function fetchData(): Promise<void> {
   try {
@@ -398,6 +453,9 @@ async function fetchData(): Promise<void> {
 
     renderLegend();
     log.info(`Loaded ${data.customers.length} customers`);
+
+    // Update model context on initial load
+    await updateModelContext();
   } catch (error) {
     log.error("Failed to fetch data:", error);
   }
@@ -422,8 +480,12 @@ sizeMetricSelect.addEventListener("change", () => {
 // Clear selection when clicking outside chart
 document.addEventListener("click", (e) => {
   if (!(e.target as HTMLElement).closest(".chart-section")) {
-    state.selectedCustomer = null;
-    resetDetailPanel();
+    if (state.selectedCustomer) {
+      state.selectedCustomer = null;
+      resetDetailPanel();
+      // Update model context when selection is cleared
+      void updateModelContext();
+    }
   }
 });
 
@@ -467,6 +529,10 @@ app.onhostcontextchanged = (params) => {
 };
 
 app.connect().then(() => {
+  // Mark as connected so updateModelContext knows it can send updates
+  state.isConnected = true;
+  log.info("martina: App connected, ready to update model context");
+
   // Apply initial host context after connection
   const ctx = app.getHostContext();
   if (ctx?.theme) {
@@ -478,7 +544,7 @@ app.connect().then(() => {
   if (ctx?.styles?.css?.fonts) {
     applyHostFonts(ctx.styles.css.fonts);
   }
-});
 
-// Fetch data after connection
-setTimeout(fetchData, 100);
+  // Fetch data after connection is established
+  void fetchData();
+});
