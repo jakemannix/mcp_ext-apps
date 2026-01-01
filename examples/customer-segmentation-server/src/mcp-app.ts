@@ -508,6 +508,24 @@ app.onhostcontextchanged = (params) => {
   if (params.safeAreaInsets) {
     applySafeAreaInsets(params.safeAreaInsets);
   }
+  // Update container height based on containerDimensions from host
+  // This ensures the chart resizes correctly during transitions
+  if (params.containerDimensions) {
+    const mainEl = document.querySelector(".main") as HTMLElement | null;
+    if (mainEl) {
+      if ("height" in params.containerDimensions) {
+        // If height is fixed, take up all the height
+        mainEl.style.height = "100vh";
+      } else if ("maxHeight" in params.containerDimensions) {
+        // If height is variable, let the rest of the css determine the height
+        mainEl.style.height = "";
+      }
+      // Resize chart after container dimensions change
+      if (state.chart) {
+        state.chart.resize();
+      }
+    }
+  }
   // Recreate chart to pick up new colors
   if (state.chart && (params.theme || params.styles?.variables)) {
     state.chart.destroy();
@@ -532,6 +550,13 @@ app.connect().then(() => {
   }
   if (ctx?.safeAreaInsets) {
     applySafeAreaInsets(ctx.safeAreaInsets);
+  }
+  // Apply initial container dimensions
+  if (ctx?.containerDimensions) {
+    const mainEl = document.querySelector(".main") as HTMLElement | null;
+    if (mainEl && "height" in ctx.containerDimensions) {
+      mainEl.style.height = `${ctx.containerDimensions.height}px`;
+    }
   }
 });
 
