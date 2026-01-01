@@ -396,6 +396,11 @@ export const McpUiAppCapabilitiesSchema = z.object({
     })
     .optional()
     .describe("App exposes MCP-style tools that the host can call."),
+  /** @description Display modes the app supports. */
+  availableDisplayModes: z
+    .array(McpUiDisplayModeSchema)
+    .optional()
+    .describe("Display modes the app supports."),
 });
 
 /**
@@ -561,7 +566,7 @@ export const McpUiHostContextSchema = z
     ),
     /** @description Display modes the host supports. */
     availableDisplayModes: z
-      .array(z.string())
+      .array(McpUiDisplayModeSchema)
       .optional()
       .describe("Display modes the host supports."),
     /**

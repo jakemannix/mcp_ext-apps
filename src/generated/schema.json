@@ -24,6 +24,27 @@
             }
           },
           "additionalProperties": false
+        },
+        "availableDisplayModes": {
+          "description": "Display modes the app supports.",
+          "type": "array",
+          "items": {
+            "description": "Display mode for UI presentation.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "inline"
+              },
+              {
+                "type": "string",
+                "const": "fullscreen"
+              },
+              {
+                "type": "string",
+                "const": "pip"
+              }
+            ]
+          }
         }
       },
       "additionalProperties": false
@@ -629,7 +650,21 @@
               "description": "Display modes the host supports.",
               "type": "array",
               "items": {
-                "type": "string"
+                "description": "Display mode for UI presentation.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "inline"
+                  },
+                  {
+                    "type": "string",
+                    "const": "fullscreen"
+                  },
+                  {
+                    "type": "string",
+                    "const": "pip"
+                  }
+                ]
               }
             },
             "containerDimensions": {
@@ -1300,7 +1335,21 @@
           "description": "Display modes the host supports.",
           "type": "array",
           "items": {
-            "type": "string"
+            "description": "Display mode for UI presentation.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "inline"
+              },
+              {
+                "type": "string",
+                "const": "fullscreen"
+              },
+              {
+                "type": "string",
+                "const": "pip"
+              }
+            ]
           }
         },
         "containerDimensions": {
@@ -1867,6 +1916,27 @@
                     }
                   },
                   "additionalProperties": false
+                },
+                "availableDisplayModes": {
+                  "description": "Display modes the app supports.",
+                  "type": "array",
+                  "items": {
+                    "description": "Display mode for UI presentation.",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "inline"
+                      },
+                      {
+                        "type": "string",
+                        "const": "fullscreen"
+                      },
+                      {
+                        "type": "string",
+                        "const": "pip"
+                      }
+                    ]
+                  }
                 }
               },
               "additionalProperties": false
@@ -2508,7 +2578,21 @@
               "description": "Display modes the host supports.",
               "type": "array",
               "items": {
-                "type": "string"
+                "description": "Display mode for UI presentation.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "inline"
+                  },
+                  {
+                    "type": "string",
+                    "const": "fullscreen"
+                  },
+                  {
+                    "type": "string",
+                    "const": "pip"
+                  }
+                ]
               }
             },
             "containerDimensions": {
