@@ -59,6 +59,8 @@ fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
     val selectedTool by viewModel.selectedTool.collectAsState()
     val selectedServerIndex by viewModel.selectedServerIndex.collectAsState()
     val toolInputJson by viewModel.toolInputJson.collectAsState()
+    val discoveredServers by viewModel.discoveredServers.collectAsState()
+    val isDiscovering by viewModel.isDiscovering.collectAsState()
 
     var isInputExpanded by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -78,6 +80,8 @@ fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
             BottomToolbar(
                 connectionState = connectionState,
                 selectedServerIndex = selectedServerIndex,
+                discoveredServers = discoveredServers,
+                isDiscovering = isDiscovering,
                 tools = tools,
                 selectedTool = selectedTool,
                 toolInputJson = toolInputJson,
@@ -86,7 +90,8 @@ fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
                 onToolSelect = { viewModel.selectTool(it) },
                 onInputChange = { viewModel.updateToolInput(it) },
                 onExpandToggle = { isInputExpanded = !isInputExpanded },
-                onCallTool = { viewModel.callTool() }
+                onCallTool = { viewModel.callTool() },
+                onRescan = { viewModel.discoverServers() }
             )
         }
     ) { paddingValues ->
@@ -121,6 +126,8 @@ fun McpHostApp(viewModel: McpHostViewModel = viewModel()) {
 fun BottomToolbar(
     connectionState: ConnectionState,
     selectedServerIndex: Int,
+    discoveredServers: List<DiscoveredServer>,
+    isDiscovering: Boolean,
     tools: List<ToolInfo>,
     selectedTool: ToolInfo?,
     toolInputJson: String,
@@ -129,7 +136,8 @@ fun BottomToolbar(
     onToolSelect: (ToolInfo) -> Unit,
     onInputChange: (String) -> Unit,
     onExpandToggle: () -> Unit,
-    onCallTool: () -> Unit
+    onCallTool: () -> Unit,
+    onRescan: () -> Unit
 ) {
     val isConnected = connectionState is ConnectionState.Connected
 
@@ -154,7 +162,15 @@ fun BottomToolbar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ServerPicker(selectedServerIndex, connectionState, onServerSelect, Modifier.weight(1f))
+            ServerPicker(
+                discoveredServers = discoveredServers,
+                selectedServerIndex = selectedServerIndex,
+                isDiscovering = isDiscovering,
+                connectionState = connectionState,
+                onServerSelect = onServerSelect,
+                onRescan = onRescan,
+                modifier = Modifier.weight(1f)
+            )
 
             if (isConnected) {
                 ToolPicker(tools, selectedTool, onToolSelect, Modifier.weight(1f))
@@ -176,9 +192,12 @@ fun BottomToolbar(
 
 @Composable
 fun ServerPicker(
+    discoveredServers: List<DiscoveredServer>,
     selectedServerIndex: Int,
+    isDiscovering: Boolean,
     connectionState: ConnectionState,
     onServerSelect: (Int) -> Unit,
+    onRescan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -186,26 +205,44 @@ fun ServerPicker(
     Box(modifier = modifier.clickable { expanded = true }.padding(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (selectedServerIndex in knownServers.indices) knownServers[selectedServerIndex].first else "Custom",
+                text = when {
+                    isDiscovering -> "Scanning..."
+                    selectedServerIndex in discoveredServers.indices -> discoveredServers[selectedServerIndex].name
+                    discoveredServers.isEmpty() -> "No servers"
+                    else -> "Select server"
+                },
                 style = MaterialTheme.typography.bodySmall
             )
             Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
-            if (connectionState is ConnectionState.Connecting) {
+            if (isDiscovering || connectionState is ConnectionState.Connecting) {
                 Spacer(modifier = Modifier.width(4.dp))
                 CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
             }
         }
 
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            knownServers.forEachIndexed { index, (name, _) ->
+            if (discoveredServers.isEmpty() && !isDiscovering) {
                 DropdownMenuItem(
-                    text = { Text(name) },
+                    text = { Text("No servers found") },
+                    onClick = { },
+                    enabled = false
+                )
+            }
+            discoveredServers.forEachIndexed { index, server ->
+                DropdownMenuItem(
+                    text = { Text(server.name) },
                     onClick = { expanded = false; onServerSelect(index) },
                     leadingIcon = if (index == selectedServerIndex && connectionState is ConnectionState.Connected) {
                         { Icon(Icons.Default.Check, contentDescription = null) }
                     } else null
                 )
             }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("Re-scan servers") },
+                onClick = { expanded = false; onRescan() },
+                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = "Re-scan") }
+            )
         }
     }
 }

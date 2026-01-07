@@ -19,22 +19,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.*
 import kotlinx.serialization.encodeToString
 
 private const val TAG = "McpHostViewModel"
 
-// Known servers - using /sse endpoint for SSE transport (Kotlin SDK)
-val knownServers = listOf(
-    "basic-server-react" to "http://10.0.2.2:3101/sse",
-    "basic-server-vanillajs" to "http://10.0.2.2:3102/sse",
-    "budget-allocator-server" to "http://10.0.2.2:3103/sse",
-    "cohort-heatmap-server" to "http://10.0.2.2:3104/sse",
-    "customer-segmentation-server" to "http://10.0.2.2:3105/sse",
-    "scenario-modeler-server" to "http://10.0.2.2:3106/sse",
-    "system-monitor-server" to "http://10.0.2.2:3107/sse",
-    "threejs-server" to "http://10.0.2.2:3108/sse",
-)
+data class DiscoveredServer(val name: String, val url: String)
 
 data class ToolInfo(
     val name: String,
@@ -74,9 +65,23 @@ data class ToolCallState(
 class McpHostViewModel : ViewModel() {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    companion object {
+        const val BASE_PORT = 3101
+        const val DISCOVERY_TIMEOUT_MS = 1000L
+        // Android emulator uses 10.0.2.2 for host machine's localhost
+        const val BASE_HOST = "10.0.2.2"
+    }
+
     // Connection state
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    // Server discovery
+    private val _discoveredServers = MutableStateFlow<List<DiscoveredServer>>(emptyList())
+    val discoveredServers: StateFlow<List<DiscoveredServer>> = _discoveredServers.asStateFlow()
+
+    private val _isDiscovering = MutableStateFlow(false)
+    val isDiscovering: StateFlow<Boolean> = _isDiscovering.asStateFlow()
 
     // Tools
     private val _tools = MutableStateFlow<List<ToolInfo>>(emptyList())
@@ -108,8 +113,69 @@ class McpHostViewModel : ViewModel() {
     )
 
     init {
-        // Auto-connect on launch
-        connect()
+        // Start discovery on launch
+        discoverServers()
+    }
+
+    fun discoverServers() {
+        viewModelScope.launch {
+            _isDiscovering.value = true
+            _discoveredServers.value = emptyList()
+
+            val discovered = mutableListOf<DiscoveredServer>()
+            var port = BASE_PORT
+
+            while (true) {
+                val url = "http://$BASE_HOST:$port/sse"
+                val serverName = tryConnect(url)
+
+                if (serverName != null) {
+                    discovered.add(DiscoveredServer(serverName, url))
+                    _discoveredServers.value = discovered.toList()
+                    Log.i(TAG, "Discovered server: $serverName at $url")
+                    port++
+                } else {
+                    Log.i(TAG, "No server at port $port, stopping discovery")
+                    break
+                }
+            }
+
+            _isDiscovering.value = false
+            Log.i(TAG, "Discovery complete, found ${discovered.size} servers")
+
+            // Auto-connect to first discovered server
+            if (discovered.isNotEmpty()) {
+                _selectedServerIndex.value = 0
+                connect()
+            }
+        }
+    }
+
+    private suspend fun tryConnect(url: String): String? {
+        return try {
+            withTimeout(DISCOVERY_TIMEOUT_MS) {
+                val httpClient = HttpClient(CIO) {
+                    install(SSE)
+                }
+                try {
+                    val transport = SseClientTransport(httpClient, url)
+                    val client = Client(
+                        clientInfo = io.modelcontextprotocol.kotlin.sdk.types.Implementation(
+                            name = "BasicHostKotlin",
+                            version = "1.0.0"
+                        )
+                    )
+                    client.connect(transport)
+                    val serverName = client.serverVersion?.name ?: url
+                    serverName
+                } finally {
+                    httpClient.close()
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "Discovery failed for $url: ${e.message}")
+            null
+        }
     }
 
     fun selectTool(tool: ToolInfo) {
@@ -134,8 +200,9 @@ class McpHostViewModel : ViewModel() {
     }
 
     fun connect() {
-        val serverUrl = if (_selectedServerIndex.value >= 0 && _selectedServerIndex.value < knownServers.size) {
-            knownServers[_selectedServerIndex.value].second
+        val servers = _discoveredServers.value
+        val serverUrl = if (_selectedServerIndex.value >= 0 && _selectedServerIndex.value < servers.size) {
+            servers[_selectedServerIndex.value].url
         } else {
             return
         }
@@ -202,8 +269,9 @@ class McpHostViewModel : ViewModel() {
         val tool = _selectedTool.value ?: return
         val client = mcpClient ?: return
 
-        val serverName = if (_selectedServerIndex.value in knownServers.indices) {
-            knownServers[_selectedServerIndex.value].first
+        val servers = _discoveredServers.value
+        val serverName = if (_selectedServerIndex.value in servers.indices) {
+            servers[_selectedServerIndex.value].name
         } else "Custom"
 
         val toolCall = ToolCallState(
