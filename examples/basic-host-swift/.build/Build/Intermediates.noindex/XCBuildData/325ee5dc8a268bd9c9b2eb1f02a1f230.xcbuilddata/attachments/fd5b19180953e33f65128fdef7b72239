@@ -1,0 +1,4 @@
+module McpApps {
+header "McpApps-Swift.h"
+export *
+}

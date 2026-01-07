@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>11</integer>
+	<key>logs</key>
+	<dict>
+		<key>743D2909-9537-4C14-A4FE-1D07D79F626E</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>743D2909-9537-4C14-A4FE-1D07D79F626E.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>4</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>basic-host-swift</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>BasicHostSwift</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building workspace basic-host-swift with scheme BasicHostSwift</string>
+			<key>timeStartedRecording</key>
+			<real>787252861.84046304</real>
+			<key>timeStoppedRecording</key>
+			<real>787252867.42817402</real>
+			<key>title</key>
+			<string>Building workspace basic-host-swift with scheme BasicHostSwift</string>
+			<key>uniqueIdentifier</key>
+			<string>743D2909-9537-4C14-A4FE-1D07D79F626E</string>
+		</dict>
+		<key>CE66F151-5B3D-4EEA-BE11-9FBE9A4BA5B0</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>CE66F151-5B3D-4EEA-BE11-9FBE9A4BA5B0.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>E</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>8</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>3</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>basic-host-swift</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>BasicHostSwift</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building workspace basic-host-swift with scheme BasicHostSwift</string>
+			<key>timeStartedRecording</key>
+			<real>787183834.35849297</real>
+			<key>timeStoppedRecording</key>
+			<real>787183838.17053401</real>
+			<key>title</key>
+			<string>Building workspace basic-host-swift with scheme BasicHostSwift</string>
+			<key>uniqueIdentifier</key>
+			<string>CE66F151-5B3D-4EEA-BE11-9FBE9A4BA5B0</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

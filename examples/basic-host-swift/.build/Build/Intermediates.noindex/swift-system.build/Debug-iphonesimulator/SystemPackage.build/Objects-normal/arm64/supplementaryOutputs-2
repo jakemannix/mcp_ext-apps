@@ -1,0 +1,23 @@
+{
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-system/Sources/System/FileHelpers.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileHelpers.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileHelpers.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileHelpers.dia",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileHelpers.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileHelpers.swiftdeps"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-system/Sources/System/FileOperations.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileOperations.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileOperations.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileOperations.dia",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileOperations.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FileOperations.swiftdeps"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-system/Sources/System/FilePath/FilePath.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FilePath.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FilePath.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FilePath.dia",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FilePath.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/swift-system.build/Debug-iphonesimulator/SystemPackage.build/Objects-normal/arm64/FilePath.swiftdeps"
+  }
+}

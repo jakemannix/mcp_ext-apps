@@ -1,0 +1,4 @@
+module MCP {
+header "MCP-Swift.h"
+export *
+}

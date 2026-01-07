@@ -1,0 +1,229 @@
+{
+  "" : {
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MCP-primary.dia",
+    "emit-module-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MCP-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MCP-primary-emit-module.dia",
+    "pch" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MCP-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MCP-primary.swiftdeps"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Error.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Error~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/ID.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/ID~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Lifecycle.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Lifecycle~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Messages.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Messages~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/MetaHelpers.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/MetaHelpers~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Transport.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Transport~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Transports/HTTPClientTransport.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/HTTPClientTransport~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Transports/InMemoryTransport.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/InMemoryTransport~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Transports/NetworkTransport.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/NetworkTransport~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Transports/StdioTransport.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/StdioTransport~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/UnitInterval.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/UnitInterval~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Utilities/Ping.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Ping~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Value.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Value~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Base/Versioning.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Versioning~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Client/Client.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Client~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Client/Elicitation.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Elicitation~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Client/Sampling.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Sampling~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Extensions/Data+Extensions.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Data+Extensions~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Server/Prompts.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Prompts~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Server/Resources.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Resources~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Server/Server.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Server~partial.swiftmodule"
+  },
+  "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/SourcePackages/checkouts/swift-sdk/Sources/MCP/Server/Tools.swift" : {
+    "const-values" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.swiftconstvalues",
+    "dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.d",
+    "diagnostics" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.dia",
+    "index-unit-output-path" : "/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.o",
+    "llvm-bc" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.bc",
+    "object" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.o",
+    "swift-dependencies" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools.swiftdeps",
+    "swiftmodule" : "/Users/ochafik/code/ext-apps3/examples/basic-host-swift/.build/Build/Intermediates.noindex/mcp-swift-sdk.build/Debug-iphonesimulator/MCP.build/Objects-normal/arm64/Tools~partial.swiftmodule"
+  }
+}

@@ -1,0 +1,11 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = https://github.com/ajevans99/swift-sdk.git
+	tagOpt = --no-tags
+	fetch = +refs/*:refs/*
+	mirror = true
