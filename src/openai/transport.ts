@@ -523,7 +523,12 @@ export class OpenAITransport implements Transport {
             // Generate content from structuredContent if not provided
             content = Array.isArray(result.content)
               ? result.content
-              : [{ type: "text", text: JSON.stringify(result.structuredContent) }];
+              : [
+                  {
+                    type: "text",
+                    text: JSON.stringify(result.structuredContent),
+                  },
+                ];
           } else if (Array.isArray(result.content)) {
             content = result.content;
           } else {
