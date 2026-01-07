@@ -58,6 +58,35 @@ export {
 } from "./styles";
 
 /**
+ * Adds a deprecated `viewport` property to host context for backward compatibility.
+ * Maps containerDimensions to the legacy viewport format.
+ * @internal
+ */
+function addViewportCompat(context: McpUiHostContext): McpUiHostContext {
+  if (!context.containerDimensions) {
+    return context;
+  }
+
+  const cd = context.containerDimensions;
+  const viewport: NonNullable<McpUiHostContext["viewport"]> = {};
+
+  if ("height" in cd && cd.height !== undefined) {
+    viewport.height = cd.height;
+  }
+  if ("maxHeight" in cd && cd.maxHeight !== undefined) {
+    viewport.maxHeight = cd.maxHeight;
+  }
+  if ("width" in cd && cd.width !== undefined) {
+    viewport.width = cd.width;
+  }
+  if ("maxWidth" in cd && cd.maxWidth !== undefined) {
+    viewport.maxWidth = cd.maxWidth;
+  }
+
+  return { ...context, viewport };
+}
+
+/**
  * Metadata key for associating a resource URI with a tool call.
  *
  * MCP servers include this key in tool call result metadata to indicate which
@@ -513,8 +542,11 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
     this.setNotificationHandler(
       McpUiHostContextChangedNotificationSchema,
       (n) => {
-        // Merge the partial update into the stored context
-        this._hostContext = { ...this._hostContext, ...n.params };
+        // Merge the partial update into the stored context, with viewport compat shim
+        this._hostContext = addViewportCompat({
+          ...this._hostContext,
+          ...n.params,
+        });
         callback(n.params);
       },
     );
@@ -1052,7 +1084,9 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
 
       this._hostCapabilities = result.hostCapabilities;
       this._hostInfo = result.hostInfo;
-      this._hostContext = result.hostContext;
+      this._hostContext = result.hostContext
+        ? addViewportCompat(result.hostContext)
+        : undefined;
 
       await this.notification(<McpUiInitializedNotification>{
         method: "ui/notifications/initialized",

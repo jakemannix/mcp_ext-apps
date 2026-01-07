@@ -127,7 +127,11 @@ describe("App <-> AppBridge integration", () => {
       await newApp.connect(newAppTransport);
 
       const hostContext = newApp.getHostContext();
-      expect(hostContext).toEqual(testHostContext);
+      // App adds deprecated viewport compat shim from containerDimensions
+      expect(hostContext).toEqual({
+        ...testHostContext,
+        viewport: { width: 800, maxHeight: 600 },
+      });
 
       await newAppTransport.close();
       await newBridgeTransport.close();

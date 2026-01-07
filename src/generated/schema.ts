@@ -601,6 +601,36 @@ export const McpUiHostContextSchema = z
       .describe(
         "Container dimensions. Represents the dimensions of the iframe or other\ncontainer holding the app. Specify either width or maxWidth, and either height or maxHeight.",
       ),
+    /**
+     * @deprecated Use `containerDimensions` instead. This property is provided for backward
+     * compatibility and will be removed in a future version.
+     * @description Legacy viewport dimensions, mapped from containerDimensions.
+     */
+    viewport: z
+      .object({
+        /** @description Current viewport width in pixels. */
+        width: z
+          .number()
+          .optional()
+          .describe("Current viewport width in pixels."),
+        /** @description Current viewport height in pixels. */
+        height: z
+          .number()
+          .optional()
+          .describe("Current viewport height in pixels."),
+        /** @description Maximum available height in pixels (if constrained). */
+        maxHeight: z
+          .number()
+          .optional()
+          .describe("Maximum available height in pixels (if constrained)."),
+        /** @description Maximum available width in pixels (if constrained). */
+        maxWidth: z
+          .number()
+          .optional()
+          .describe("Maximum available width in pixels (if constrained)."),
+      })
+      .optional()
+      .describe("Legacy viewport dimensions, mapped from containerDimensions."),
     /** @description User's language and region preference in BCP 47 format. */
     locale: z
       .string()

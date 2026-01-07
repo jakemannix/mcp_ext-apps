@@ -697,6 +697,29 @@
                 }
               ]
             },
+            "viewport": {
+              "description": "Legacy viewport dimensions, mapped from containerDimensions.",
+              "type": "object",
+              "properties": {
+                "width": {
+                  "description": "Current viewport width in pixels.",
+                  "type": "number"
+                },
+                "height": {
+                  "description": "Current viewport height in pixels.",
+                  "type": "number"
+                },
+                "maxHeight": {
+                  "description": "Maximum available height in pixels (if constrained).",
+                  "type": "number"
+                },
+                "maxWidth": {
+                  "description": "Maximum available width in pixels (if constrained).",
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            },
             "locale": {
               "description": "User's language and region preference in BCP 47 format.",
               "type": "string"
@@ -1367,6 +1390,29 @@
               ]
             }
           ]
+        },
+        "viewport": {
+          "description": "Legacy viewport dimensions, mapped from containerDimensions.",
+          "type": "object",
+          "properties": {
+            "width": {
+              "description": "Current viewport width in pixels.",
+              "type": "number"
+            },
+            "height": {
+              "description": "Current viewport height in pixels.",
+              "type": "number"
+            },
+            "maxHeight": {
+              "description": "Maximum available height in pixels (if constrained).",
+              "type": "number"
+            },
+            "maxWidth": {
+              "description": "Maximum available width in pixels (if constrained).",
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
         },
         "locale": {
           "description": "User's language and region preference in BCP 47 format.",
@@ -2575,6 +2621,29 @@
                   ]
                 }
               ]
+            },
+            "viewport": {
+              "description": "Legacy viewport dimensions, mapped from containerDimensions.",
+              "type": "object",
+              "properties": {
+                "width": {
+                  "description": "Current viewport width in pixels.",
+                  "type": "number"
+                },
+                "height": {
+                  "description": "Current viewport height in pixels.",
+                  "type": "number"
+                },
+                "maxHeight": {
+                  "description": "Maximum available height in pixels (if constrained).",
+                  "type": "number"
+                },
+                "maxWidth": {
+                  "description": "Maximum available width in pixels (if constrained).",
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
             },
             "locale": {
               "description": "User's language and region preference in BCP 47 format.",

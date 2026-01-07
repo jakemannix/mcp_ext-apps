@@ -349,6 +349,21 @@ export interface McpUiHostContext {
           maxWidth?: number | undefined;
         }
     );
+  /**
+   * @deprecated Use `containerDimensions` instead. This property is provided for backward
+   * compatibility and will be removed in a future version.
+   * @description Legacy viewport dimensions, mapped from containerDimensions.
+   */
+  viewport?: {
+    /** @description Current viewport width in pixels. */
+    width?: number;
+    /** @description Current viewport height in pixels. */
+    height?: number;
+    /** @description Maximum available height in pixels (if constrained). */
+    maxHeight?: number;
+    /** @description Maximum available width in pixels (if constrained). */
+    maxWidth?: number;
+  };
   /** @description User's language and region preference in BCP 47 format. */
   locale?: string;
   /** @description User's timezone in IANA format. */
