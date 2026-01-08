@@ -128,6 +128,7 @@ ${Object.entries(VIDEO_LIBRARY)
       inputSchema: {
         videoId: z
           .enum(Object.keys(VIDEO_LIBRARY) as [string, ...string[]])
+          .default("nasa-earth")
           .describe(
             `Video ID to play. Available: ${Object.keys(VIDEO_LIBRARY).join(", ")}`,
           ),
