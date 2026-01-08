@@ -107,8 +107,9 @@ public actor AppBridge {
             isInitialized = true
             onInitialized?()
         case "ui/notifications/size-changed":
-            let width = notification.params?["width"]?.value as? Int
-            let height = notification.params?["height"]?.value as? Int
+            // Handle both Int and Double from JSON (integers decode as Int, not Double)
+            let width = (notification.params?["width"]?.value as? NSNumber)?.intValue
+            let height = (notification.params?["height"]?.value as? NSNumber)?.intValue
             onSizeChange?(width, height)
         case "notifications/message":
             if let level = notification.params?["level"]?.value as? String,
