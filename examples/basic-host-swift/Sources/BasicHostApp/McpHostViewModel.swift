@@ -575,20 +575,15 @@ class ToolCallInfo: ObservableObject, Identifiable {
         var errorMessage: String?
 
         if let bridge = appBridge {
-            // Only send teardown if the bridge is initialized
-            // If not initialized, the app hasn't done anything worth saving
-            let isReady = await bridge.isReady()
-            if isReady {
-                logger.info("Sending teardown request...")
-                do {
-                    _ = try await bridge.sendResourceTeardown()
-                    logger.info("Teardown request completed successfully")
-                } catch {
-                    logger.error("Teardown request failed: \(String(describing: error))")
-                    errorMessage = "Teardown failed: app may not have saved data"
-                }
-            } else {
-                logger.info("Skipping teardown - bridge not yet initialized")
+            // Always attempt teardown - the app should handle it gracefully
+            // even if not fully initialized (matching web host behavior)
+            logger.info("Sending teardown request...")
+            do {
+                _ = try await bridge.sendResourceTeardown()
+                logger.info("Teardown request completed successfully")
+            } catch {
+                // Teardown failed - app may have already closed or wasn't initialized
+                logger.warning("Teardown request failed (app may have already closed): \(String(describing: error))")
             }
 
             logger.info("Closing bridge...")
