@@ -11,3 +11,4 @@ intermediate-findings/
 # Playwright
 playwright-report/
 test-results/
+.build/
