@@ -127,8 +127,9 @@ public actor AppBridge {
             isInitialized = true
             onInitialized?()
         case "ui/notifications/size-changed":
-            let width = notification.params?["width"]?.value as? Double
-            let height = notification.params?["height"]?.value as? Double
+            // Handle both Int and Double from JSON (integers decode as Int, not Double)
+            let width = (notification.params?["width"]?.value as? NSNumber)?.doubleValue
+            let height = (notification.params?["height"]?.value as? NSNumber)?.doubleValue
             let params = McpUiSizeChangedParams(width: width, height: height)
             onSizeChange?(params)
         case "notifications/message":
