@@ -127,11 +127,19 @@ public actor AppBridge {
             isInitialized = true
             onInitialized?()
         case "ui/notifications/size-changed":
-            // Handle both Int and Double from JSON (integers decode as Int, not Double)
-            let width = (notification.params?["width"]?.value as? NSNumber)?.doubleValue
-            let height = (notification.params?["height"]?.value as? NSNumber)?.doubleValue
-            let params = McpUiSizeChangedParams(width: width, height: height)
-            onSizeChange?(params)
+            // Decode to typed params - handles both Int and Double from JSON
+            if let paramsDict = notification.params {
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: paramsDict.mapValues { $0.value })
+                    let params = try JSONDecoder().decode(McpUiSizeChangedParams.self, from: data)
+                    onSizeChange?(params)
+                } catch {
+                    // Fallback: manually extract values (handles Int/Double mismatch)
+                    let width = (paramsDict["width"]?.value as? NSNumber)?.doubleValue
+                    let height = (paramsDict["height"]?.value as? NSNumber)?.doubleValue
+                    onSizeChange?(McpUiSizeChangedParams(width: width, height: height))
+                }
+            }
         case "notifications/message":
             if let level = notification.params?["level"]?.value as? String,
                let logLevel = LogLevel(rawValue: level),
