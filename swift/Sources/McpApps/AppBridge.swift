@@ -96,61 +96,78 @@ public actor AppBridge {
     private func handleRequest(_ request: JSONRPCRequest) async {
         do {
             let result: AnyCodable
-            switch request.method {
-            case "ui/initialize":
-                result = try await handleInitialize(request.params)
-            case "ui/message":
-                result = try await handleMessageRequest(request.params)
-            case "ui/open-link":
-                result = try await handleOpenLink(request.params)
-            case "ping":
+
+            // Handle ping separately (not in the typed enum)
+            if request.method == "ping" {
                 onPing?()
                 result = AnyCodable([:])
-            case "tools/call":
-                result = try await handleToolCall(request.params)
-            case "resources/read":
-                result = try await handleResourceRead(request.params)
-            default:
-                await sendError(id: request.id, code: JSONRPCError.methodNotFound, message: "Method not found: \(request.method)")
-                return
+            } else {
+                // Decode to typed discriminated union
+                let guestRequest = try decodeGuestRequest(method: request.method, params: request.params)
+                result = try await handleTypedRequest(guestRequest)
             }
+
             let response = JSONRPCResponse(id: request.id, result: result)
             try await transport?.send(.response(response))
+        } catch is DecodingError {
+            await sendError(id: request.id, code: JSONRPCError.methodNotFound, message: "Unknown method: \(request.method)")
         } catch {
             await sendError(id: request.id, code: JSONRPCError.internalError, message: error.localizedDescription)
         }
     }
 
+    /// Decode a guest request from method + params to typed enum
+    private func decodeGuestRequest(method: String, params: [String: AnyCodable]?) throws -> McpUiGuestRequest {
+        var dict: [String: Any] = ["method": method]
+        if let p = params {
+            dict["params"] = p.mapValues { $0.value }
+        }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try JSONDecoder().decode(McpUiGuestRequest.self, from: data)
+    }
+
+    /// Handle a typed guest request and return result
+    private func handleTypedRequest(_ request: McpUiGuestRequest) async throws -> AnyCodable {
+        switch request {
+        case .initialize(let params):
+            return try await handleInitialize(params)
+        case .message(let params):
+            return try await handleMessageRequest(params)
+        case .openLink(let params):
+            return try await handleOpenLink(params)
+        case .toolCall(let name, let arguments):
+            return try await handleToolCall(name: name, arguments: arguments)
+        case .resourceRead(let uri):
+            return try await handleResourceRead(uri: uri)
+        }
+    }
+
     private func handleNotification(_ notification: JSONRPCNotification) async {
-        switch notification.method {
-        case "ui/notifications/initialized":
-            isInitialized = true
-            onInitialized?()
-        case "ui/notifications/size-changed":
-            // Decode to typed params - handles both Int and Double from JSON
-            if let paramsDict = notification.params {
-                do {
-                    let data = try JSONSerialization.data(withJSONObject: paramsDict.mapValues { $0.value })
-                    let params = try JSONDecoder().decode(McpUiSizeChangedParams.self, from: data)
-                    onSizeChange?(params)
-                } catch {
-                    // Fallback: manually extract values (handles Int/Double mismatch)
-                    let width = (paramsDict["width"]?.value as? NSNumber)?.doubleValue
-                    let height = (paramsDict["height"]?.value as? NSNumber)?.doubleValue
-                    onSizeChange?(McpUiSizeChangedParams(width: width, height: height))
-                }
-            }
-        case "notifications/message":
-            if let level = notification.params?["level"]?.value as? String,
-               let logLevel = LogLevel(rawValue: level),
-               let data = notification.params?["data"] {
-                let logger = notification.params?["logger"]?.value as? String
-                let params = LoggingMessageParams(level: logLevel, data: data, logger: logger)
+        // Decode to typed discriminated union
+        do {
+            let guestNotification = try decodeGuestNotification(method: notification.method, params: notification.params)
+            switch guestNotification {
+            case .initialized:
+                isInitialized = true
+                onInitialized?()
+            case .sizeChanged(let params):
+                onSizeChange?(params)
+            case .loggingMessage(let params):
                 onLoggingMessage?(params)
             }
-        default:
-            break
+        } catch {
+            // Unknown notification method - ignore silently (forward compatibility)
         }
+    }
+
+    /// Decode a guest notification from method + params to typed enum
+    private func decodeGuestNotification(method: String, params: [String: AnyCodable]?) throws -> McpUiGuestNotification {
+        var dict: [String: Any] = ["method": method]
+        if let p = params {
+            dict["params"] = p.mapValues { $0.value }
+        }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try JSONDecoder().decode(McpUiGuestNotification.self, from: data)
     }
 
     private func handleResponse(_ response: JSONRPCResponse) {
@@ -163,17 +180,14 @@ public actor AppBridge {
         }
     }
 
-    // MARK: - Request Handlers
+    // MARK: - Typed Request Handlers
 
-    private func handleInitialize(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
-        let data = try JSONSerialization.data(withJSONObject: params?.mapValues { $0.value } ?? [:])
-        let initParams = try JSONDecoder().decode(McpUiInitializeParams.self, from: data)
+    private func handleInitialize(_ params: McpUiInitializeRequestParams) async throws -> AnyCodable {
+        appCapabilities = params.appCapabilities
+        appInfo = params.appInfo
 
-        appCapabilities = initParams.appCapabilities
-        appInfo = initParams.appInfo
-
-        let protocolVersion = McpAppsConfig.supportedProtocolVersions.contains(initParams.protocolVersion)
-            ? initParams.protocolVersion
+        let protocolVersion = McpAppsConfig.supportedProtocolVersions.contains(params.protocolVersion)
+            ? params.protocolVersion
             : McpAppsConfig.latestProtocolVersion
 
         let result = McpUiInitializeResult(
@@ -188,41 +202,27 @@ public actor AppBridge {
         return AnyCodable(resultDict)
     }
 
-    private func handleMessageRequest(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
-        let data = try JSONSerialization.data(withJSONObject: params?.mapValues { $0.value } ?? [:])
-        let msgParams = try JSONDecoder().decode(McpUiMessageParams.self, from: data)
-        let result = await onMessage?(msgParams) ?? McpUiMessageResult(isError: true)
+    private func handleMessageRequest(_ params: McpUiMessageRequestParams) async throws -> AnyCodable {
+        let result = await onMessage?(params) ?? McpUiMessageResult(isError: true)
         return AnyCodable(["isError": result.isError ?? false])
     }
 
-    private func handleOpenLink(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
-        let data = try JSONSerialization.data(withJSONObject: params?.mapValues { $0.value } ?? [:])
-        let linkParams = try JSONDecoder().decode(McpUiOpenLinkParams.self, from: data)
-        let result = await onOpenLink?(linkParams) ?? McpUiOpenLinkResult(isError: true)
+    private func handleOpenLink(_ params: McpUiOpenLinkRequestParams) async throws -> AnyCodable {
+        let result = await onOpenLink?(params) ?? McpUiOpenLinkResult(isError: true)
         return AnyCodable(["isError": result.isError ?? false])
     }
 
-    private func handleToolCall(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
+    private func handleToolCall(name: String, arguments: [String: AnyCodable]?) async throws -> AnyCodable {
         guard let callback = onToolCall else {
             throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.methodNotFound, message: "tools/call not configured"))
-        }
-        guard let name = params?["name"]?.value as? String else {
-            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.invalidParams, message: "Missing tool name"))
-        }
-        var arguments: [String: AnyCodable]? = nil
-        if let argsDict = params?["arguments"]?.value as? [String: Any] {
-            arguments = argsDict.mapValues { AnyCodable($0) }
         }
         let result = try await callback(name, arguments)
         return AnyCodable(result.mapValues { $0.value })
     }
 
-    private func handleResourceRead(_ params: [String: AnyCodable]?) async throws -> AnyCodable {
+    private func handleResourceRead(uri: String) async throws -> AnyCodable {
         guard let callback = onResourceRead else {
             throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.methodNotFound, message: "resources/read not configured"))
-        }
-        guard let uri = params?["uri"]?.value as? String else {
-            throw BridgeError.rpcError(JSONRPCError(code: JSONRPCError.invalidParams, message: "Missing URI"))
         }
         let result = try await callback(uri)
         return AnyCodable(result.mapValues { $0.value })

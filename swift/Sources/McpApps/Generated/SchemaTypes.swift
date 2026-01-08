@@ -1673,3 +1673,241 @@ public struct LoggingMessageParams: Codable, Sendable, Equatable {
         self.logger = logger
     }
 }
+
+// MARK: - Discriminated Union Enums
+
+/// All notifications from Guest UI → Host, discriminated by method
+public enum McpUiGuestNotification: Codable, Sendable {
+    case initialized
+    case sizeChanged(McpUiSizeChangedNotificationParams)
+    case loggingMessage(LoggingMessageParams)
+
+    private enum CodingKeys: String, CodingKey {
+        case method, params
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let method = try container.decode(String.self, forKey: .method)
+
+        switch method {
+        case "ui/notifications/initialized":
+            self = .initialized
+        case "ui/notifications/size-changed":
+            let params = try container.decodeIfPresent(McpUiSizeChangedNotificationParams.self, forKey: .params)
+                ?? McpUiSizeChangedNotificationParams()
+            self = .sizeChanged(params)
+        case "notifications/message":
+            let params = try container.decode(LoggingMessageParams.self, forKey: .params)
+            self = .loggingMessage(params)
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: [CodingKeys.method],
+                    debugDescription: "Unknown guest notification method: \(method)"
+                )
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .initialized:
+            try container.encode("ui/notifications/initialized", forKey: .method)
+        case .sizeChanged(let params):
+            try container.encode("ui/notifications/size-changed", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .loggingMessage(let params):
+            try container.encode("notifications/message", forKey: .method)
+            try container.encode(params, forKey: .params)
+        }
+    }
+}
+
+/// All requests from Guest UI → Host, discriminated by method
+public enum McpUiGuestRequest: Codable, Sendable {
+    case initialize(McpUiInitializeRequestParams)
+    case message(McpUiMessageRequestParams)
+    case openLink(McpUiOpenLinkRequestParams)
+    case toolCall(name: String, arguments: [String: AnyCodable]?)
+    case resourceRead(uri: String)
+
+    private enum CodingKeys: String, CodingKey {
+        case method, params
+    }
+
+    private enum ToolCallKeys: String, CodingKey {
+        case name, arguments
+    }
+
+    private enum ResourceReadKeys: String, CodingKey {
+        case uri
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let method = try container.decode(String.self, forKey: .method)
+
+        switch method {
+        case "ui/initialize":
+            let params = try container.decode(McpUiInitializeRequestParams.self, forKey: .params)
+            self = .initialize(params)
+        case "ui/message":
+            let params = try container.decode(McpUiMessageRequestParams.self, forKey: .params)
+            self = .message(params)
+        case "ui/open-link":
+            let params = try container.decode(McpUiOpenLinkRequestParams.self, forKey: .params)
+            self = .openLink(params)
+        case "tools/call":
+            let paramsContainer = try container.nestedContainer(keyedBy: ToolCallKeys.self, forKey: .params)
+            let name = try paramsContainer.decode(String.self, forKey: .name)
+            let arguments = try paramsContainer.decodeIfPresent([String: AnyCodable].self, forKey: .arguments)
+            self = .toolCall(name: name, arguments: arguments)
+        case "resources/read":
+            let paramsContainer = try container.nestedContainer(keyedBy: ResourceReadKeys.self, forKey: .params)
+            let uri = try paramsContainer.decode(String.self, forKey: .uri)
+            self = .resourceRead(uri: uri)
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: [CodingKeys.method],
+                    debugDescription: "Unknown guest request method: \(method)"
+                )
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .initialize(let params):
+            try container.encode("ui/initialize", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .message(let params):
+            try container.encode("ui/message", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .openLink(let params):
+            try container.encode("ui/open-link", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .toolCall(let name, let arguments):
+            try container.encode("tools/call", forKey: .method)
+            var paramsContainer = container.nestedContainer(keyedBy: ToolCallKeys.self, forKey: .params)
+            try paramsContainer.encode(name, forKey: .name)
+            try paramsContainer.encodeIfPresent(arguments, forKey: .arguments)
+        case .resourceRead(let uri):
+            try container.encode("resources/read", forKey: .method)
+            var paramsContainer = container.nestedContainer(keyedBy: ResourceReadKeys.self, forKey: .params)
+            try paramsContainer.encode(uri, forKey: .uri)
+        }
+    }
+}
+
+/// All notifications from Host → Guest UI, discriminated by method
+public enum McpUiHostNotification: Codable, Sendable {
+    case toolInput(McpUiToolInputNotificationParams)
+    case toolInputPartial(McpUiToolInputPartialNotificationParams)
+    case toolResult(McpUiToolResultNotificationParams)
+    case toolCancelled(McpUiToolCancelledParams)
+    case hostContextChanged(McpUiHostContext)
+    case sandboxResourceReady(McpUiSandboxResourceReadyNotificationParams)
+
+    private enum CodingKeys: String, CodingKey {
+        case method, params
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let method = try container.decode(String.self, forKey: .method)
+
+        switch method {
+        case "ui/notifications/tool-input":
+            let params = try container.decodeIfPresent(McpUiToolInputNotificationParams.self, forKey: .params)
+                ?? McpUiToolInputNotificationParams()
+            self = .toolInput(params)
+        case "ui/notifications/tool-input-partial":
+            let params = try container.decodeIfPresent(McpUiToolInputPartialNotificationParams.self, forKey: .params)
+                ?? McpUiToolInputPartialNotificationParams()
+            self = .toolInputPartial(params)
+        case "ui/notifications/tool-result":
+            let params = try container.decode(McpUiToolResultNotificationParams.self, forKey: .params)
+            self = .toolResult(params)
+        case "ui/notifications/tool-cancelled":
+            let params = try container.decodeIfPresent(McpUiToolCancelledParams.self, forKey: .params)
+                ?? McpUiToolCancelledParams()
+            self = .toolCancelled(params)
+        case "ui/notifications/host-context-changed":
+            let params = try container.decode(McpUiHostContext.self, forKey: .params)
+            self = .hostContextChanged(params)
+        case "ui/notifications/sandbox-resource-ready":
+            let params = try container.decode(McpUiSandboxResourceReadyNotificationParams.self, forKey: .params)
+            self = .sandboxResourceReady(params)
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: [CodingKeys.method],
+                    debugDescription: "Unknown host notification method: \(method)"
+                )
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .toolInput(let params):
+            try container.encode("ui/notifications/tool-input", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .toolInputPartial(let params):
+            try container.encode("ui/notifications/tool-input-partial", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .toolResult(let params):
+            try container.encode("ui/notifications/tool-result", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .toolCancelled(let params):
+            try container.encode("ui/notifications/tool-cancelled", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .hostContextChanged(let params):
+            try container.encode("ui/notifications/host-context-changed", forKey: .method)
+            try container.encode(params, forKey: .params)
+        case .sandboxResourceReady(let params):
+            try container.encode("ui/notifications/sandbox-resource-ready", forKey: .method)
+            try container.encode(params, forKey: .params)
+        }
+    }
+}
+
+/// All requests from Host → Guest UI, discriminated by method
+public enum McpUiHostRequest: Codable, Sendable {
+    case resourceTeardown
+
+    private enum CodingKeys: String, CodingKey {
+        case method, params
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let method = try container.decode(String.self, forKey: .method)
+
+        switch method {
+        case "ui/resource-teardown":
+            self = .resourceTeardown
+        default:
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: [CodingKeys.method],
+                    debugDescription: "Unknown host request method: \(method)"
+                )
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .resourceTeardown:
+            try container.encode("ui/resource-teardown", forKey: .method)
+            try container.encode([String: String](), forKey: .params)
+        }
+    }
+}
