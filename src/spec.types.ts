@@ -56,11 +56,13 @@ export type McpUiStyleVariableKey =
   | "--color-text-secondary"
   | "--color-text-tertiary"
   | "--color-text-inverse"
+  | "--color-text-ghost"
   | "--color-text-info"
   | "--color-text-danger"
   | "--color-text-success"
   | "--color-text-warning"
   | "--color-text-disabled"
+  | "--color-text-ghost"
   // Border colors
   | "--color-border-primary"
   | "--color-border-secondary"
@@ -285,11 +287,21 @@ export interface McpUiToolCancelledNotification {
 }
 
 /**
+ * @description CSS blocks that can be injected by apps.
+ */
+export interface McpUiHostCss {
+  /** @description CSS for font loading (@font-face rules or @import statements). Apps must apply using applyHostFonts(). */
+  fonts?: string;
+}
+
+/**
  * @description Style configuration for theming MCP apps.
  */
 export interface McpUiHostStyles {
   /** @description CSS variables for theming the app. */
   variables?: McpUiStyles;
+  /** @description CSS blocks that apps can inject. */
+  css?: McpUiHostCss;
 }
 
 /**
@@ -313,17 +325,30 @@ export interface McpUiHostContext {
   displayMode?: McpUiDisplayMode;
   /** @description Display modes the host supports. */
   availableDisplayModes?: string[];
-  /** @description Current and maximum dimensions available to the UI. */
-  viewport?: {
-    /** @description Current viewport width in pixels. */
-    width: number;
-    /** @description Current viewport height in pixels. */
-    height: number;
-    /** @description Maximum available height in pixels (if constrained). */
-    maxHeight?: number;
-    /** @description Maximum available width in pixels (if constrained). */
-    maxWidth?: number;
-  };
+  /**
+   * @description Container dimensions. Represents the dimensions of the iframe or other
+   * container holding the app. Specify either width or maxWidth, and either height or maxHeight.
+   */
+  containerDimensions?: (
+    | {
+        /** @description Fixed container height in pixels. */
+        height: number;
+      }
+    | {
+        /** @description Maximum container height in pixels. */
+        maxHeight?: number | undefined;
+      }
+  ) &
+    (
+      | {
+          /** @description Fixed container width in pixels. */
+          width: number;
+        }
+      | {
+          /** @description Maximum container width in pixels. */
+          maxWidth?: number | undefined;
+        }
+    );
   /** @description User's language and region preference in BCP 47 format. */
   locale?: string;
   /** @description User's timezone in IANA format. */
@@ -364,7 +389,7 @@ export interface McpUiHostContextChangedNotification {
 
 /**
  * @description Request for graceful shutdown of the Guest UI (Host -> Guest UI).
- * @see {@link app-bridge.AppBridge.sendResourceTeardown} for the host method that sends this
+ * @see {@link app-bridge.AppBridge.teardownResource} for the host method that sends this
  */
 export interface McpUiResourceTeardownRequest {
   method: "ui/resource-teardown";
@@ -512,4 +537,28 @@ export interface McpUiRequestDisplayModeResult {
    * Note: The schema intentionally omits this to enforce strict validation.
    */
   [key: string]: unknown;
+}
+
+/**
+ * @description Tool visibility scope - who can access the tool.
+ */
+export type McpUiToolVisibility = "model" | "app";
+
+/**
+ * @description UI-related metadata for tools.
+ */
+export interface McpUiToolMeta {
+  /**
+   * URI of the UI resource to display for this tool.
+   * This is converted to `_meta["ui/resourceUri"]`.
+   *
+   * @example "ui://weather/widget.html"
+   */
+  resourceUri: string;
+  /**
+   * @description Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: McpUiToolVisibility[];
 }

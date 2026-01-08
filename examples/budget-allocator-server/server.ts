@@ -5,7 +5,6 @@
  * and industry benchmarks by company stage.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
   CallToolResult,
   ReadResourceResult,
@@ -13,8 +12,13 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "./src/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
@@ -227,7 +231,6 @@ const resourceUri = "ui://budget-allocator/mcp-app.html";
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
- * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
 function createServer(): McpServer {
   const server = new McpServer({
@@ -235,7 +238,8 @@ function createServer(): McpServer {
     version: "1.0.0",
   });
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-budget-data",
     {
       title: "Get Budget Data",
@@ -277,7 +281,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     {
@@ -300,20 +305,4 @@ function createServer(): McpServer {
   return server;
 }
 
-// ---------------------------------------------------------------------------
-// Server Startup
-// ---------------------------------------------------------------------------
-
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    await createServer().connect(new StdioServerTransport());
-  } else {
-    const port = parseInt(process.env.PORT ?? "3103", 10);
-    await startServer(createServer, { port, name: "Budget Allocator Server" });
-  }
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+startServer(createServer);

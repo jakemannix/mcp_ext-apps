@@ -97,7 +97,10 @@ Create `server.ts`:
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps";
+import {
+  RESOURCE_MIME_TYPE,
+  type McpUiToolMeta,
+} from "@modelcontextprotocol/ext-apps";
 import cors from "cors";
 import express from "express";
 import fs from "node:fs/promises";
@@ -119,7 +122,7 @@ server.registerTool(
     description: "Returns the current server time.",
     inputSchema: {},
     outputSchema: { time: z.string() },
-    _meta: { [RESOURCE_URI_META_KEY]: resourceUri }, // Links tool to UI
+    _meta: { ui: { resourceUri } as McpUiToolMeta }, // Links tool to UI
   },
   async () => {
     const time = new Date().toISOString();
@@ -177,7 +180,7 @@ app.listen(3001, (err) => {
 Then, verify your server compiles:
 
 ```bash
-npx tsc --noEmit server.ts
+npx tsc --noEmit
 ```
 
 No output means success. If you see errors, check for typos in `server.ts`.

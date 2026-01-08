@@ -4,13 +4,17 @@
  * Provides tools for rendering interactive 3D scenes using Three.js.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "./src/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
@@ -133,7 +137,6 @@ const resourceUri = "ui://threejs/mcp-app.html";
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
- * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
 function createServer(): McpServer {
   const server = new McpServer({
@@ -142,7 +145,8 @@ function createServer(): McpServer {
   });
 
   // Tool 1: show_threejs_scene
-  server.registerTool(
+  registerAppTool(
+    server,
     "show_threejs_scene",
     {
       title: "Show Three.js Scene",
@@ -174,7 +178,7 @@ function createServer(): McpServer {
     },
   );
 
-  // Tool 2: learn_threejs
+  // Tool 2: learn_threejs (not a UI tool, just returns documentation)
   server.registerTool(
     "learn_threejs",
     {
@@ -191,7 +195,8 @@ function createServer(): McpServer {
   );
 
   // Resource registration
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE, description: "Three.js Widget UI" },
@@ -216,16 +221,4 @@ function createServer(): McpServer {
   return server;
 }
 
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    await createServer().connect(new StdioServerTransport());
-  } else {
-    const port = parseInt(process.env.PORT ?? "3108", 10);
-    await startServer(createServer, { port, name: "Three.js Server" });
-  }
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+startServer(createServer);
