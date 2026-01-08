@@ -137,6 +137,7 @@ export function useApp({
       try {
         const app = new App(appInfo, capabilities, {
           experimentalOAICompatibility,
+          autoResize: true,
         });
 
         // Register handlers BEFORE connecting
