@@ -2,6 +2,9 @@
 :root {
   color-scheme: light dark;
 
+  /* Font families */
+  --font-sans: system-ui, -apple-system, sans-serif;
+
   /* Background colors */
   --color-background-primary: light-dark(#ffffff, #111827);
   --color-background-secondary: light-dark(#f9fafb, #1f2937);
@@ -16,12 +19,19 @@
   --color-border-primary: light-dark(#e5e7eb, #374151);
   --color-border-secondary: light-dark(#d1d5db, #4b5563);
 
-  /* Accent colors */
-  --color-accent-info: light-dark(#2563eb, #3b82f6);
+  /* Ring colors */
+  --color-ring-info: light-dark(#2563eb, #3b82f6);
 
   /* Border radius */
   --border-radius-sm: 6px;
   --border-radius-md: 8px;
+  --border-radius-full: 9999px;
+
+  /* Border width */
+  --border-width-regular: 1px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   /* App-specific colors (not from host) */
   --color-enterprise: light-dark(#1e40af, #3b82f6);
@@ -33,6 +43,7 @@
 html, body {
   margin: 0;
   padding: 0;
+  font-family: var(--font-sans);
   color: var(--color-text-primary);
   overflow: hidden;
 }
@@ -94,7 +105,7 @@ html, body {
 .select {
   padding: 4px 8px;
   font-size: 0.8125rem;
-  border: 1px solid var(--color-border-primary);
+  border: var(--border-width-regular) solid var(--color-border-primary);
   border-radius: var(--border-radius-sm);
   background: var(--color-background-secondary);
   color: var(--color-text-primary);
@@ -102,7 +113,7 @@ html, body {
 }
 
 .select:focus {
-  outline: 2px solid var(--color-accent-info);
+  outline: 2px solid var(--color-ring-info);
   outline-offset: 1px;
 }
 
@@ -113,7 +124,7 @@ html, body {
   background: var(--color-background-secondary);
   border-radius: var(--border-radius-md);
   padding: 8px;
-  border: 1px solid var(--color-border-primary);
+  border: var(--border-width-regular) solid var(--color-border-primary);
 }
 
 .chart-container {
@@ -143,15 +154,15 @@ html, body {
   font-size: 0.75rem;
   cursor: pointer;
   padding: 4px 10px;
-  border-radius: 16px;
-  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-full);
+  border: var(--border-width-regular) solid var(--color-border-primary);
   background: var(--color-background-secondary);
   transition: all 0.15s ease;
 }
 
 .legend-item:hover {
   border-color: var(--color-text-secondary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .legend-item.hidden {
@@ -192,7 +203,7 @@ html, body {
   background: var(--color-background-secondary);
   border-radius: var(--border-radius-sm);
   padding: 0 12px;
-  border: 1px solid var(--color-border-primary);
+  border: var(--border-width-regular) solid var(--color-border-primary);
   font-size: 0.8125rem;
 }
 

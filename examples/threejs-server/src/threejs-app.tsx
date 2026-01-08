@@ -143,7 +143,7 @@ export default function ThreeJSApp({
   hostContext: _hostContext,
   callServerTool: _callServerTool,
   sendMessage: _sendMessage,
-  sendOpenLink: _sendOpenLink,
+  openLink: _openLink,
   sendLog: _sendLog,
 }: ThreeJSAppProps) {
   const [error, setError] = useState<string | null>(null);

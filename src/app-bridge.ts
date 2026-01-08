@@ -77,7 +77,52 @@ import {
 } from "./types";
 export * from "./types";
 export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE } from "./app";
+import { RESOURCE_URI_META_KEY } from "./app";
 export { PostMessageTransport } from "./message-transport";
+
+/**
+ * Extract UI resource URI from tool metadata.
+ *
+ * Supports both the new nested format (`_meta.ui.resourceUri`) and the
+ * deprecated flat format (`_meta["ui/resourceUri"]`). The new nested format
+ * takes precedence if both are present.
+ *
+ * @param tool - A tool object with optional `_meta` property
+ * @returns The UI resource URI if valid, undefined if not present
+ * @throws Error if resourceUri is present but invalid (not starting with "ui://")
+ *
+ * @example
+ * ```typescript
+ * // New nested format (preferred)
+ * const uri = getToolUiResourceUri({
+ *   _meta: { ui: { resourceUri: "ui://server/app.html" } }
+ * });
+ *
+ * // Deprecated flat format (still supported)
+ * const uri = getToolUiResourceUri({
+ *   _meta: { "ui/resourceUri": "ui://server/app.html" }
+ * });
+ * ```
+ */
+export function getToolUiResourceUri(tool: {
+  _meta?: Record<string, unknown>;
+}): string | undefined {
+  // Try new nested format first: _meta.ui.resourceUri
+  const uiMeta = tool._meta?.ui as { resourceUri?: unknown } | undefined;
+  let uri: unknown = uiMeta?.resourceUri;
+
+  // Fall back to deprecated flat format: _meta["ui/resourceUri"]
+  if (uri === undefined) {
+    uri = tool._meta?.[RESOURCE_URI_META_KEY];
+  }
+
+  if (typeof uri === "string" && uri.startsWith("ui://")) {
+    return uri;
+  } else if (uri !== undefined) {
+    throw new Error(`Invalid UI resource URI: ${JSON.stringify(uri)}`);
+  }
+  return undefined;
+}
 
 /**
  * Options for configuring AppBridge behavior.
@@ -131,7 +176,7 @@ type RequestHandlerExtra = Parameters<
  * 2. **Connect**: Call `connect()` with transport to establish communication
  * 3. **Wait for init**: Guest UI sends initialize request, bridge responds
  * 4. **Send data**: Call `sendToolInput()`, `sendToolResult()`, etc.
- * 5. **Teardown**: Call `sendResourceTeardown()` before unmounting iframe
+ * 5. **Teardown**: Call `teardownResource()` before unmounting iframe
  *
  * @example Basic usage
  * ```typescript
@@ -311,7 +356,7 @@ export class AppBridge extends Protocol<
    * adjust the iframe container dimensions based on the Guest UI's content.
    *
    * Note: This is for Guest UI → Host communication. To notify the Guest UI of
-   * host viewport changes, use {@link app.App.sendSizeChanged}.
+   * host container dimension changes, use {@link setHostContext}.
    *
    * @example
    * ```typescript
@@ -963,7 +1008,7 @@ export class AppBridge extends Protocol<
    * ```typescript
    * bridge.setHostContext({
    *   theme: "dark",
-   *   viewport: { width: 800, height: 600 }
+   *   containerDimensions: { maxHeight: 600, width: 800 }
    * });
    * ```
    *
@@ -1174,7 +1219,7 @@ export class AppBridge extends Protocol<
    * @example
    * ```typescript
    * try {
-   *   await bridge.sendResourceTeardown({});
+   *   await bridge.teardownResource({});
    *   // Guest UI is ready, safe to unmount iframe
    *   iframe.remove();
    * } catch (error) {
@@ -1182,7 +1227,7 @@ export class AppBridge extends Protocol<
    * }
    * ```
    */
-  sendResourceTeardown(
+  teardownResource(
     params: McpUiResourceTeardownRequest["params"],
     options?: RequestOptions,
   ) {
@@ -1195,6 +1240,9 @@ export class AppBridge extends Protocol<
       options,
     );
   }
+
+  /** @deprecated Use {@link teardownResource} instead */
+  sendResourceTeardown: AppBridge["teardownResource"] = this.teardownResource;
 
   /**
    * Connect to the Guest UI via transport and optionally set up message forwarding.

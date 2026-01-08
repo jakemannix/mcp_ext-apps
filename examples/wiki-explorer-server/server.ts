@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
   CallToolResult,
   ReadResourceResult,
@@ -8,8 +7,13 @@ import * as cheerio from "cheerio";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "./src/server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
@@ -76,7 +80,8 @@ function createServer(): McpServer {
   // Register the get-first-degree-links tool and its associated UI resource
   const resourceUri = "ui://wiki-explorer/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-first-degree-links",
     {
       title: "Get First-Degree Links",
@@ -124,7 +129,8 @@ function createServer(): McpServer {
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
@@ -145,16 +151,4 @@ function createServer(): McpServer {
   return server;
 }
 
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    await createServer().connect(new StdioServerTransport());
-  } else {
-    const port = parseInt(process.env.PORT ?? "3109", 10);
-    await startServer(createServer, { port, name: "Wiki Explorer" });
-  }
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+startServer(createServer);

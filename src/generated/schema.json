@@ -332,6 +332,10 @@
                       },
                       {
                         "type": "string",
+                        "const": "--color-text-ghost"
+                      },
+                      {
+                        "type": "string",
                         "const": "--color-text-info"
                       },
                       {
@@ -349,6 +353,10 @@
                       {
                         "type": "string",
                         "const": "--color-text-disabled"
+                      },
+                      {
+                        "type": "string",
+                        "const": "--color-text-ghost"
                       },
                       {
                         "type": "string",
@@ -585,6 +593,17 @@
                       {}
                     ]
                   }
+                },
+                "css": {
+                  "description": "CSS blocks that apps can inject.",
+                  "type": "object",
+                  "properties": {
+                    "fonts": {
+                      "description": "CSS for font loading (@font-face rules or",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -613,29 +632,70 @@
                 "type": "string"
               }
             },
-            "viewport": {
-              "description": "Current and maximum dimensions available to the UI.",
-              "type": "object",
-              "properties": {
-                "width": {
-                  "description": "Current viewport width in pixels.",
-                  "type": "number"
+            "containerDimensions": {
+              "description": "Container dimensions. Represents the dimensions of the iframe or other\ncontainer holding the app. Specify either width or maxWidth, and either height or maxHeight.",
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "height": {
+                          "description": "Fixed container height in pixels.",
+                          "type": "number"
+                        }
+                      },
+                      "required": ["height"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "maxHeight": {
+                          "description": "Maximum container height in pixels.",
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {}
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
                 },
-                "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
-                },
-                "maxHeight": {
-                  "description": "Maximum available height in pixels (if constrained).",
-                  "type": "number"
-                },
-                "maxWidth": {
-                  "description": "Maximum available width in pixels (if constrained).",
-                  "type": "number"
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "width": {
+                          "description": "Fixed container width in pixels.",
+                          "type": "number"
+                        }
+                      },
+                      "required": ["width"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "maxWidth": {
+                          "description": "Maximum container width in pixels.",
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {}
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
                 }
-              },
-              "required": ["width", "height"],
-              "additionalProperties": false
+              ]
             },
             "locale": {
               "description": "User's language and region preference in BCP 47 format.",
@@ -943,6 +1003,10 @@
                   },
                   {
                     "type": "string",
+                    "const": "--color-text-ghost"
+                  },
+                  {
+                    "type": "string",
                     "const": "--color-text-info"
                   },
                   {
@@ -960,6 +1024,10 @@
                   {
                     "type": "string",
                     "const": "--color-text-disabled"
+                  },
+                  {
+                    "type": "string",
+                    "const": "--color-text-ghost"
                   },
                   {
                     "type": "string",
@@ -1196,6 +1264,17 @@
                   {}
                 ]
               }
+            },
+            "css": {
+              "description": "CSS blocks that apps can inject.",
+              "type": "object",
+              "properties": {
+                "fonts": {
+                  "description": "CSS for font loading (@font-face rules or",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -1224,29 +1303,70 @@
             "type": "string"
           }
         },
-        "viewport": {
-          "description": "Current and maximum dimensions available to the UI.",
-          "type": "object",
-          "properties": {
-            "width": {
-              "description": "Current viewport width in pixels.",
-              "type": "number"
+        "containerDimensions": {
+          "description": "Container dimensions. Represents the dimensions of the iframe or other\ncontainer holding the app. Specify either width or maxWidth, and either height or maxHeight.",
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "height": {
+                      "description": "Fixed container height in pixels.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["height"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "maxHeight": {
+                      "description": "Maximum container height in pixels.",
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {}
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
             },
-            "height": {
-              "description": "Current viewport height in pixels.",
-              "type": "number"
-            },
-            "maxHeight": {
-              "description": "Maximum available height in pixels (if constrained).",
-              "type": "number"
-            },
-            "maxWidth": {
-              "description": "Maximum available width in pixels (if constrained).",
-              "type": "number"
+            {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "width": {
+                      "description": "Fixed container width in pixels.",
+                      "type": "number"
+                    }
+                  },
+                  "required": ["width"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "maxWidth": {
+                      "description": "Maximum container width in pixels.",
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {}
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
             }
-          },
-          "required": ["width", "height"],
-          "additionalProperties": false
+          ]
         },
         "locale": {
           "description": "User's language and region preference in BCP 47 format.",
@@ -1319,6 +1439,17 @@
       },
       "additionalProperties": {}
     },
+    "McpUiHostCss": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fonts": {
+          "description": "CSS for font loading (@font-face rules or",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
     "McpUiHostStyles": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -1387,6 +1518,10 @@
               },
               {
                 "type": "string",
+                "const": "--color-text-ghost"
+              },
+              {
+                "type": "string",
                 "const": "--color-text-info"
               },
               {
@@ -1404,6 +1539,10 @@
               {
                 "type": "string",
                 "const": "--color-text-disabled"
+              },
+              {
+                "type": "string",
+                "const": "--color-text-ghost"
               },
               {
                 "type": "string",
@@ -1640,6 +1779,17 @@
               {}
             ]
           }
+        },
+        "css": {
+          "description": "CSS blocks that apps can inject.",
+          "type": "object",
+          "properties": {
+            "fonts": {
+              "description": "CSS for font loading (@font-face rules or",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -2061,6 +2211,10 @@
                       },
                       {
                         "type": "string",
+                        "const": "--color-text-ghost"
+                      },
+                      {
+                        "type": "string",
                         "const": "--color-text-info"
                       },
                       {
@@ -2078,6 +2232,10 @@
                       {
                         "type": "string",
                         "const": "--color-text-disabled"
+                      },
+                      {
+                        "type": "string",
+                        "const": "--color-text-ghost"
                       },
                       {
                         "type": "string",
@@ -2314,6 +2472,17 @@
                       {}
                     ]
                   }
+                },
+                "css": {
+                  "description": "CSS blocks that apps can inject.",
+                  "type": "object",
+                  "properties": {
+                    "fonts": {
+                      "description": "CSS for font loading (@font-face rules or",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -2342,29 +2511,70 @@
                 "type": "string"
               }
             },
-            "viewport": {
-              "description": "Current and maximum dimensions available to the UI.",
-              "type": "object",
-              "properties": {
-                "width": {
-                  "description": "Current viewport width in pixels.",
-                  "type": "number"
+            "containerDimensions": {
+              "description": "Container dimensions. Represents the dimensions of the iframe or other\ncontainer holding the app. Specify either width or maxWidth, and either height or maxHeight.",
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "height": {
+                          "description": "Fixed container height in pixels.",
+                          "type": "number"
+                        }
+                      },
+                      "required": ["height"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "maxHeight": {
+                          "description": "Maximum container height in pixels.",
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {}
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
                 },
-                "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
-                },
-                "maxHeight": {
-                  "description": "Maximum available height in pixels (if constrained).",
-                  "type": "number"
-                },
-                "maxWidth": {
-                  "description": "Maximum available width in pixels (if constrained).",
-                  "type": "number"
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "width": {
+                          "description": "Fixed container width in pixels.",
+                          "type": "number"
+                        }
+                      },
+                      "required": ["width"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "maxWidth": {
+                          "description": "Maximum container width in pixels.",
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {}
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
                 }
-              },
-              "required": ["width", "height"],
-              "additionalProperties": false
+              ]
             },
             "locale": {
               "description": "User's language and region preference in BCP 47 format.",
@@ -3141,6 +3351,10 @@
         },
         {
           "type": "string",
+          "const": "--color-text-ghost"
+        },
+        {
+          "type": "string",
           "const": "--color-text-info"
         },
         {
@@ -3158,6 +3372,10 @@
         {
           "type": "string",
           "const": "--color-text-disabled"
+        },
+        {
+          "type": "string",
+          "const": "--color-text-ghost"
         },
         {
           "type": "string",
@@ -3450,6 +3668,10 @@
           },
           {
             "type": "string",
+            "const": "--color-text-ghost"
+          },
+          {
+            "type": "string",
             "const": "--color-text-info"
           },
           {
@@ -3467,6 +3689,10 @@
           {
             "type": "string",
             "const": "--color-text-disabled"
+          },
+          {
+            "type": "string",
+            "const": "--color-text-ghost"
           },
           {
             "type": "string",
@@ -3794,6 +4020,34 @@
         }
       },
       "required": ["method", "params"],
+      "additionalProperties": false
+    },
+    "McpUiToolMeta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "resourceUri": {
+          "type": "string"
+        },
+        "visibility": {
+          "description": "Who can access this tool. Default: [\"model\", \"app\"]\n- \"model\": Tool visible to and callable by the agent\n- \"app\": Tool callable by the app from this server only",
+          "type": "array",
+          "items": {
+            "description": "Tool visibility scope - who can access the tool.",
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "model"
+              },
+              {
+                "type": "string",
+                "const": "app"
+              }
+            ]
+          }
+        }
+      },
+      "required": ["resourceUri"],
       "additionalProperties": false
     },
     "McpUiToolResultNotification": {
@@ -4154,6 +4408,20 @@
       },
       "required": ["method", "params"],
       "additionalProperties": false
+    },
+    "McpUiToolVisibility": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Tool visibility scope - who can access the tool.",
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "model"
+        },
+        {
+          "type": "string",
+          "const": "app"
+        }
+      ]
     }
   }
 }

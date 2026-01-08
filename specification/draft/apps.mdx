@@ -245,21 +245,35 @@ Example:
 
 ### Resource Discovery
 
-Tools are associated with UI resources through the `_meta` field:
+Tools are associated with UI resources through the `_meta.ui` field:
 
 ```typescript
+interface McpUiToolMeta {
+  /** URI of UI resource for rendering tool results */
+  resourceUri?: string;
+  /**
+   * Who can access this tool. Default: ["model", "app"]
+   * - "model": Tool visible to and callable by the agent
+   * - "app": Tool callable by the app from this server only
+   */
+  visibility?: Array<"model" | "app">;
+}
+
 interface Tool {
   name: string;
   description: string;
   inputSchema: object;
   _meta?: {
-    // Required: URI of the UI resource to use for rendering
+    ui?: McpUiToolMeta;
+    /** @deprecated Use `ui.resourceUri` instead. Will be removed before GA. */
     "ui/resourceUri"?: string;
   };
 }
 ```
 
-Example:
+> **Deprecation notice:** The flat `_meta["ui/resourceUri"]` format is deprecated. Use `_meta.ui.resourceUri` instead. The deprecated format will be removed before GA.
+
+Example (tool visible to both model and app):
 
 ```json
 {
@@ -272,19 +286,47 @@ Example:
     }
   },
   "_meta": {
-    "ui/resourceUri": "ui://weather-server/dashboard-template"
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["model", "app"]
+    }
+  }
+}
+```
+
+Example (app-only tool, hidden from model):
+
+```json
+{
+  "name": "refresh_dashboard",
+  "description": "Refresh dashboard data",
+  "inputSchema": { "type": "object" },
+  "_meta": {
+    "ui": {
+      "resourceUri": "ui://weather-server/dashboard-template",
+      "visibility": ["app"]
+    }
   }
 }
 ```
 
 #### Behavior:
 
-- If `ui/resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
+- If `ui.resourceUri` is present and host supports MCP Apps, host renders tool results using the specified UI resource
 - If host does not support MCP Apps, tool behaves as standard tool (text-only fallback)
 - Resource MUST exist on the server
-- Host MUST use `resources/read` to fetch the referenced resource URI.
+- Host MUST use `resources/read` to fetch the referenced resource URI
 - Host MAY prefetch and cache UI resource content for performance optimization
 - Since UI resources are primarily discovered through tool metadata, Servers MAY omit UI-only resources from `resources/list` and `notifications/resources/list_changed`
+
+#### Visibility:
+
+- `visibility` defaults to `["model", "app"]` if omitted
+- `"model"`: Tool is visible to and callable by the agent
+- `"app"`: Tool is callable by the app from the same server connection only
+- **tools/list behavior:** Host MUST NOT include tools in the agent's tool list when their visibility does not include `"model"` (e.g., `visibility: ["app"]`)
+- **tools/call behavior:** Host MUST reject `tools/call` requests from apps for tools that don't include `"app"` in visibility
+- Cross-server tool calls are always blocked for app-only tools
 
 #### Benefits:
 
@@ -358,7 +400,7 @@ If the Host is a web page, it MUST wrap the Guest UI and communicate with it thr
 
 1. The Host and the Sandbox MUST have different origins.
 2. The Sandbox MUST have the following permissions: `allow-scripts`, `allow-same-origin`.
-3. The Sandbox MUST send a `ui/notifications/sandbox-ready` notification to the host when it’s ready to process an `ui/sandbox-resource-ready` notification.
+3. The Sandbox MUST send a `ui/notifications/sandbox-proxy-ready` notification to the host when it's ready to process an `ui/notifications/sandbox-resource-ready` notification.
 4. Once the Sandbox is ready, the Host MUST send the raw HTML resource to load in a `ui/notifications/sandbox-resource-ready` notification.
 5. The Sandbox MUST load the raw HTML of the Guest UI with CSP settings that:
    - Enforce the domains declared in `ui.csp` metadata
@@ -409,18 +451,24 @@ interface HostContext {
   styles?: {
     /** CSS variables for theming */
     variables?: Record<McpUiStyleVariableKey, string | undefined>;
+    /** CSS blocks that apps can inject */
+    css?: {
+      /** CSS for font loading (@font-face rules or @import statements) */
+      fonts?: string;
+    };
   };
   /** How the UI is currently displayed */
   displayMode?: "inline" | "fullscreen" | "pip";
   /** Display modes the host supports */
   availableDisplayModes?: string[];
-  /** Current and maximum dimensions available to the UI */
-  viewport?: {
-    width: number;
-    height: number;
-    maxHeight?: number;
-    maxWidth?: number;
-  };
+  /** Container dimensions for the iframe. Specify either width or maxWidth, and either height or maxHeight. */
+  containerDimensions?: (
+    | { height: number }      // If specified, container is fixed at this height
+    | { maxHeight?: number }  // Otherwise, container height is determined by the UI height, up to this maximum height (if defined)
+  ) & (
+    | { width: number }       // If specified, container is fixed at this width
+    | { maxWidth?: number }   // Otherwise, container width is determined by the UI width, up to this maximum width (if defined)
+  );
   /** User's language/region preference (BCP 47, e.g., "en-US") */
   locale?: string;
   /** User's timezone (IANA, e.g., "America/New_York") */
@@ -461,16 +509,85 @@ Example:
         "variables": {
           "--color-background-primary": "light-dark(#ffffff, #171717)",
           "--color-text-primary": "light-dark(#171717, #fafafa)",
-          "--font-family-sans": "system-ui, sans-serif",
+          "--font-sans": "Anthropic Sans, sans-serif",
           ...
+        },
+        "css": {
+          "fonts": "@font-face { font-family: \"Custom Font Name\"; src: url(\"https://...\"); }"
         }
       },
       "displayMode": "inline",
-      "viewport": { "width": 400, "height": 300 }
+      "containerDimensions": { "width": 400, "maxHeight": 600 }
     }
   }
 }
 ```
+
+### Container Dimensions
+
+The `HostContext` provides sizing information via `containerDimensions`:
+
+- **`containerDimensions`**: The dimensions of the container that holds the app. This controls the actual space the app occupies within the host. Each dimension (height and width) operates independently and can be either **fixed** or **flexible**.
+
+#### Dimension Modes
+
+| Mode | Dimensions Field | Meaning |
+|------|-----------------|---------|
+| Fixed | `height` or `width` | Host controls the size. App should fill the available space. |
+| Flexible | `maxHeight` or `maxWidth` | App controls the size, up to the specified maximum. |
+| Unbounded | Field omitted | App controls the size with no limit. |
+
+These modes can be combined independently. For example, a host might specify a fixed width but flexible height, allowing the app to grow vertically based on content.
+
+#### App Behavior
+
+Apps should check the containerDimensions configuration and apply appropriate CSS:
+
+```typescript
+// In the app's initialization
+const containerDimensions = hostContext.containerDimensions;
+
+if (containerDimensions) {
+  // Handle height
+  if ("height" in containerDimensions) {
+    // Fixed height: fill the container
+    document.documentElement.style.height = "100vh";
+  } else if ("maxHeight" in containerDimensions && containerDimensions.maxHeight) {
+    // Flexible with max: let content determine size, up to max
+    document.documentElement.style.maxHeight = `${containerDimensions.maxHeight}px`;
+  }
+  // If neither, height is unbounded
+
+  // Handle width
+  if ("width" in containerDimensions) {
+    // Fixed width: fill the container
+    document.documentElement.style.width = "100vw";
+  } else if ("maxWidth" in containerDimensions && containerDimensions.maxWidth) {
+    // Flexible with max: let content determine size, up to max
+    document.documentElement.style.maxWidth = `${containerDimensions.maxWidth}px`;
+  }
+  // If neither, width is unbounded
+}
+```
+
+#### Host Behavior
+
+When using flexible dimensions (no fixed `height` or `width`), hosts MUST listen for `ui/notifications/size-changed` notifications from the app and update the iframe dimensions accordingly:
+
+```typescript
+// Host listens for size changes from the app
+bridge.onsizechange = ({ width, height }) => {
+  // Update iframe to match app's content size
+  if (width != null) {
+    iframe.style.width = `${width}px`;
+  }
+  if (height != null) {
+    iframe.style.height = `${height}px`;
+  }
+};
+```
+
+Apps using the SDK automatically send size-changed notifications via ResizeObserver when `autoResize` is enabled (the default). The notifications are debounced and only sent when dimensions actually change.
 
 ### Theming
 
@@ -502,6 +619,7 @@ type McpUiStyleVariableKey =
   | "--color-text-success"
   | "--color-text-warning"
   | "--color-text-disabled"
+  | "--color-text-ghost"
   // Border colors
   | "--color-border-primary"
   | "--color-border-secondary"
@@ -596,7 +714,46 @@ Example usage of standardized CSS variables:
 .container {
   background: var(--color-background-primary);
   color: var(--color-text-primary);
-  font: var(--font-style-body);
+  font-family: var(--font-sans);
+}
+```
+
+#### Custom Fonts
+
+Hosts can provide custom fonts via `styles.css.fonts`, which can contain `@font-face` rules for self-hosted fonts, `@import` statements for font services like Google Fonts, or both:
+
+```typescript
+hostContext.styles.variables["--font-sans"] = '"Font Name", sans-serif';
+
+// Self-hosted fonts
+hostContext.styles.css.fonts = `
+  @font-face {
+    font-family: "Font Name";
+    src: url("https://url-where-font-is-hosted.com/.../Regular.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Font Name";
+    src: url("https://url-where-font-is-hosted.com/.../Medium.otf") format("opentype");
+    font-weight: 500;
+    font-style: medium;
+    font-display: swap;
+  }
+`;
+
+// Google Fonts
+hostContext.styles.css.fonts = `
+  @import url('https://fonts.googleapis.com/css2?family=Font+Name&display=swap');
+`;
+```
+
+Apps can use the `applyHostFonts` utility to inject the font CSS into the document:
+
+```typescript
+if (hostContext.styles?.css?.fonts) {
+  applyHostFonts(hostContext.styles.css.fonts);
 }
 ```
 
@@ -841,12 +998,12 @@ Host MAY send this notification when any context field changes (e.g., theme togg
 
 These messages are reserved for web-based hosts that implement the recommended double-iframe sandbox architecture:
 
-`ui/notifications/sandbox-ready` (Sandbox Proxy → Host) - Sandbox proxy is ready
+`ui/notifications/sandbox-proxy-ready` (Sandbox Proxy → Host) - Sandbox proxy is ready
 
 ```typescript
 {
   jsonrpc: "2.0",
-  method: "ui/notifications/sandbox-ready",
+  method: "ui/notifications/sandbox-proxy-ready",
   params: {}
 }
 ```
@@ -879,7 +1036,7 @@ sequenceDiagram
 
   autonumber
   S -->> H: resources/list (includes ui:// resources)
-  S -->> H: tools/list (includes tools with ui/resourceUri metadata)
+  S -->> H: tools/list (includes tools with _meta.ui metadata)
 ```
 
 #### 2. UI Initialization (Desktop/Native Hosts)
@@ -893,13 +1050,13 @@ sequenceDiagram
 
   autonumber
   par UI Tool call
-    H ->> S: tools/call to Tool with ui/resourceUri metadata
+    H ->> S: tools/call to Tool with _meta.ui metadata
   and UI initialization
     alt Desktop/Native hosts
       H ->> H: Render Guest UI in an iframe (HTML from the ui:// resource)
     else Web hosts
       H ->> H: Render Sandbox Proxy in an iframe (different origin)
-      P ->> H: ui/notifications/sandbox-ready
+      P ->> H: ui/notifications/sandbox-proxy-ready
       H -->> P: ui/notifications/sandbox-resource-ready (HTML content)
       P -> P: Render inner iframe with HTML
 
@@ -1079,7 +1236,7 @@ await client.callTool("get_weather", { location: "New York" });
 
 This pattern enables interactive, self-updating widgets.
 
-Note: The called tool may not appear in `tools/list` responses. MCP servers MAY expose private tools specifically designed for UI interaction that are not visible to the agent. UI implementations SHOULD attempt to call tools by name regardless of discoverability. The specification for Private Tools will be covered in a future SEP.
+Note: Tools with `visibility: ["app"]` are hidden from the agent but remain callable by apps via `tools/call`. This enables UI-only interactions (refresh buttons, form submissions) without exposing implementation details to the model. See the Visibility section under Resource Discovery for details.
 
 ### Client\<\>Server Capability Negotiation
 
@@ -1132,7 +1289,7 @@ if (hasUISupport) {
     description: "Get weather with interactive dashboard",
     inputSchema: { /* ... */ },
     _meta: {
-      "ui/resourceUri": "ui://weather-server/dashboard"
+      ui: { resourceUri: "ui://weather-server/dashboard" }
     }
   });
 } else {
@@ -1240,6 +1397,24 @@ This proposal synthesizes feedback from the UI CWG and MCP-UI community, host im
 - **Full design system:** Rejected as too prescriptive; hosts have different aesthetics
 - **Inline styles in tool results:** Rejected; separating theming from data enables caching and updates
 - **CSS-in-JS injection:** Rejected; framework-specific and security concerns with injected code
+
+#### 5. Tool Visibility via Metadata
+
+**Decision:** Use `_meta.ui.visibility` array to control tool accessibility between model and app.
+
+**Rationale:**
+
+- Nested `_meta.ui` structure groups all UI-related metadata cleanly
+- Array format (`["model", "app"]`) allows flexible combinations
+- Default `["model", "app"]` allows both agent and app to access tools
+- `"app"` scope is per-server, preventing cross-server tool calls
+- Cleaner than OpenAI's two-field approach (`widgetAccessible` + `visibility`)
+
+**Alternatives considered:**
+
+- **Two separate fields:** OpenAI uses `widgetAccessible` and `visibility` separately. Rejected as redundant; single `visibility` array covers all cases.
+- **Boolean `private` flag:** Simpler but less flexible; doesn't express model-only tools.
+- **Flat `ui/visibility` key:** Rejected in favor of nested structure for consistency with future `_meta.ui` fields.
 
 ### Backward Compatibility
 

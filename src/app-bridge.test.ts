@@ -14,7 +14,11 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { App } from "./app";
-import { AppBridge, type McpUiHostCapabilities } from "./app-bridge";
+import {
+  AppBridge,
+  getToolUiResourceUri,
+  type McpUiHostCapabilities,
+} from "./app-bridge";
 
 /** Wait for pending microtasks to complete */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -109,7 +113,7 @@ describe("App <-> AppBridge integration", () => {
       const testHostContext = {
         theme: "dark" as const,
         locale: "en-US",
-        viewport: { width: 800, height: 600 },
+        containerDimensions: { width: 800, maxHeight: 600 },
       };
       const newBridge = new AppBridge(
         createMockClient() as Client,
@@ -333,7 +337,7 @@ describe("App <-> AppBridge integration", () => {
       const initialContext = {
         theme: "light" as const,
         locale: "en-US",
-        viewport: { width: 800, height: 600 },
+        containerDimensions: { width: 800, maxHeight: 600 },
       };
       const newBridge = new AppBridge(
         createMockClient() as Client,
@@ -350,26 +354,29 @@ describe("App <-> AppBridge integration", () => {
       newBridge.sendHostContextChange({ theme: "dark" });
       await flush();
 
-      // Send another partial update: only viewport changes
+      // Send another partial update: only containerDimensions change
       newBridge.sendHostContextChange({
-        viewport: { width: 1024, height: 768 },
+        containerDimensions: { width: 1024, maxHeight: 768 },
       });
       await flush();
 
       // getHostContext should have accumulated all updates:
       // - locale from initial (unchanged)
       // - theme from first partial update
-      // - viewport from second partial update
+      // - containerDimensions from second partial update
       const context = newApp.getHostContext();
       expect(context?.theme).toBe("dark");
       expect(context?.locale).toBe("en-US");
-      expect(context?.viewport).toEqual({ width: 1024, height: 768 });
+      expect(context?.containerDimensions).toEqual({
+        width: 1024,
+        maxHeight: 768,
+      });
 
       await newAppTransport.close();
       await newBridgeTransport.close();
     });
 
-    it("sendResourceTeardown triggers app.onteardown", async () => {
+    it("teardownResource triggers app.onteardown", async () => {
       let teardownCalled = false;
       app.onteardown = async () => {
         teardownCalled = true;
@@ -377,12 +384,12 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      await bridge.sendResourceTeardown({});
+      await bridge.teardownResource({});
 
       expect(teardownCalled).toBe(true);
     });
 
-    it("sendResourceTeardown waits for async cleanup", async () => {
+    it("teardownResource waits for async cleanup", async () => {
       const cleanupSteps: string[] = [];
       app.onteardown = async () => {
         cleanupSteps.push("start");
@@ -392,7 +399,7 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      await bridge.sendResourceTeardown({});
+      await bridge.teardownResource({});
 
       expect(cleanupSteps).toEqual(["start", "done"]);
     });
@@ -477,7 +484,7 @@ describe("App <-> AppBridge integration", () => {
       expect(result.isError).toBe(true);
     });
 
-    it("app.sendOpenLink triggers bridge.onopenlink and returns result", async () => {
+    it("app.openLink triggers bridge.onopenlink and returns result", async () => {
       const receivedLinks: string[] = [];
       bridge.onopenlink = async (params) => {
         receivedLinks.push(params.url);
@@ -485,21 +492,48 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      const result = await app.sendOpenLink({ url: "https://example.com" });
+      const result = await app.openLink({ url: "https://example.com" });
 
       expect(receivedLinks).toEqual(["https://example.com"]);
       expect(result).toEqual({});
     });
 
-    it("app.sendOpenLink returns error when host denies", async () => {
+    it("app.openLink returns error when host denies", async () => {
       bridge.onopenlink = async () => {
         return { isError: true };
       };
 
       await app.connect(appTransport);
-      const result = await app.sendOpenLink({ url: "https://blocked.com" });
+      const result = await app.openLink({ url: "https://blocked.com" });
 
       expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("deprecated method aliases", () => {
+    beforeEach(async () => {
+      await bridge.connect(bridgeTransport);
+      await app.connect(appTransport);
+    });
+
+    it("app.sendOpenLink is an alias for app.openLink", async () => {
+      expect(app.sendOpenLink).toBe(app.openLink);
+    });
+
+    it("bridge.sendResourceTeardown is a deprecated alias for bridge.teardownResource", () => {
+      expect(bridge.sendResourceTeardown).toBe(bridge.teardownResource);
+    });
+
+    it("app.sendOpenLink works as deprecated alias", async () => {
+      const receivedLinks: string[] = [];
+      bridge.onopenlink = async (params) => {
+        receivedLinks.push(params.url);
+        return {};
+      };
+
+      await app.sendOpenLink({ url: "https://example.com" });
+
+      expect(receivedLinks).toEqual(["https://example.com"]);
     });
   });
 
@@ -704,6 +738,110 @@ describe("App <-> AppBridge integration", () => {
       await flush();
 
       expect(receivedNotifications).toHaveLength(1);
+    });
+  });
+});
+
+describe("getToolUiResourceUri", () => {
+  describe("new nested format (_meta.ui.resourceUri)", () => {
+    it("extracts resourceUri from _meta.ui.resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/app.html" },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+
+    it("extracts resourceUri when visibility is also present", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: {
+            resourceUri: "ui://server/app.html",
+            visibility: ["model"],
+          },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("deprecated flat format (_meta['ui/resourceUri'])", () => {
+    it("extracts resourceUri from deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { "ui/resourceUri": "ui://server/app.html" },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/app.html");
+    });
+  });
+
+  describe("format precedence", () => {
+    it("prefers new nested format over deprecated format", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: {
+          ui: { resourceUri: "ui://server/new.html" },
+          "ui/resourceUri": "ui://server/old.html",
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBe("ui://server/new.html");
+    });
+  });
+
+  describe("missing resourceUri", () => {
+    it("returns undefined when no resourceUri in empty _meta", () => {
+      const tool = { name: "test-tool", _meta: {} };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined when _meta is missing", () => {
+      const tool = {} as { _meta?: Record<string, unknown> };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+
+    it("returns undefined for app-only tools with visibility but no resourceUri", () => {
+      const tool = {
+        name: "refresh-stats",
+        _meta: {
+          ui: { visibility: ["app"] },
+        },
+      };
+      expect(getToolUiResourceUri(tool)).toBeUndefined();
+    });
+  });
+
+  describe("validation", () => {
+    it("throws for invalid URI (not starting with ui://)", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: "https://example.com" } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for non-string resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: 123 } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
+    });
+
+    it("throws for null resourceUri", () => {
+      const tool = {
+        name: "test-tool",
+        _meta: { ui: { resourceUri: null } },
+      };
+      expect(() => getToolUiResourceUri(tool)).toThrow(
+        "Invalid UI resource URI",
+      );
     });
   });
 });

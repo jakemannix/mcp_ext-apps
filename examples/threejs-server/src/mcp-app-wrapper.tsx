@@ -25,14 +25,14 @@ export interface WidgetProps<TToolInput = Record<string, unknown>> {
   toolInputsPartial: TToolInput | null;
   /** Tool execution result from the server */
   toolResult: CallToolResult | null;
-  /** Host context (theme, viewport, locale, etc.) */
+  /** Host context (theme, dimensions, locale, etc.) */
   hostContext: McpUiHostContext | null;
   /** Call a tool on the MCP server */
   callServerTool: App["callServerTool"];
   /** Send a message to the host's chat */
   sendMessage: App["sendMessage"];
   /** Request the host to open a URL */
-  sendOpenLink: App["sendOpenLink"];
+  openLink: App["openLink"];
   /** Send log messages to the host */
   sendLog: App["sendLog"];
 }
@@ -65,7 +65,7 @@ function McpAppWrapper() {
       app.ontoolresult = (params) => {
         setToolResult(params as CallToolResult);
       };
-      // Host context changes (theme, viewport, etc.)
+      // Host context changes (theme, dimensions, etc.)
       app.onhostcontextchanged = (params) => {
         setHostContext(params);
       };
@@ -81,8 +81,8 @@ function McpAppWrapper() {
     (params, options) => app!.sendMessage(params, options),
     [app],
   );
-  const sendOpenLink = useCallback<App["sendOpenLink"]>(
-    (params, options) => app!.sendOpenLink(params, options),
+  const openLink = useCallback<App["openLink"]>(
+    (params, options) => app!.openLink(params, options),
     [app],
   );
   const sendLog = useCallback<App["sendLog"]>(
@@ -106,7 +106,7 @@ function McpAppWrapper() {
       hostContext={hostContext}
       callServerTool={callServerTool}
       sendMessage={sendMessage}
-      sendOpenLink={sendOpenLink}
+      openLink={openLink}
       sendLog={sendLog}
     />
   );

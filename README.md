@@ -57,7 +57,7 @@ To run all examples together:
 
 ```bash
 npm install
-npm run examples:start
+npm start
 ```
 
 Then open http://localhost:8080/.

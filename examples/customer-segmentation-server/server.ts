@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
   CallToolResult,
   ReadResourceResult,
@@ -7,8 +6,13 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-import { startServer } from "../shared/server-utils.js";
+import {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+import { startServer } from "./src/server-utils.js";
 import {
   generateCustomers,
   generateSegmentSummaries,
@@ -25,7 +29,7 @@ const GetCustomerDataInputSchema = z.object({
     .describe("Filter by segment (default: All)"),
 });
 
-// Cache generated data for session consistency
+// Cache generated data for consistency across requests
 let cachedCustomers: Customer[] | null = null;
 let cachedSegments: SegmentSummary[] | null = null;
 
@@ -53,7 +57,6 @@ function getCustomerData(segmentFilter?: string): {
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
- * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
 function createServer(): McpServer {
   const server = new McpServer({
@@ -65,7 +68,8 @@ function createServer(): McpServer {
   {
     const resourceUri = "ui://customer-segmentation/mcp-app.html";
 
-    server.registerTool(
+    registerAppTool(
+      server,
       "get-customer-data",
       {
         title: "Get Customer Data",
@@ -83,7 +87,8 @@ function createServer(): McpServer {
       },
     );
 
-    server.registerResource(
+    registerAppResource(
+      server,
       resourceUri,
       resourceUri,
       {
@@ -112,19 +117,4 @@ function createServer(): McpServer {
   return server;
 }
 
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    await createServer().connect(new StdioServerTransport());
-  } else {
-    const port = parseInt(process.env.PORT ?? "3105", 10);
-    await startServer(createServer, {
-      port,
-      name: "Customer Segmentation Server",
-    });
-  }
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+startServer(createServer);

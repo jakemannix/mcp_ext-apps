@@ -1,7 +1,7 @@
 /**
  * @file App that demonstrates a few features using MCP Apps SDK + React.
  */
-import type { App, McpUiResourceTeardownResult } from "@modelcontextprotocol/ext-apps";
+import type { App } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StrictMode, useCallback, useEffect, useState } from "react";
@@ -20,12 +20,8 @@ const log = {
 
 
 function extractTime(callToolResult: CallToolResult): string {
-  const text = callToolResult.content!
-    .filter((c): c is { type: "text"; text: string } => c.type === "text")
-    .map((c) => c.text)
-    .join("");
-  const { time } = JSON.parse(text) as { time: string };
-  return time;
+  const { text } = callToolResult.content?.find((c) => c.type === "text")!;
+  return text;
 }
 
 
@@ -37,8 +33,6 @@ function GetTimeApp() {
     onAppCreated: (app) => {
       app.onteardown = async () => {
         log.info("App is being torn down");
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate cleanup work
-        log.info("App teardown complete");
         return {};
       };
       app.ontoolinput = async (input) => {
@@ -110,7 +104,7 @@ function GetTimeAppInner({ app, toolResult }: GetTimeAppInnerProps) {
 
   const handleOpenLink = useCallback(async () => {
     log.info("Sending open link request to Host:", linkUrl);
-    const { isError } = await app.sendOpenLink({ url: linkUrl });
+    const { isError } = await app.openLink({ url: linkUrl });
     log.info("Open link request", isError ? "rejected" : "accepted");
   }, [app, linkUrl]);
 
@@ -120,7 +114,7 @@ function GetTimeAppInner({ app, toolResult }: GetTimeAppInnerProps) {
 
       <div className={styles.action}>
         <p>
-          <strong>Server Time:</strong> <code>{serverTime}</code>
+          <strong>Server Time:</strong> <code id="server-time">{serverTime}</code>
         </p>
         <button onClick={handleGetTime}>Get Server Time</button>
       </div>

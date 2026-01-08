@@ -1,7 +1,7 @@
 /**
  * @file App that demonstrates a few features using MCP Apps SDK with vanilla JS.
  */
-import { App, PostMessageTransport } from "@modelcontextprotocol/ext-apps";
+import { App } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -15,12 +15,8 @@ const log = {
 
 
 function extractTime(result: CallToolResult): string {
-  const text = result.content!
-    .filter((c): c is { type: "text"; text: string } => c.type === "text")
-    .map((c) => c.text)
-    .join("");
-  const { time } = JSON.parse(text) as { time: string };
-  return time;
+  const { text } = result.content?.find((c) => c.type === "text")!;
+  return text;
 }
 
 
@@ -40,8 +36,6 @@ const app = new App({ name: "Get Time App", version: "1.0.0" });
 
 app.onteardown = async () => {
   log.info("App is being torn down");
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate cleanup work
-  log.info("App teardown complete");
   return {};
 };
 
@@ -92,10 +86,10 @@ sendLogBtn.addEventListener("click", async () => {
 
 openLinkBtn.addEventListener("click", async () => {
   log.info("Sending open link request to Host:", linkUrl.value);
-  const { isError } = await app.sendOpenLink({ url: linkUrl.value });
+  const { isError } = await app.openLink({ url: linkUrl.value });
   log.info("Open link request", isError ? "rejected" : "accepted");
 });
 
 
 // Connect to host
-app.connect(new PostMessageTransport(window.parent));
+app.connect();
