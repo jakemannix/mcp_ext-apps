@@ -731,7 +731,7 @@ describe("App <-> AppBridge integration", () => {
         sendRequest: async () => ({}),
       } as any;
 
-      await expect((tool.callback as any)(mockExtra)).rejects.toThrow(
+      await expect((tool.handler as any)(mockExtra)).rejects.toThrow(
         "Tool test-tool is disabled",
       );
     });
@@ -759,12 +759,12 @@ describe("App <-> AppBridge integration", () => {
 
       // Valid input should work
       await expect(
-        (tool.callback as any)({ name: "Alice" }, mockExtra),
+        (tool.handler as any)({ name: "Alice" }, mockExtra),
       ).resolves.toBeDefined();
 
       // Invalid input should fail
       await expect(
-        (tool.callback as any)({ invalid: "field" }, mockExtra),
+        (tool.handler as any)({ invalid: "field" }, mockExtra),
       ).rejects.toThrow("Invalid input for tool greet");
     });
 
@@ -791,7 +791,7 @@ describe("App <-> AppBridge integration", () => {
       } as any;
 
       // Valid output should work
-      await expect((tool.callback as any)(mockExtra)).resolves.toBeDefined();
+      await expect((tool.handler as any)(mockExtra)).resolves.toBeDefined();
     });
 
     it("tool enable/disable/update/remove trigger sendToolListChanged", async () => {
@@ -932,7 +932,7 @@ describe("App <-> AppBridge integration", () => {
 
       app.oncalltool = async (params, extra) => {
         if (params.name === "greet") {
-          return await (tool.callback as any)(params.arguments || {}, extra);
+          return await (tool.handler as any)(params.arguments || {}, extra);
         }
         throw new Error(`Unknown tool: ${params.name}`);
       };
