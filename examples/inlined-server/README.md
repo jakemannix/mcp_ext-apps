@@ -46,7 +46,7 @@ const uiHtml = `
   <html>
     <head>
       <script type="module">
-        import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.3.0/dist/src/app-with-deps.js";
+        import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.3.1/dist/src/app-with-deps.js";
 
         window.onload = async () => {
           const app = new App({ name: "My App", version: "1.0.0" });

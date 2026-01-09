@@ -9,12 +9,12 @@ import { z } from "zod";
 import { startServer } from "./server-utils";
 
 export function createServer(): McpServer {
-  const server = new McpServer({name: 'Example Server', version: '1.0.0'});
+  const server = new McpServer({ name: "Example Server", version: "1.0.0" });
   const uiHtml = `
     <html>
       <head>
         <script type="module">
-          import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.3.0/dist/src/app-with-deps.js";
+          import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@0.3.1/dist/src/app-with-deps.js";
 
           window.onload = async () => {
             const app = new App({name: "Example UI", version: "1.0.0"});
@@ -40,10 +40,10 @@ export function createServer(): McpServer {
     server,
     "page",
     resourceUri,
-    { 
+    {
       mimeType: RESOURCE_MIME_TYPE,
       _meta: {
-        ui: {}
+        ui: {},
       },
     },
     () => ({
