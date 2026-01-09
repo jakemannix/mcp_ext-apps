@@ -353,13 +353,19 @@ await client.connect(transport);
 Note that you don’t need an SDK to “talk MCP” with the host:
 
 ```typescript
+// Validate origin of incoming messages for security
+const expectedOrigin = new URL(document.referrer).origin;
+function isValidMessage(event: MessageEvent) {
+  return event.source === window.parent && event.origin === expectedOrigin;
+}
+
 let nextId = 1;
 function sendRequest(method: string, params: any) {
   const id = nextId++;
-  window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, '*');
+  window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, expectedOrigin);
   return new Promise((resolve, reject) => {
     window.addEventListener('message', function listener(event) {
-      const data: JSONRPCMessage = event.data;
+      if (!isValidMessage(event)) return;
       if (event.data?.id === id) {
         window.removeEventListener('message', listener);
         if (event.data?.result) {
@@ -367,17 +373,16 @@ function sendRequest(method: string, params: any) {
         } else if (event.data?.error) {
           reject(new Error(event.data.error));
         }
-      } else {
-        reject(new Error(`Unsupported message: ${JSON.stringify(data)}`));
       }
     });
   });
 }
 function sendNotification(method: string, params: any) {
-  window.parent.postMessage({ jsonrpc: "2.0", method, params }, '*');
+  window.parent.postMessage({ jsonrpc: "2.0", method, params }, expectedOrigin);
 }
 function onNotification(method: string, handler: (params: any) => void) {
   window.addEventListener('message', function listener(event) {
+    if (!isValidMessage(event)) return;
     if (event.data?.method === method) {
       handler(event.data.params);
     }
