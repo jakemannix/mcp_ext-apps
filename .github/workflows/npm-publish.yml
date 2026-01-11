@@ -107,6 +107,7 @@ jobs:
           - budget-allocator-server
           - cohort-heatmap-server
           - customer-segmentation-server
+          - inlined-app-server
           - scenario-modeler-server
           - sheet-music-server
           - system-monitor-server
