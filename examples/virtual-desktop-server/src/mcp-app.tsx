@@ -400,6 +400,76 @@ function ViewDesktopInner({
     }
   }, [noVncReady, extractedInfo, connectionState, connect]);
 
+  // Resize desktop when container size changes
+  useEffect(() => {
+    if (!app || !extractedInfo || connectionState !== "connected") return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    let lastResizeTime = 0;
+    const RESIZE_DEBOUNCE = 500; // ms
+    const MIN_RESIZE_INTERVAL = 2000; // ms - don't resize more often than this
+
+    const handleResize = (entries: ResizeObserverEntry[]) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      const { width, height } = entry.contentRect;
+      // Round to nearest 8 pixels (common VNC requirement)
+      const newWidth = Math.round(width / 8) * 8;
+      const newHeight = Math.round(height / 8) * 8;
+
+      // Ignore too-small sizes
+      if (newWidth < 640 || newHeight < 480) return;
+
+      // Check if this is different from current resolution
+      if (
+        newWidth === extractedInfo.resolution.width &&
+        newHeight === extractedInfo.resolution.height
+      ) {
+        return;
+      }
+
+      // Debounce and rate-limit
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+
+      const now = Date.now();
+      const timeSinceLastResize = now - lastResizeTime;
+      const delay = Math.max(RESIZE_DEBOUNCE, MIN_RESIZE_INTERVAL - timeSinceLastResize);
+
+      resizeTimeout = setTimeout(async () => {
+        lastResizeTime = Date.now();
+        log.info(`Resizing desktop to ${newWidth}x${newHeight}`);
+        try {
+          // Use xrandr to resize the desktop
+          await app.callServerTool({
+            name: "exec",
+            arguments: {
+              name: extractedInfo.name,
+              command: `xrandr --size ${newWidth}x${newHeight} || xrandr -s ${newWidth}x${newHeight}`,
+              background: false,
+              timeout: 5000,
+            },
+          });
+          // Update local resolution state
+          extractedInfo.resolution = { width: newWidth, height: newHeight };
+        } catch (e) {
+          log.warn("Failed to resize desktop:", e);
+        }
+      }, delay);
+    };
+
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    return () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      observer.disconnect();
+    };
+  }, [app, extractedInfo, connectionState]);
+
   // Cleanup on unmount only
   useEffect(() => {
     return () => {
