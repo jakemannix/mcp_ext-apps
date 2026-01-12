@@ -30,7 +30,6 @@ import {
   shutdownDesktop,
   checkDocker,
   getPortConfig,
-  resolveContainerName,
   CONTAINER_PREFIX,
   DESKTOP_VARIANTS,
   DEFAULT_VARIANT,

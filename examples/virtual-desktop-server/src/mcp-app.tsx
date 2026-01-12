@@ -502,6 +502,62 @@ function ViewDesktopInner({
     };
   }, []);
 
+  // Periodic screenshot updates to model context
+  useEffect(() => {
+    if (!app || connectionState !== "connected") return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    let lastScreenshotData: string | null = null;
+    const SCREENSHOT_INTERVAL = 2000; // 2 seconds
+
+    const captureAndSendScreenshot = async () => {
+      const canvas = container.querySelector("canvas");
+      if (!canvas) return;
+
+      try {
+        // Capture the canvas as a data URL
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+
+        // Skip if screenshot is identical to the last one
+        if (base64Data === lastScreenshotData) {
+          return;
+        }
+
+        lastScreenshotData = base64Data;
+
+        // Send screenshot to model context
+        await app.updateModelContext({
+          content: [
+            {
+              type: "image",
+              data: base64Data,
+              mimeType: "image/png",
+            },
+          ],
+        });
+
+        log.info("Sent screenshot to model context");
+      } catch (e) {
+        // Silently ignore errors (e.g., if host doesn't support updateModelContext)
+        log.warn("Failed to send screenshot to model context:", e);
+      }
+    };
+
+    // Start periodic capture
+    const intervalId = setInterval(captureAndSendScreenshot, SCREENSHOT_INTERVAL);
+
+    // Capture initial screenshot after a short delay
+    const initialTimeout = setTimeout(captureAndSendScreenshot, 500);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(initialTimeout);
+    };
+  }, [app, connectionState]);
+
   const handleReconnect = useCallback(() => {
     // Set state to connecting, which will render the VNC container
     // The useEffect will then trigger the actual connection
