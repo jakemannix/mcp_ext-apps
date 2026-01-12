@@ -30,6 +30,7 @@ import {
   shutdownDesktop,
   checkDocker,
   getPortConfig,
+  resolveContainerName,
   CONTAINER_PREFIX,
   DESKTOP_VARIANTS,
   DEFAULT_VARIANT,
@@ -84,8 +85,8 @@ const CreateDesktopInputSchema = z.object({
 const ViewDesktopInputSchema = z.object({
   name: z
     .string()
-    .default(`mcp-apps-vd-${DEFAULT_DESKTOP_NAME}`)
-    .describe("Name of the desktop to view"),
+    .default(DEFAULT_DESKTOP_NAME)
+    .describe("Name of the desktop to view (e.g., 'my-desktop')"),
 });
 
 const ShutdownDesktopInputSchema = z.object({
@@ -487,7 +488,8 @@ export function createVirtualDesktopServer(): McpServer {
       }
 
       // Construct the host path to the desktop's home folder
-      const homeFolder = path.join(VIRTUAL_DESKTOPS_DIR, args.name, "home");
+      // Use the resolved container name for the path
+      const homeFolder = path.join(VIRTUAL_DESKTOPS_DIR, desktop.name, "home");
 
       try {
         const { exec } = await import("node:child_process");
@@ -584,11 +586,14 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name from desktop
+        const containerName = desktop.name;
+
         // Take screenshot using scrot or import (ImageMagick) and output to stdout as PNG
         // Try scrot first, fall back to import (ImageMagick)
         const { stdout } = await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 scrot -o /tmp/screenshot.png && base64 /tmp/screenshot.png" 2>/dev/null || ` +
-            `docker exec ${args.name} bash -c "DISPLAY=:1 import -window root /tmp/screenshot.png && base64 /tmp/screenshot.png"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 scrot -o /tmp/screenshot.png && base64 /tmp/screenshot.png" 2>/dev/null || ` +
+            `docker exec ${containerName} bash -c "DISPLAY=:1 import -window root /tmp/screenshot.png && base64 /tmp/screenshot.png"`,
           { maxBuffer: 50 * 1024 * 1024 }, // 50MB buffer for large screenshots
         );
 
@@ -681,6 +686,9 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         const button = args.button || "left";
         const clicks = args.clicks || 1;
         const buttonNum = button === "left" ? 1 : button === "middle" ? 2 : 3;
@@ -692,14 +700,14 @@ export function createVirtualDesktopServer(): McpServer {
             : `xdotool mousemove ${args.x} ${args.y} click --repeat ${clicks} --delay 100 ${buttonNum}`;
 
         await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 ${clickCmd}"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 ${clickCmd}"`,
         );
 
         return {
           content: [
             {
               type: "text",
-              text: `Clicked ${button} button${clicks > 1 ? ` ${clicks} times` : ""} at (${args.x}, ${args.y}) on ${args.name}.`,
+              text: `Clicked ${button} button${clicks > 1 ? ` ${clicks} times` : ""} at (${args.x}, ${args.y}) on ${desktop.name}.`,
             },
           ],
         };
@@ -778,20 +786,23 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         const delay = args.delay ?? 12;
 
         // Escape the text for shell and use xdotool to type it
         // Using --clearmodifiers to ensure modifier keys don't interfere
         const escapedText = args.text.replace(/'/g, "'\\''");
         await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 xdotool type --clearmodifiers --delay ${delay} '${escapedText}'"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 xdotool type --clearmodifiers --delay ${delay} '${escapedText}'"`,
         );
 
         return {
           content: [
             {
               type: "text",
-              text: `Typed "${args.text.length > 50 ? args.text.substring(0, 50) + "..." : args.text}" on ${args.name}.`,
+              text: `Typed "${args.text.length > 50 ? args.text.substring(0, 50) + "..." : args.text}" on ${desktop.name}.`,
             },
           ],
         };
@@ -868,16 +879,19 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         // Use xdotool to press the key
         await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 xdotool key --clearmodifiers ${args.key}"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 xdotool key --clearmodifiers ${args.key}"`,
         );
 
         return {
           content: [
             {
               type: "text",
-              text: `Pressed key "${args.key}" on ${args.name}.`,
+              text: `Pressed key "${args.key}" on ${desktop.name}.`,
             },
           ],
         };
@@ -951,15 +965,18 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 xdotool mousemove ${args.x} ${args.y}"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 xdotool mousemove ${args.x} ${args.y}"`,
         );
 
         return {
           content: [
             {
               type: "text",
-              text: `Moved mouse to (${args.x}, ${args.y}) on ${args.name}.`,
+              text: `Moved mouse to (${args.x}, ${args.y}) on ${desktop.name}.`,
             },
           ],
         };
@@ -1040,20 +1057,23 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         const amount = args.amount || 3;
         // xdotool uses button 4 for scroll up, 5 for scroll down, 6 for left, 7 for right
         const buttonMap = { up: 4, down: 5, left: 6, right: 7 };
         const button = buttonMap[args.direction];
 
         await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 xdotool click --repeat ${amount} --delay 50 ${button}"`,
+          `docker exec ${containerName} bash -c "DISPLAY=:1 xdotool click --repeat ${amount} --delay 50 ${button}"`,
         );
 
         return {
           content: [
             {
               type: "text",
-              text: `Scrolled ${args.direction} ${amount} times on ${args.name}.`,
+              text: `Scrolled ${args.direction} ${amount} times on ${desktop.name}.`,
             },
           ],
         };
@@ -1142,6 +1162,9 @@ export function createVirtualDesktopServer(): McpServer {
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
+        // Use the resolved container name
+        const containerName = desktop.name;
+
         const timeout = args.timeout ?? 30000;
         const background = args.background ?? false;
 
@@ -1151,8 +1174,8 @@ export function createVirtualDesktopServer(): McpServer {
         // Build the docker exec command
         // DISPLAY=:1 ensures GUI apps show in the VNC display
         const dockerCmd = background
-          ? `docker exec -d ${args.name} bash -c "DISPLAY=:1 ${escapedCommand}"`
-          : `docker exec ${args.name} bash -c "DISPLAY=:1 ${escapedCommand}"`;
+          ? `docker exec -d ${containerName} bash -c "DISPLAY=:1 ${escapedCommand}"`
+          : `docker exec ${containerName} bash -c "DISPLAY=:1 ${escapedCommand}"`;
 
         if (background) {
           // For background commands, just start them and return

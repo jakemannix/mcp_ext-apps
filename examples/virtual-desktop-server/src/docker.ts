@@ -131,6 +131,23 @@ export function validateContainerName(name: string): void {
 }
 
 /**
+ * Resolve a logical desktop name to the full container name.
+ * Accepts either:
+ * - Logical name (e.g., "my-desktop") → resolves to "mcp-apps-vd-my-desktop"
+ * - Full name (e.g., "mcp-apps-vd-my-desktop") → returns as-is
+ *
+ * @param name - The desktop name (logical or full)
+ * @returns The full container name with prefix
+ */
+export function resolveContainerName(name: string): string {
+  validateContainerName(name);
+  if (name.startsWith(CONTAINER_PREFIX)) {
+    return name;
+  }
+  return CONTAINER_PREFIX + name;
+}
+
+/**
  * Sanitize a name to be valid as a Docker container name.
  * Docker container names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*
  */
@@ -426,8 +443,9 @@ export async function createDesktop(
  * Get information about a specific desktop.
  */
 export async function getDesktop(name: string): Promise<DesktopInfo | null> {
+  const fullName = resolveContainerName(name);
   const desktops = await listDesktops();
-  return desktops.find((d) => d.name === name) || null;
+  return desktops.find((d) => d.name === fullName) || null;
 }
 
 /**
@@ -437,16 +455,17 @@ export async function shutdownDesktop(
   name: string,
   cleanup: boolean = false,
 ): Promise<boolean> {
+  const fullName = resolveContainerName(name);
   try {
     // Stop the container
-    await execAsync(`docker stop ${name}`).catch(() => {});
+    await execAsync(`docker stop ${fullName}`).catch(() => {});
 
     // Remove the container
-    await execAsync(`docker rm ${name}`);
+    await execAsync(`docker rm ${fullName}`);
 
     // Optionally clean up the data directory
     if (cleanup) {
-      const desktopDir = path.join(VIRTUAL_DESKTOPS_DIR, name);
+      const desktopDir = path.join(VIRTUAL_DESKTOPS_DIR, fullName);
       await rm(desktopDir, { recursive: true, force: true });
     }
 
