@@ -379,25 +379,28 @@ export interface McpUiHostContextChangedNotification {
  * Unlike `notifications/message` which is for debugging/logging, this request is intended
  * to update the Host's model context. Each request overwrites the previous context sent by the Guest UI.
  * Unlike messages, context updates do not trigger follow-ups.
- * @see {@link app.App.sendUpdateModelContext} for the method that sends this request
+ *
+ * The host will typically defer sending the context to the model until the next user message
+ * (including `ui/message`), and will only send the last update received.
+ *
+ * @see {@link app.App.updateModelContext} for the method that sends this request
  */
 export interface McpUiUpdateModelContextRequest {
   method: "ui/update-model-context";
   params: {
-    /** @description Message role, currently only "user" is supported. */
-    role: "user";
     /** @description Context content blocks (text, image, etc.). */
-    content: ContentBlock[];
+    content?: ContentBlock[];
+    /** @description Structured content for machine-readable context data. */
+    structuredContent?: Record<string, unknown>;
   };
 }
 
 /**
  * @description Result from setting the agent's model context.
+ * Empty on success; errors are signaled via JSON-RPC error responses.
  * @see {@link McpUiUpdateModelContextRequest}
  */
 export interface McpUiUpdateModelContextResult {
-  /** @description True if the host rejected or failed to store the context update. */
-  isError?: boolean;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
    * Note: The schema intentionally omits this to enforce strict validation.
@@ -447,7 +450,20 @@ export interface McpUiHostCapabilities {
   /** @description Host accepts log messages. */
   logging?: {};
   /** @description Host accepts context updates to be included in the model's context for future turns. */
-  updateModelContext?: {};
+  updateModelContext?: {
+    /** @description Host supports text content blocks. */
+    text?: {};
+    /** @description Host supports image content blocks. */
+    image?: {};
+    /** @description Host supports audio content blocks. */
+    audio?: {};
+    /** @description Host supports resource content blocks. */
+    resource?: {};
+    /** @description Host supports resource link content blocks. */
+    resourceLink?: {};
+    /** @description Host supports structured content. */
+    structuredContent?: {};
+  };
 }
 
 /**

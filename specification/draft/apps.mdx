@@ -809,8 +809,8 @@ Guest UI behavior:
   id: 3,
   method: "ui/update-model-context",
   params: {
-    role: "user",
-    content: ContentBlock[]
+    content?: ContentBlock[],
+    structuredContent?: Record<string, unknown>
   }
 }
 
@@ -836,8 +836,11 @@ Guest UI MAY send this request to update the Host's model context. This context 
 This event serves a different use case from `notifications/message` (logging) and `ui/message` (which also trigger follow-ups).
 
 Host behavior:
-- SHOULD store the context snapshot in the conversation context
+- SHOULD provide the context to the model in future turns
 - SHOULD overwrite the previous model context with the new update
+- MAY defer sending the context to the model until the next user message (including `ui/message`)
+- MAY dedupe identical `ui/update-model-context` calls
+- If multiple updates are received before the next user message, Host SHOULD only send the last update to the model
 - MAY display context updates to the user
 
 #### Notifications (Host → UI)

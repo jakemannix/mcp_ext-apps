@@ -93,7 +93,44 @@
         "updateModelContext": {
           "description": "Host accepts context updates to be included in the model's context for future turns.",
           "type": "object",
-          "properties": {},
+          "properties": {
+            "text": {
+              "description": "Host supports text content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "image": {
+              "description": "Host supports image content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "audio": {
+              "description": "Host supports audio content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "resource": {
+              "description": "Host supports resource content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "resourceLink": {
+              "description": "Host supports resource link content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "structuredContent": {
+              "description": "Host supports structured content.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
           "additionalProperties": false
         }
       },
@@ -1892,7 +1929,44 @@
             "updateModelContext": {
               "description": "Host accepts context updates to be included in the model's context for future turns.",
               "type": "object",
-              "properties": {},
+              "properties": {
+                "text": {
+                  "description": "Host supports text content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "image": {
+                  "description": "Host supports image content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "audio": {
+                  "description": "Host supports audio content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "resource": {
+                  "description": "Host supports resource content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "resourceLink": {
+                  "description": "Host supports resource link content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "structuredContent": {
+                  "description": "Host supports structured content.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
               "additionalProperties": false
             }
           },
@@ -4299,11 +4373,6 @@
         "params": {
           "type": "object",
           "properties": {
-            "role": {
-              "description": "Message role, currently only \"user\" is supported.",
-              "type": "string",
-              "const": "user"
-            },
             "content": {
               "description": "Context content blocks (text, image, etc.).",
               "type": "array",
@@ -4616,9 +4685,13 @@
                   }
                 ]
               }
+            },
+            "structuredContent": {
+              "description": "Structured content for machine-readable context data.",
+              "type": "object",
+              "additionalProperties": {}
             }
           },
-          "required": ["role", "content"],
           "additionalProperties": false
         }
       },
@@ -4628,12 +4701,7 @@
     "McpUiUpdateModelContextResult": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {
-        "isError": {
-          "description": "True if the host rejected or failed to store the context update.",
-          "type": "boolean"
-        }
-      },
+      "properties": {},
       "additionalProperties": {}
     }
   }

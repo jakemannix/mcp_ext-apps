@@ -440,7 +440,7 @@ describe("App <-> AppBridge integration", () => {
       });
     });
 
-    it("app.sendUpdateModelContext triggers bridge.onupdatemodelcontext and returns result", async () => {
+    it("app.updateModelContext triggers bridge.onupdatemodelcontext and returns result", async () => {
       const receivedContexts: unknown[] = [];
       bridge.onupdatemodelcontext = async (params) => {
         receivedContexts.push(params);
@@ -448,20 +448,18 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      const result = await app.sendUpdateModelContext({
-        role: "user",
+      const result = await app.updateModelContext({
         content: [{ type: "text", text: "User selected 3 items" }],
       });
 
       expect(receivedContexts).toHaveLength(1);
       expect(receivedContexts[0]).toMatchObject({
-        role: "user",
         content: [{ type: "text", text: "User selected 3 items" }],
       });
       expect(result).toEqual({});
     });
 
-    it("app.sendUpdateModelContext works with multiple content blocks", async () => {
+    it("app.updateModelContext works with multiple content blocks", async () => {
       const receivedContexts: unknown[] = [];
       bridge.onupdatemodelcontext = async (params) => {
         receivedContexts.push(params);
@@ -469,8 +467,7 @@ describe("App <-> AppBridge integration", () => {
       };
 
       await app.connect(appTransport);
-      const result = await app.sendUpdateModelContext({
-        role: "user",
+      const result = await app.updateModelContext({
         content: [
           { type: "text", text: "Filter applied" },
           { type: "text", text: "Category: electronics" },
@@ -479,7 +476,6 @@ describe("App <-> AppBridge integration", () => {
 
       expect(receivedContexts).toHaveLength(1);
       expect(receivedContexts[0]).toMatchObject({
-        role: "user",
         content: [
           { type: "text", text: "Filter applied" },
           { type: "text", text: "Category: electronics" },
@@ -488,18 +484,36 @@ describe("App <-> AppBridge integration", () => {
       expect(result).toEqual({});
     });
 
-    it("app.sendUpdateModelContext returns error result when handler indicates error", async () => {
+    it("app.updateModelContext works with structuredContent", async () => {
+      const receivedContexts: unknown[] = [];
+      bridge.onupdatemodelcontext = async (params) => {
+        receivedContexts.push(params);
+        return {};
+      };
+
+      await app.connect(appTransport);
+      const result = await app.updateModelContext({
+        structuredContent: { selectedItems: 3, total: 150.0, currency: "USD" },
+      });
+
+      expect(receivedContexts).toHaveLength(1);
+      expect(receivedContexts[0]).toMatchObject({
+        structuredContent: { selectedItems: 3, total: 150.0, currency: "USD" },
+      });
+      expect(result).toEqual({});
+    });
+
+    it("app.updateModelContext throws when handler throws", async () => {
       bridge.onupdatemodelcontext = async () => {
-        return { isError: true };
+        throw new Error("Context update failed");
       };
 
       await app.connect(appTransport);
-      const result = await app.sendUpdateModelContext({
-        role: "user",
-        content: [{ type: "text", text: "Test" }],
-      });
-
-      expect(result.isError).toBe(true);
+      await expect(
+        app.updateModelContext({
+          content: [{ type: "text", text: "Test" }],
+        }),
+      ).rejects.toThrow("Context update failed");
     });
   });
 

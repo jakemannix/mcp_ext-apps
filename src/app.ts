@@ -9,6 +9,7 @@ import {
   CallToolRequestSchema,
   CallToolResult,
   CallToolResultSchema,
+  EmptyResultSchema,
   Implementation,
   ListToolsRequest,
   ListToolsRequestSchema,
@@ -21,7 +22,6 @@ import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
   McpUiUpdateModelContextRequest,
-  McpUiUpdateModelContextResultSchema,
   McpUiHostCapabilities,
   McpUiHostContext,
   McpUiHostContextChangedNotification,
@@ -812,26 +812,38 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   }
 
   /**
-   * Send context updates to the host to be included in the agent's context.
+   * Update the host's model context with app state.
    *
    * Unlike `sendLog`, which is for debugging/telemetry, context updates
-   * are inteded to be available to the model in future reasoning,
+   * are intended to be available to the model in future reasoning,
    * without requiring a follow-up action (like `sendMessage`).
    *
-   * @param params - Context role and content (same structure as ui/message)
+   * The host will typically defer sending the context to the model until the
+   * next user message (including `ui/message`), and will only send the last
+   * update received. Each call overwrites any previous context update.
+   *
+   * @param params - Context content and/or structured content
    * @param options - Request options (timeout, etc.)
+   *
+   * @throws {Error} If the host rejects the context update (e.g., unsupported content type)
    *
    * @example Update model context with current app state
    * ```typescript
-   * await app.sendUpdateModelContext({
-   *   role: "user",
+   * await app.updateModelContext({
    *   content: [{ type: "text", text: "User selected 3 items totaling $150.00" }]
+   * });
+   * ```
+   *
+   * @example Update with structured content
+   * ```typescript
+   * await app.updateModelContext({
+   *   structuredContent: { selectedItems: 3, total: 150.00, currency: "USD" }
    * });
    * ```
    *
    * @returns Promise that resolves when the context update is acknowledged
    */
-  sendUpdateModelContext(
+  updateModelContext(
     params: McpUiUpdateModelContextRequest["params"],
     options?: RequestOptions,
   ) {
@@ -840,7 +852,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
         method: "ui/update-model-context",
         params,
       },
-      McpUiUpdateModelContextResultSchema,
+      EmptyResultSchema,
       options,
     );
   }

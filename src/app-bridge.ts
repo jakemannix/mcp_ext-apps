@@ -5,6 +5,7 @@ import {
   CallToolRequestSchema,
   CallToolResult,
   CallToolResultSchema,
+  EmptyResult,
   Implementation,
   ListPromptsRequest,
   ListPromptsRequestSchema,
@@ -53,7 +54,6 @@ import {
   McpUiAppCapabilities,
   McpUiUpdateModelContextRequest,
   McpUiUpdateModelContextRequestSchema,
-  McpUiUpdateModelContextResult,
   McpUiHostCapabilities,
   McpUiHostContext,
   McpUiHostContextChangedNotification,
@@ -641,35 +641,33 @@ export class AppBridge extends Protocol<
    * The Guest UI sends `ui/update-model-context` requests to update the Host's
    * model context. Each request overwrites the previous context stored by the Guest UI.
    * Unlike logging messages, context updates are intended to be available to
-   * the model in future turns. Unlike messages, context updates do not trigger follow-ups
+   * the model in future turns. Unlike messages, context updates do not trigger follow-ups.
+   *
+   * The host will typically defer sending the context to the model until the
+   * next user message (including `ui/message`), and will only send the last
+   * update received.
    *
    * @example
    * ```typescript
-   * bridge.onupdatemodelcontext = async ({ role, content }, extra) => {
-   *   try {
-   *     // Update the model context with the new snapshot
-   *     modelContext = {
-   *       type: "app_context",
-   *       role,
-   *       content,
-   *       timestamp: Date.now()
-   *     };
-   *     return {};
-   *   } catch (err) {
-   *     // Handle error and signal failure to the app
-   *     return { isError: true };
-   *   }
+   * bridge.onupdatemodelcontext = async ({ content, structuredContent }, extra) => {
+   *   // Update the model context with the new snapshot
+   *   modelContext = {
+   *     type: "app_context",
+   *     content,
+   *     structuredContent,
+   *     timestamp: Date.now()
+   *   };
+   *   return {};
    * };
    * ```
    *
    * @see {@link McpUiUpdateModelContextRequest} for the request type
-   * @see {@link McpUiUpdateModelContextResult} for the result type
    */
   set onupdatemodelcontext(
     callback: (
       params: McpUiUpdateModelContextRequest["params"],
       extra: RequestHandlerExtra,
-    ) => Promise<McpUiUpdateModelContextResult>,
+    ) => Promise<EmptyResult>,
   ) {
     this.setRequestHandler(
       McpUiUpdateModelContextRequestSchema,
