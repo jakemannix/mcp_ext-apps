@@ -30,3 +30,7 @@ npm run dev
 1. The server registers a `get-time` tool with metadata linking it to a UI HTML resource (`ui://get-time/mcp-app.html`).
 2. When the tool is invoked, the Host renders the UI from the resource.
 3. The UI uses the MCP App SDK API to communicate with the host and call server tools.
+
+## Build System
+
+This example bundles into a single HTML file using Vite with `vite-plugin-singlefile` — see [`vite.config.ts`](vite.config.ts). This allows all UI content to be served as a single MCP resource. Alternatively, MCP apps can load external resources by defining [`_meta.ui.csp.resourceDomains`](https://modelcontextprotocol.github.io/ext-apps/api/interfaces/app.McpUiResourceCsp.html#resourcedomains) in the UI resource metadata.

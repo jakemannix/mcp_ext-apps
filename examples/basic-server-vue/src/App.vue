@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
+import { ref, onMounted, watchEffect } from "vue";
+import {
+  App,
+  applyDocumentTheme,
+  applyHostFonts,
+  applyHostStyleVariables,
+  type McpUiHostContext,
+} from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-
-const log = {
-  info: console.log.bind(console, "[APP]"),
-  warn: console.warn.bind(console, "[APP]"),
-  error: console.error.bind(console, "[APP]"),
-};
 
 function extractTime(result: CallToolResult): string {
   const { text } = result.content?.find((c) => c.type === "text")!;
   return text;
 }
+
 
 const app = ref<App | null>(null);
 const hostContext = ref<McpUiHostContext | undefined>();
@@ -21,19 +22,37 @@ const messageText = ref("This is message text.");
 const logText = ref("This is log text.");
 const linkUrl = ref("https://modelcontextprotocol.io/");
 
+// Apply host styles reactively when hostContext changes
+watchEffect(() => {
+  const ctx = hostContext.value;
+  if (ctx?.theme) {
+    applyDocumentTheme(ctx.theme);
+  }
+  if (ctx?.styles?.variables) {
+    applyHostStyleVariables(ctx.styles.variables);
+  }
+  if (ctx?.styles?.css?.fonts) {
+    applyHostFonts(ctx.styles.css.fonts);
+  }
+});
+
 onMounted(async () => {
   const instance = new App({ name: "Get Time App", version: "1.0.0" });
 
   instance.ontoolinput = (params) => {
-    log.info("Received tool call input:", params);
+    console.info("Received tool call input:", params);
   };
 
   instance.ontoolresult = (result) => {
-    log.info("Received tool call result:", result);
+    console.info("Received tool call result:", result);
     serverTime.value = extractTime(result);
   };
 
-  instance.onerror = log.error;
+  instance.ontoolcancelled = (params) => {
+    console.info("Tool call cancelled:", params.reason);
+  };
+
+  instance.onerror = console.error;
 
   instance.onhostcontextchanged = (params) => {
     hostContext.value = { ...hostContext.value, ...params };
@@ -47,12 +66,12 @@ onMounted(async () => {
 async function handleGetTime() {
   if (!app.value) return;
   try {
-    log.info("Calling get-time tool...");
+    console.info("Calling get-time tool...");
     const result = await app.value.callServerTool({ name: "get-time", arguments: {} });
-    log.info("get-time result:", result);
+    console.info("get-time result:", result);
     serverTime.value = extractTime(result);
   } catch (e) {
-    log.error(e);
+    console.error(e);
     serverTime.value = "[ERROR]";
   }
 }
@@ -61,28 +80,28 @@ async function handleSendMessage() {
   if (!app.value) return;
   const signal = AbortSignal.timeout(5000);
   try {
-    log.info("Sending message text to Host:", messageText.value);
+    console.info("Sending message text to Host:", messageText.value);
     const { isError } = await app.value.sendMessage(
       { role: "user", content: [{ type: "text", text: messageText.value }] },
       { signal },
     );
-    log.info("Message", isError ? "rejected" : "accepted");
+    console.info("Message", isError ? "rejected" : "accepted");
   } catch (e) {
-    log.error("Message send error:", signal.aborted ? "timed out" : e);
+    console.error("Message send error:", signal.aborted ? "timed out" : e);
   }
 }
 
 async function handleSendLog() {
   if (!app.value) return;
-  log.info("Sending log text to Host:", logText.value);
+  console.info("Sending log text to Host:", logText.value);
   await app.value.sendLog({ level: "info", data: logText.value });
 }
 
 async function handleOpenLink() {
   if (!app.value) return;
-  log.info("Sending open link request to Host:", linkUrl.value);
+  console.info("Sending open link request to Host:", linkUrl.value);
   const { isError } = await app.value.openLink({ url: linkUrl.value });
-  log.info("Open link request", isError ? "rejected" : "accepted");
+  console.info("Open link request", isError ? "rejected" : "accepted");
 }
 </script>
 

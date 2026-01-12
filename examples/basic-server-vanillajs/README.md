@@ -10,6 +10,7 @@ An MCP App example with a vanilla JavaScript UI (no framework).
 - Tool registration with a linked UI resource
 - Vanilla JS UI using the [`App`](https://modelcontextprotocol.github.io/ext-apps/api/classes/app.App.html) class directly
 - App communication APIs: [`callServerTool`](https://modelcontextprotocol.github.io/ext-apps/api/classes/app.App.html#callservertool), [`sendMessage`](https://modelcontextprotocol.github.io/ext-apps/api/classes/app.App.html#sendmessage), [`sendLog`](https://modelcontextprotocol.github.io/ext-apps/api/classes/app.App.html#sendlog), [`openLink`](https://modelcontextprotocol.github.io/ext-apps/api/classes/app.App.html#openlink)
+- Theme integration via [`applyDocumentTheme()`](https://modelcontextprotocol.github.io/ext-apps/api/functions/app.applyDocumentTheme.html), [`applyHostStyleVariables()`](https://modelcontextprotocol.github.io/ext-apps/api/functions/app.applyHostStyleVariables.html), and [`applyHostFonts()`](https://modelcontextprotocol.github.io/ext-apps/api/functions/app.applyHostFonts.html)
 
 ## Key Files
 
@@ -29,28 +30,6 @@ npm run dev
 2. When the tool is invoked, the Host renders the UI from the resource.
 3. The UI uses the MCP App SDK API to communicate with the host and call server tools.
 
-## Vanilla JS Pattern
+## Build System
 
-```typescript
-import { App, PostMessageTransport } from "@modelcontextprotocol/ext-apps";
-
-// Get element references from static HTML
-const button = document.getElementById("my-button")!;
-
-// Create app instance
-const app = new App({ name: "My App", version: "1.0.0" });
-
-// Register handlers BEFORE connecting
-app.ontoolresult = (result) => {
-  /* handle result */
-};
-app.onerror = console.error;
-
-// Add event listeners
-button.addEventListener("click", () => {
-  /* ... */
-});
-
-// Connect to host
-app.connect();
-```
+This example bundles into a single HTML file using Vite with `vite-plugin-singlefile` — see [`vite.config.ts`](vite.config.ts). This allows all UI content to be served as a single MCP resource. Alternatively, MCP apps can load external resources by defining [`_meta.ui.csp.resourceDomains`](https://modelcontextprotocol.github.io/ext-apps/api/interfaces/app.McpUiResourceCsp.html#resourcedomains) in the UI resource metadata.

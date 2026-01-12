@@ -12,10 +12,20 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import type { WidgetProps } from "./mcp-app-wrapper.tsx";
 
+// =============================================================================
+// Types
+// =============================================================================
+
 interface ThreeJSToolInput {
   code?: string;
   height?: number;
 }
+
+type ThreeJSAppProps = WidgetProps<ThreeJSToolInput>;
+
+// =============================================================================
+// Constants
+// =============================================================================
 
 // Default demo code shown when no code is provided
 const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
@@ -52,7 +62,9 @@ function animate() {
 }
 animate();`;
 
-type ThreeJSAppProps = WidgetProps<ThreeJSToolInput>;
+// =============================================================================
+// Streaming Preview
+// =============================================================================
 
 const SHIMMER_STYLE = `
   @keyframes shimmer {
@@ -119,7 +131,10 @@ function LoadingShimmer({ height, code }: { height: number; code?: string }) {
   );
 }
 
-// Context object passed to user code
+// =============================================================================
+// Three.js Execution
+// =============================================================================
+
 const threeContext = {
   THREE,
   OrbitControls,
@@ -144,6 +159,10 @@ async function executeThreeCode(
   );
   await fn(threeContext, canvas, width, height);
 }
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export default function ThreeJSApp({
   toolInputs,
