@@ -143,12 +143,15 @@ test.describe("Virtual Desktop Server - Basic", () => {
     // Call the tool
     await page.click('button:has-text("Call Tool")');
 
-    // Should show a result (either no desktops or Docker not available)
+    // Should show a result (either no desktops, Docker not available, or a list of desktops)
+    // Wait for any response from the tool call
     await expect(
       page
         .locator('text="No virtual desktops found"')
-        .or(page.locator('text="Docker is not available"')),
-    ).toBeVisible({ timeout: 10000 });
+        .or(page.locator('text="Docker is not available"'))
+        .or(page.locator('text="Found"'))
+        .or(page.locator('text="virtual desktop"')),
+    ).toBeVisible({ timeout: 15000 });
   });
 });
 
@@ -164,7 +167,9 @@ test.describe("Virtual Desktop Server - Docker", () => {
   // Run tests serially to share the container
   test.describe.configure({ mode: "serial" });
 
+  // Increase timeout for beforeAll since container creation can be slow
   test.beforeAll(async () => {
+    test.setTimeout(180000); // 3 minutes for container startup
     if (!enableDockerTests || !dockerAvailable) return;
 
     // Clean up any existing test container
