@@ -422,19 +422,32 @@ function ViewDesktopInner({
     const container = containerRef.current;
     if (!container) return;
 
+    // Get the parent container - canvas is now absolute positioned
+    // so it won't affect the parent's layout
+    const parentContainer = container.parentElement;
+    if (!parentContainer) return;
+
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     let lastSize = { width: 0, height: 0 };
-    const RESIZE_DEBOUNCE = 200; // ms - fast response to minimize distortion
+    const RESIZE_DEBOUNCE = 300; // ms
 
-    const handleResize = (entries: ResizeObserverEntry[]) => {
-      const entry = entries[0];
-      if (!entry) return;
+    const handleResize = () => {
+      // Use parent's dimensions directly since canvas is absolutely positioned
+      const rect = parentContainer.getBoundingClientRect();
+      const width = Math.floor(rect.width);
+      const height = Math.floor(rect.height);
 
-      const { width, height } = entry.contentRect;
+      // Ignore very small sizes (layout not ready)
+      if (width < 100 || height < 100) {
+        return;
+      }
 
-      // Use exact dimensions - cvt/xrandr will round as needed
-      const newWidth = Math.max(640, Math.floor(width));
-      const newHeight = Math.max(480, Math.floor(height));
+      log.info(`Container size: ${width}x${height}`);
+
+      // Use the exact container dimensions for the desktop
+      // This ensures the desktop fills the space without letterboxing
+      const newWidth = Math.floor(width);
+      const newHeight = Math.floor(height);
 
       // Skip if size hasn't changed significantly
       if (newWidth === lastSize.width && newHeight === lastSize.height) {
@@ -468,7 +481,10 @@ function ViewDesktopInner({
     };
 
     const observer = new ResizeObserver(handleResize);
-    observer.observe(container);
+    observer.observe(parentContainer);
+
+    // Also trigger an initial resize check
+    handleResize();
 
     return () => {
       if (resizeTimeout) clearTimeout(resizeTimeout);

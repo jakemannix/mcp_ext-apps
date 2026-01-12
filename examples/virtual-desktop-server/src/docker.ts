@@ -103,6 +103,34 @@ export interface CreateDesktopResult {
 }
 
 /**
+ * Regex for valid Docker container names.
+ * Must start with alphanumeric, followed by alphanumeric, underscore, dot, or dash.
+ */
+const VALID_CONTAINER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+
+/**
+ * Validate a container name for use in shell commands.
+ * Throws an error if the name contains invalid characters that could allow injection.
+ *
+ * @param name - The container name to validate
+ * @throws Error if the name is invalid
+ */
+export function validateContainerName(name: string): void {
+  if (!name || typeof name !== "string") {
+    throw new Error("Container name must be a non-empty string");
+  }
+  if (!VALID_CONTAINER_NAME_REGEX.test(name)) {
+    throw new Error(
+      `Invalid container name "${name}". Must match [a-zA-Z0-9][a-zA-Z0-9_.-]*`,
+    );
+  }
+  // Additional safety: reject names that could be interpreted as shell options
+  if (name.startsWith("-")) {
+    throw new Error("Container name cannot start with a dash");
+  }
+}
+
+/**
  * Sanitize a name to be valid as a Docker container name.
  * Docker container names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*
  */
