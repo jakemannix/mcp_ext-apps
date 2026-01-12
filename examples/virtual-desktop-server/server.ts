@@ -979,7 +979,9 @@ export function createVirtualDesktopServer(): McpServer {
   // ==================== Scroll ====================
   const ScrollInputSchema = z.object({
     name: z.string().describe("Name of the desktop"),
-    direction: z.enum(["up", "down", "left", "right"]).describe("Scroll direction"),
+    direction: z
+      .enum(["up", "down", "left", "right"])
+      .describe("Scroll direction"),
     amount: z
       .number()
       .min(1)
@@ -1061,6 +1063,177 @@ export function createVirtualDesktopServer(): McpServer {
             {
               type: "text",
               text: `Failed to scroll: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // ==================== Exec ====================
+  const ExecInputSchema = z.object({
+    name: z.string().describe("Name of the desktop"),
+    command: z
+      .string()
+      .describe(
+        "Command to execute (e.g., 'firefox', 'xfce4-terminal', 'ls -la ~')",
+      ),
+    background: z
+      .boolean()
+      .optional()
+      .describe(
+        "Run in background (default: false). Use true for GUI apps that don't exit.",
+      ),
+    timeout: z
+      .number()
+      .min(1000)
+      .max(300000)
+      .optional()
+      .describe("Timeout in milliseconds (default: 30000, max: 300000)"),
+  });
+
+  server.tool(
+    "exec",
+    "Execute a command inside the virtual desktop container. Commands run with DISPLAY=:1 so GUI apps appear in VNC.",
+    ExecInputSchema.shape,
+    async (args): Promise<CallToolResult> => {
+      const dockerAvailable = await checkDocker();
+      if (!dockerAvailable) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Docker is not available. Please ensure Docker is installed and running.",
+            },
+          ],
+        };
+      }
+
+      const desktop = await getDesktop(args.name);
+
+      if (!desktop) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Desktop "${args.name}" not found. Use list-desktops to see available desktops.`,
+            },
+          ],
+        };
+      }
+
+      if (desktop.status !== "running") {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Desktop "${args.name}" is not running (status: ${desktop.status}).`,
+            },
+          ],
+        };
+      }
+
+      try {
+        const { exec } = await import("node:child_process");
+        const { promisify } = await import("node:util");
+        const execAsync = promisify(exec);
+
+        const timeout = args.timeout ?? 30000;
+        const background = args.background ?? false;
+
+        // Escape single quotes in the command
+        const escapedCommand = args.command.replace(/'/g, "'\\''");
+
+        // Build the docker exec command
+        // DISPLAY=:1 ensures GUI apps show in the VNC display
+        const dockerCmd = background
+          ? `docker exec -d ${args.name} bash -c "DISPLAY=:1 ${escapedCommand}"`
+          : `docker exec ${args.name} bash -c "DISPLAY=:1 ${escapedCommand}"`;
+
+        if (background) {
+          // For background commands, just start them and return
+          await execAsync(dockerCmd);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Started in background: ${args.command}`,
+              },
+            ],
+          };
+        } else {
+          // For foreground commands, capture output
+          const { stdout, stderr } = await execAsync(dockerCmd, {
+            timeout,
+            maxBuffer: 10 * 1024 * 1024, // 10MB
+          });
+
+          const output = [];
+          if (stdout.trim()) {
+            output.push(`stdout:\n${stdout.trim()}`);
+          }
+          if (stderr.trim()) {
+            output.push(`stderr:\n${stderr.trim()}`);
+          }
+
+          return {
+            content: [
+              {
+                type: "text",
+                text:
+                  output.length > 0
+                    ? output.join("\n\n")
+                    : `Command completed: ${args.command}`,
+              },
+            ],
+          };
+        }
+      } catch (error: unknown) {
+        // Handle exec errors (non-zero exit codes, timeouts, etc.)
+        const execError = error as {
+          stdout?: string;
+          stderr?: string;
+          code?: number;
+          killed?: boolean;
+          message?: string;
+        };
+
+        if (execError.killed) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: `Command timed out after ${args.timeout ?? 30000}ms: ${args.command}`,
+              },
+            ],
+          };
+        }
+
+        // Include stdout/stderr even on error
+        const output = [];
+        if (execError.stdout?.trim()) {
+          output.push(`stdout:\n${execError.stdout.trim()}`);
+        }
+        if (execError.stderr?.trim()) {
+          output.push(`stderr:\n${execError.stderr.trim()}`);
+        }
+        if (execError.code !== undefined) {
+          output.push(`exit code: ${execError.code}`);
+        }
+
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text:
+                output.length > 0
+                  ? `Command failed: ${args.command}\n\n${output.join("\n\n")}`
+                  : `Command failed: ${execError.message || String(error)}`,
             },
           ],
         };
