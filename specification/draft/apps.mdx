@@ -837,7 +837,7 @@ This event serves a different use case from `notifications/message` (logging) an
 
 Host behavior:
 - SHOULD provide the context to the model in future turns
-- SHOULD overwrite the previous model context with the new update
+- MAY overwrite the previous model context with the new update
 - MAY defer sending the context to the model until the next user message (including `ui/message`)
 - MAY dedupe identical `ui/update-model-context` calls
 - If multiple updates are received before the next user message, Host SHOULD only send the last update to the model
