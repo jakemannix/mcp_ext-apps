@@ -34,6 +34,7 @@ import {
   DESKTOP_VARIANTS,
   DEFAULT_VARIANT,
   DEFAULT_RESOLUTION,
+  VIRTUAL_DESKTOPS_DIR,
   type DesktopInfo,
   type DesktopVariant,
 } from "./src/docker.js";
@@ -339,6 +340,7 @@ export function createVirtualDesktopServer(): McpServer {
           resolution: desktop.resolution,
           variant: desktop.variant,
           password: portConfig.password,
+          homeFolder: path.join(VIRTUAL_DESKTOPS_DIR, desktop.name, "home"),
         },
         _meta: {},
       };
@@ -349,8 +351,12 @@ export function createVirtualDesktopServer(): McpServer {
   const viewDesktopCsp = {
     // Allow loading noVNC library from jsdelivr CDN
     resourceDomains: ["https://cdn.jsdelivr.net"],
-    // Allow WebSocket connections to localhost for VNC
-    connectDomains: ["ws://localhost:*", "wss://localhost:*"],
+    // Allow WebSocket connections to localhost for VNC, and HTTPS for source maps
+    connectDomains: [
+      "ws://localhost:*",
+      "wss://localhost:*",
+      "https://cdn.jsdelivr.net",
+    ],
   };
 
   registerAppResource(
@@ -456,7 +462,8 @@ export function createVirtualDesktopServer(): McpServer {
     "open-home-folder",
     {
       title: "Open Home Folder",
-      description: "Open the home folder in the desktop's file manager",
+      description:
+        "Open the desktop's home folder on the host machine's file manager",
       inputSchema: OpenHomeFolderInputSchema.shape,
       _meta: {
         ui: {
@@ -465,19 +472,6 @@ export function createVirtualDesktopServer(): McpServer {
       },
     },
     async (args: { name: string }): Promise<CallToolResult> => {
-      const dockerAvailable = await checkDocker();
-      if (!dockerAvailable) {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: "Docker is not available. Please ensure Docker is installed and running.",
-            },
-          ],
-        };
-      }
-
       const desktop = await getDesktop(args.name);
 
       if (!desktop) {
@@ -492,34 +486,33 @@ export function createVirtualDesktopServer(): McpServer {
         };
       }
 
-      if (desktop.status !== "running") {
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `Desktop "${args.name}" is not running (status: ${desktop.status}).`,
-            },
-          ],
-        };
-      }
+      // Construct the host path to the desktop's home folder
+      const homeFolder = path.join(VIRTUAL_DESKTOPS_DIR, args.name, "home");
 
       try {
-        // Run file manager in the container
         const { exec } = await import("node:child_process");
         const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
 
-        // Use thunar (XFCE file manager) or xdg-open as fallback
-        await execAsync(
-          `docker exec ${args.name} bash -c "DISPLAY=:1 thunar ~ || DISPLAY=:1 xdg-open ~" &`,
-        );
+        // Use platform-specific open command
+        const platform = process.platform;
+        let openCmd: string;
+        if (platform === "darwin") {
+          openCmd = `open "${homeFolder}"`;
+        } else if (platform === "win32") {
+          openCmd = `explorer "${homeFolder}"`;
+        } else {
+          // Linux and others
+          openCmd = `xdg-open "${homeFolder}"`;
+        }
+
+        await execAsync(openCmd);
 
         return {
           content: [
             {
               type: "text",
-              text: `Opened home folder in ${args.name}.`,
+              text: `Opened home folder: ${homeFolder}`,
             },
           ],
         };
@@ -529,7 +522,7 @@ export function createVirtualDesktopServer(): McpServer {
           content: [
             {
               type: "text",
-              text: `Failed to open home folder: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Failed to open home folder (${homeFolder}): ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

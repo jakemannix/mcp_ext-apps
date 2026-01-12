@@ -36,6 +36,7 @@ interface DesktopInfo {
   resolution: { width: number; height: number };
   variant: string;
   password?: string;
+  homeFolder?: string;
 }
 
 type ConnectionState =
@@ -292,11 +293,13 @@ function ViewDesktopInner({
   const connect = useCallback(() => {
     if (!extractedInfo || !containerRef.current || !RFBClass) return;
 
-    // Disconnect existing connection
+    // Disconnect existing connection and clear container
     if (rfbRef.current) {
       rfbRef.current.disconnect();
       rfbRef.current = null;
     }
+    // Clear any leftover canvas elements from previous connection
+    containerRef.current.innerHTML = "";
 
     setConnectionState("connecting");
     setErrorMessage(null);
@@ -400,75 +403,9 @@ function ViewDesktopInner({
     }
   }, [noVncReady, extractedInfo, connectionState, connect]);
 
-  // Resize desktop when container size changes
-  useEffect(() => {
-    if (!app || !extractedInfo || connectionState !== "connected") return;
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
-    let lastResizeTime = 0;
-    const RESIZE_DEBOUNCE = 500; // ms
-    const MIN_RESIZE_INTERVAL = 2000; // ms - don't resize more often than this
-
-    const handleResize = (entries: ResizeObserverEntry[]) => {
-      const entry = entries[0];
-      if (!entry) return;
-
-      const { width, height } = entry.contentRect;
-      // Round to nearest 8 pixels (common VNC requirement)
-      const newWidth = Math.round(width / 8) * 8;
-      const newHeight = Math.round(height / 8) * 8;
-
-      // Ignore too-small sizes
-      if (newWidth < 640 || newHeight < 480) return;
-
-      // Check if this is different from current resolution
-      if (
-        newWidth === extractedInfo.resolution.width &&
-        newHeight === extractedInfo.resolution.height
-      ) {
-        return;
-      }
-
-      // Debounce and rate-limit
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-
-      const now = Date.now();
-      const timeSinceLastResize = now - lastResizeTime;
-      const delay = Math.max(RESIZE_DEBOUNCE, MIN_RESIZE_INTERVAL - timeSinceLastResize);
-
-      resizeTimeout = setTimeout(async () => {
-        lastResizeTime = Date.now();
-        log.info(`Resizing desktop to ${newWidth}x${newHeight}`);
-        try {
-          // Use xrandr to resize the desktop
-          await app.callServerTool({
-            name: "exec",
-            arguments: {
-              name: extractedInfo.name,
-              command: `xrandr --size ${newWidth}x${newHeight} || xrandr -s ${newWidth}x${newHeight}`,
-              background: false,
-              timeout: 5000,
-            },
-          });
-          // Update local resolution state
-          extractedInfo.resolution = { width: newWidth, height: newHeight };
-        } catch (e) {
-          log.warn("Failed to resize desktop:", e);
-        }
-      }, delay);
-    };
-
-    const observer = new ResizeObserver(handleResize);
-    observer.observe(container);
-
-    return () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-      observer.disconnect();
-    };
-  }, [app, extractedInfo, connectionState]);
+  // Note: Dynamic resize is not supported by TigerVNC.
+  // Resolution is set at container creation time via the `resolution` parameter.
+  // The VNC viewer scales to fit using scaleViewport=true.
 
   // Cleanup on unmount only
   useEffect(() => {
@@ -689,7 +626,11 @@ function ViewDesktopInner({
               <button
                 className={styles.toolbarButton}
                 onClick={handleOpenHomeFolder}
-                title="Open home folder"
+                title={
+                  extractedInfo?.homeFolder
+                    ? `Open home folder: ${extractedInfo.homeFolder}`
+                    : "Open home folder"
+                }
                 disabled={connectionState !== "connected"}
               >
                 <svg
