@@ -447,25 +447,20 @@ function ViewDesktopInner({
         lastSize = { width: newWidth, height: newHeight };
         log.info(`Resizing desktop to ${newWidth}x${newHeight}`);
         try {
-          // Create a custom xrandr mode and apply it
-          // cvt generates modeline, then we add and apply it
+          // Create a custom xrandr mode and apply it using a single-line command
           const modeName = `${newWidth}x${newHeight}_60`;
-          await app.callServerTool({
+          const cmd = `modeline=$(cvt ${newWidth} ${newHeight} 60 2>/dev/null | grep Modeline | cut -d' ' -f3-) && [ -n "$modeline" ] && (xrandr --newmode ${modeName} $modeline 2>/dev/null || true) && (xrandr --addmode VNC-0 ${modeName} 2>/dev/null || true) && xrandr --output VNC-0 --mode ${modeName}`;
+          log.info("Executing resize command:", cmd);
+          const result = await app.callServerTool({
             name: "exec",
             arguments: {
               name: extractedInfo.name,
-              command: `
-                modeline=$(cvt ${newWidth} ${newHeight} 60 2>/dev/null | grep Modeline | cut -d' ' -f3-)
-                if [ -n "$modeline" ]; then
-                  xrandr --newmode ${modeName} $modeline 2>/dev/null || true
-                  xrandr --addmode VNC-0 ${modeName} 2>/dev/null || true
-                  xrandr --output VNC-0 --mode ${modeName}
-                fi
-              `,
+              command: cmd,
               background: false,
-              timeout: 5000,
+              timeout: 10000,
             },
           });
+          log.info("Resize result:", result);
         } catch (e) {
           log.warn("Failed to resize desktop:", e);
         }
