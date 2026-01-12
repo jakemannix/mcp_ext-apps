@@ -5,23 +5,22 @@
  * The server fetches videos from CDN and serves them as base64 blobs.
  */
 import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
+import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  registerAppTool,
-  registerAppResource,
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-} from "@modelcontextprotocol/ext-apps/server";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -129,20 +128,21 @@ ${Object.entries(VIDEO_LIBRARY)
             `Video ID to play. Available: ${Object.keys(VIDEO_LIBRARY).join(", ")}`,
           ),
       },
-      _meta: { [RESOURCE_URI_META_KEY]: RESOURCE_URI },
+      outputSchema: z.object({
+        videoUri: z.string(),
+        description: z.string(),
+      }),
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ videoId }): Promise<CallToolResult> => {
       const video = VIDEO_LIBRARY[videoId];
+      const data = {
+        videoUri: `videos://${videoId}`,
+        description: video.description,
+      };
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              videoUri: `videos://${videoId}`,
-              description: video.description,
-            }),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify(data) }],
+        structuredContent: data,
       };
     },
   );

@@ -9,7 +9,6 @@ import path from "node:path";
 import { z } from "zod";
 import {
   RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
@@ -28,6 +27,29 @@ const GetCustomerDataInputSchema = z.object({
     .enum(["All", ...SEGMENTS])
     .optional()
     .describe("Filter by segment (default: All)"),
+});
+
+const CustomerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  segment: z.string(),
+  annualRevenue: z.number(),
+  employeeCount: z.number(),
+  accountAge: z.number(),
+  engagementScore: z.number(),
+  supportTickets: z.number(),
+  nps: z.number(),
+});
+
+const SegmentSummarySchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  color: z.string(),
+});
+
+const GetCustomerDataOutputSchema = z.object({
+  customers: z.array(CustomerSchema),
+  segments: z.array(SegmentSummarySchema),
 });
 
 // Cache generated data for session consistency
@@ -78,13 +100,15 @@ export function createServer(): McpServer {
         description:
           "Returns customer data with segment information for visualization. Optionally filter by segment.",
         inputSchema: GetCustomerDataInputSchema.shape,
-        _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+        outputSchema: GetCustomerDataOutputSchema.shape,
+        _meta: { ui: { resourceUri } },
       },
       async ({ segment }): Promise<CallToolResult> => {
         const data = getCustomerData(segment);
 
         return {
           content: [{ type: "text", text: JSON.stringify(data) }],
+          structuredContent: data,
         };
       },
     );

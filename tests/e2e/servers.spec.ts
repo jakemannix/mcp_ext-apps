@@ -1,8 +1,11 @@
 import { test, expect, type Page, type ConsoleMessage } from "@playwright/test";
 
 // Dynamic element selectors to mask for screenshot comparison
+//
 // Note: CSS modules generate unique class names, so we use attribute selectors
 // with partial matches (e.g., [class*="heatmapWrapper"]) for those components
+//
+// Note: map-server uses SLOW_SERVERS timeout instead of masking to wait for tiles
 const DYNAMIC_MASKS: Record<string, string[]> = {
   integration: ["#server-time"], // Server time display
   "basic-preact": ["#server-time"], // Server time display
@@ -13,6 +16,7 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   "basic-vue": ["#server-time"], // Server time display
   "cohort-heatmap": ['[class*="heatmapWrapper"]'], // Heatmap grid (random data)
   "customer-segmentation": [".chart-container"], // Scatter plot (random data)
+  shadertoy: ["#canvas"], // WebGL shader canvas (animated)
   "system-monitor": [
     ".chart-container", // CPU chart (highly dynamic)
     "#status-text", // Current timestamp
@@ -23,6 +27,12 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   ],
   threejs: ["#threejs-canvas", ".threejs-container"], // 3D render canvas (dynamic animation)
   "wiki-explorer": ["#graph"], // Force-directed graph (dynamic layout)
+};
+
+// Servers that need extra stabilization time (e.g., for tile loading, WebGL init)
+const SLOW_SERVERS: Record<string, number> = {
+  "map-server": 5000, // CesiumJS needs time for tiles to load
+  threejs: 2000, // Three.js WebGL initialization
 };
 
 // Server configurations (key is used for screenshot filenames, name is the MCP server name)
@@ -37,10 +47,13 @@ const SERVERS = [
   { key: "budget-allocator", name: "Budget Allocator Server" },
   { key: "cohort-heatmap", name: "Cohort Heatmap Server" },
   { key: "customer-segmentation", name: "Customer Segmentation Server" },
+  { key: "map-server", name: "CesiumJS Map Server" },
   { key: "scenario-modeler", name: "SaaS Scenario Modeler" },
+  { key: "shadertoy", name: "ShaderToy Server" },
   { key: "sheet-music", name: "Sheet Music Server" },
   { key: "system-monitor", name: "System Monitor Server" },
   { key: "threejs", name: "Three.js Server" },
+  { key: "transcript", name: "Transcript Server" },
   { key: "wiki-explorer", name: "Wiki Explorer" },
 ];
 
@@ -121,7 +134,10 @@ SERVERS.forEach((server) => {
 
     test("screenshot matches golden", async ({ page }) => {
       await loadServer(page, server.name);
-      await page.waitForTimeout(500); // Brief stabilization
+
+      // Some servers (WebGL, tile-based) need extra stabilization time
+      const stabilizationMs = SLOW_SERVERS[server.key] ?? 500;
+      await page.waitForTimeout(stabilizationMs);
 
       // Get mask locators for dynamic content (timestamps, charts, etc.)
       const mask = getMaskLocators(page, server.key);

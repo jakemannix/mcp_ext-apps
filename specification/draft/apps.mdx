@@ -132,11 +132,23 @@ interface McpUiResourceCsp {
      */
     resourceDomains?: string[],
     /**
-     * Origins for nested iframes (frame-src directive).
+     * Origins for nested iframes
+     *
+     * - Empty or omitted = no nested iframes allowed (`frame-src 'none'`)
+     * - Maps to CSP `frame-src` directive
+     *
+     * @example
+     * ["https://www.youtube.com", "https://player.vimeo.com"]
      */
     frameDomains?: string[],
     /**
-     * Allowed base URIs for the document (base-uri directive).
+     * Allowed base URIs for the document
+     *
+     * - Empty or omitted = only same origin allowed (`base-uri 'self'`)
+     * - Maps to CSP `base-uri` directive
+     *
+     * @example
+     * ["https://cdn.example.com"]
      */
     baseUriDomains?: string[],
 }
@@ -149,6 +161,39 @@ interface UIResourceMeta {
    * Hosts use this to enforce appropriate CSP headers.
    */
   csp?: McpUiResourceCsp,
+  /**
+   * Sandbox permissions requested by the UI
+   *
+   * Servers declare which browser capabilities their UI needs.
+   * Hosts MAY honor these by setting appropriate iframe `allow` attributes.
+   * Apps SHOULD NOT assume permissions are granted; use JS feature detection as fallback.
+   */
+  permissions?: {
+    /**
+     * Request camera access
+     *
+     * Maps to Permission Policy `camera` feature
+     */
+    camera?: boolean,
+    /**
+     * Request microphone access
+     *
+     * Maps to Permission Policy `microphone` feature
+     */
+    microphone?: boolean,
+    /**
+     * Request geolocation access
+     *
+     * Maps to Permission Policy `geolocation` feature
+     */
+    geolocation?: boolean,
+    /**
+     * Request clipboard write access
+     *
+     * Maps to Permission Policy `clipboard-write` feature
+     */
+    clipboardWrite?: boolean,
+  },
   /**
    * Dedicated origin for widget
    *
@@ -192,6 +237,12 @@ The resource content is returned via `resources/read`:
           resourceDomains?: string[]; // Origins for static resources (scripts, images, styles, fonts).
           frameDomains?: string[]; // Origins for nested iframes (frame-src directive).
           baseUriDomains?: string[]; // Allowed base URIs for the document (base-uri directive).
+        };
+        permissions?: {
+          camera?: boolean;           // Request camera access
+          microphone?: boolean;       // Request microphone access
+          geolocation?: boolean;      // Request geolocation access
+          clipboardWrite?: boolean;   // Request clipboard write access
         };
         domain?: string;
         prefersBorder?: boolean;
@@ -416,9 +467,11 @@ If the Host is a web page, it MUST wrap the Guest UI and communicate with it thr
 4. Once the Sandbox is ready, the Host MUST send the raw HTML resource to load in a `ui/notifications/sandbox-resource-ready` notification.
 5. The Sandbox MUST load the raw HTML of the Guest UI with CSP settings that:
    - Enforce the domains declared in `ui.csp` metadata
-   - Prevent nested iframes (`frame-src 'none'`)
-   - Block dangerous features (`object-src 'none'`, `base-uri 'self'`)
+   - If `frameDomains` is provided, allow nested iframes from declared origins; otherwise use `frame-src 'none'`
+   - If `baseUriDomains` is provided, allow base URIs from declared origins; otherwise use `base-uri 'self'`
+   - Block dangerous features (`object-src 'none'`)
    - Apply restrictive defaults if no CSP metadata is provided
+   - If `permissions` is declared, the Sandbox MAY set the inner iframe's `allow` attribute accordingly
 6. The Sandbox MUST forward messages sent by the Host to the Guest UI, and vice versa, for any method that doesn’t start with `ui/notifications/sandbox-`. This includes lifecycle messages, e.g., `ui/initialize` request & `ui/notifications/initialized` notification both sent by the Guest UI. The Host MUST NOT send any request or notification to the Guest UI before it receives an `initialized` notification.
 7. The Sandbox SHOULD NOT create/send any requests to the Host or to the Guest UI (this would require synthesizing new request ids).
 8. The Host MAY forward any message from the Guest UI (coming via the Sandbox) to the MCP Apps server, for any method that doesn’t start with `ui/`. While the Host SHOULD ensure the Guest UI’s MCP connection is spec-compliant, it MAY decide to block some messages or subject them to further user approval.
@@ -532,6 +585,53 @@ Example:
       "containerDimensions": { "width": 400, "maxHeight": 600 }
     }
   }
+}
+```
+
+### Host Capabilities
+
+`HostCapabilities` are sent to the Guest UI as part of the response to `ui/initialize` (inside `McpUiInitializeResult`).
+They describe the features and capabilities that the Host supports.
+
+```typescript
+interface HostCapabilities {
+  /** Experimental features (structure TBD). */
+  experimental?: {};
+  /** Host supports opening external URLs. */
+  openLinks?: {};
+  /** Host can proxy tool calls to the MCP server. */
+  serverTools?: {
+    /** Host supports tools/list_changed notifications. */
+    listChanged?: boolean;
+  };
+  /** Host can proxy resource reads to the MCP server. */
+  serverResources?: {
+    /** Host supports resources/list_changed notifications. */
+    listChanged?: boolean;
+  };
+  /** Host accepts log messages. */
+  logging?: {};
+  /** Sandbox configuration applied by the host. */
+  sandbox?: {
+    /** Permissions granted by the host (camera, microphone, geolocation, clipboard-write). */
+    permissions?: {
+      camera?: boolean;
+      microphone?: boolean;
+      geolocation?: boolean;
+      clipboardWrite?: boolean;
+    };
+    /** CSP domains approved by the host. */
+    csp?: {
+      /** Approved origins for network requests (fetch/XHR/WebSocket). */
+      connectDomains?: string[];
+      /** Approved origins for static resources (scripts, images, styles, fonts). */
+      resourceDomains?: string[];
+      /** Approved origins for nested iframes (frame-src directive). */
+      frameDomains?: string[];
+      /** Approved base URIs for the document (base-uri directive). */
+      baseUriDomains?: string[];
+    };
+  };
 }
 ```
 
@@ -879,6 +979,49 @@ Guest UI behavior:
 * Guest UI SHOULD check `availableDisplayModes` in host context before requesting a mode change.
 * Guest UI MUST handle the response mode differing from the requested mode.
 
+`ui/update-model-context` - Update the model context
+
+```typescript
+// Request
+{
+  jsonrpc: "2.0",
+  id: 3,
+  method: "ui/update-model-context",
+  params: {
+    content?: ContentBlock[],
+    structuredContent?: Record<string, unknown>
+  }
+}
+
+// Success Response
+{
+  jsonrpc: "2.0",
+  id: 3,
+  result: {}  // Empty result on success
+}
+
+// Error Response (if denied or failed)
+{
+  jsonrpc: "2.0",
+  id: 3,
+  error: {
+    code: -32000,  // Implementation-defined error
+    message: "Context update denied" | "Invalid content format"
+  }
+}
+```
+
+Guest UI MAY send this request to update the Host's model context. This context will be used in future turns. Each request overwrites the previous context sent by the Guest UI.
+This event serves a different use case from `notifications/message` (logging) and `ui/message` (which also trigger follow-ups).
+
+Host behavior:
+- SHOULD provide the context to the model in future turns
+- MAY overwrite the previous model context with the new update
+- MAY defer sending the context to the model until the next user message (including `ui/message`)
+- MAY dedupe identical `ui/update-model-context` calls
+- If multiple updates are received before the next user message, Host SHOULD only send the last update to the model
+- MAY display context updates to the user
+
 #### Notifications (Host → UI)
 
 `ui/notifications/tool-input` - Host MUST send this notification with the complete tool arguments after the Guest UI's initialize request completes.
@@ -1028,12 +1171,24 @@ These messages are reserved for web-based hosts that implement the recommended d
   method: "ui/notifications/sandbox-resource-ready",
   params: {
     html: string,        // HTML content to load
-    sandbox: string      // Optional override for inner iframe `sandbox` attribute
+    sandbox?: string,    // Optional override for inner iframe `sandbox` attribute
+    csp?: {              // CSP configuration from resource metadata
+      connectDomains?: string[],
+      resourceDomains?: string[],
+      frameDomains?: string[],
+      baseUriDomains?: string[],
+    },
+    permissions?: {      // Sandbox permissions from resource metadata
+      camera?: boolean,
+      microphone?: boolean,
+      geolocation?: boolean,
+      clipboardWrite?: boolean,
+    }
   }
 }
 ```
 
-These messages facilitate the communication between the outer sandbox proxy iframe and the host, enabling secure loading of untrusted HTML content.
+These messages facilitate the communication between the outer sandbox proxy iframe and the host, enabling secure loading of untrusted HTML content. The `permissions` field maps to the inner iframe's `allow` attribute for Permission Policy features.
 
 ### Lifecycle
 
@@ -1110,10 +1265,15 @@ sequenceDiagram
       H-->>UI: ui/notifications/tool-result
     else Message
       UI ->> H: ui/message
+      H -->> UI: ui/message response
       H -->> H: Process message and follow up
-    else Notify
+    else Context update
+      UI ->> H: ui/update-model-context
+      H ->> H: Store model context (overwrite existing)
+      H -->> UI: ui/update-model-context response
+    else Log
       UI ->> H: notifications/message
-      H ->> H: Process notification and store in context
+      H ->> H: Record log for debugging/telemetry
     else Resource read
       UI ->> H: resources/read
       H ->> S: resources/read
@@ -1489,6 +1649,7 @@ Hosts MUST enforce Content Security Policies based on resource metadata.
 
 ```typescript
 const csp = resource._meta?.ui?.csp;
+const permissions = resource._meta?.ui?.permissions;
 
 const cspValue = `
   default-src 'none';
@@ -1498,10 +1659,17 @@ const cspValue = `
   img-src 'self' data: ${csp?.resourceDomains?.join(' ') || ''};
   font-src 'self' ${csp?.resourceDomains?.join(' ') || ''};
   media-src 'self' data: ${csp?.resourceDomains?.join(' ') || ''};
-  frame-src 'none';
+  frame-src ${csp?.frameDomains?.join(' ') || "'none'"};
   object-src 'none';
-  base-uri 'self';
+  base-uri ${csp?.baseUriDomains?.join(' ') || "'self'"};
 `;
+
+// Permission Policy for iframe allow attribute
+const allowList: string[] = [];
+if (permissions?.camera) allowList.push('camera');
+if (permissions?.microphone) allowList.push('microphone');
+if (permissions?.geolocation) allowList.push('geolocation');
+const allowAttribute = allowList.join(' ');
 ```
 
 **Security Requirements:**

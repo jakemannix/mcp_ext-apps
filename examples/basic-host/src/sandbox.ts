@@ -1,4 +1,5 @@
 import type { McpUiSandboxProxyReadyNotification, McpUiSandboxResourceReadyNotification } from "../../../dist/src/types";
+import { buildAllowAttribute } from "../../../dist/src/app-bridge";
 
 const ALLOWED_REFERRER_PATTERN = /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/;
 
@@ -43,6 +44,8 @@ try {
 const inner = document.createElement("iframe");
 inner.style = "width:100%; height:100%; border:none;";
 inner.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+// Note: allow attribute is set later when receiving sandbox-resource-ready notification
+// based on the permissions requested by the app
 document.body.appendChild(inner);
 
 const RESOURCE_READY_NOTIFICATION: McpUiSandboxResourceReadyNotification["method"] =
@@ -81,26 +84,20 @@ window.addEventListener("message", async (event) => {
     }
 
     if (event.data && event.data.method === RESOURCE_READY_NOTIFICATION) {
-      const { html, sandbox } = event.data.params;
+      const { html, sandbox, permissions } = event.data.params;
       if (typeof sandbox === "string") {
         inner.setAttribute("sandbox", sandbox);
       }
+      // Set Permission Policy allow attribute if permissions are requested
+      const allowAttribute = buildAllowAttribute(permissions);
+      if (allowAttribute) {
+        console.log("[Sandbox] Setting allow attribute:", allowAttribute);
+        inner.setAttribute("allow", allowAttribute);
+      }
       if (typeof html === "string") {
-        // Use document.write instead of srcdoc for WebGL compatibility.
-        // srcdoc creates an opaque origin which prevents WebGL canvas updates
-        // from being displayed properly. document.write preserves the sandbox
-        // origin, allowing WebGL to work correctly.
-        // CSP is enforced via HTTP headers on this page (sandbox.html).
-        const doc = inner.contentDocument || inner.contentWindow?.document;
-        if (doc) {
-          doc.open();
-          doc.write(html);
-          doc.close();
-        } else {
-          // Fallback to srcdoc if document is not accessible
-          console.warn("[Sandbox] document.write not available, falling back to srcdoc");
-          inner.srcdoc = html;
-        }
+        inner.srcdoc = html;
+      } else {
+        console.error("[Sandbox] Missing or invalid HTML content in sandbox-resource-ready notification.");
       }
     } else {
       if (inner && inner.contentWindow) {

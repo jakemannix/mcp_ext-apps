@@ -107,11 +107,14 @@ jobs:
           - budget-allocator-server
           - cohort-heatmap-server
           - customer-segmentation-server
+          - map-server
           - inlined-app-server
           - scenario-modeler-server
+          - shadertoy-server
           - sheet-music-server
           - system-monitor-server
           - threejs-server
+          - transcript-server
           - video-resource-server
           - wiki-explorer-server
 

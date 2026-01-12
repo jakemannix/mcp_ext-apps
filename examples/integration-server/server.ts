@@ -1,3 +1,8 @@
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
@@ -6,12 +11,7 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  registerAppTool,
-  registerAppResource,
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-} from "@modelcontextprotocol/ext-apps/server";
+import { z } from "zod";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -33,16 +33,21 @@ export function createServer(): McpServer {
       title: "Get Time",
       description: "Returns the current server time.",
       inputSchema: {},
-      _meta: { [RESOURCE_URI_META_KEY]: RESOURCE_URI },
+      outputSchema: z.object({
+        time: z.string(),
+      }),
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async (): Promise<CallToolResult> => {
+      const time = new Date().toISOString();
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ time: new Date().toISOString() }),
+            text: JSON.stringify({ time }),
           },
         ],
+        structuredContent: { time },
       };
     },
   );

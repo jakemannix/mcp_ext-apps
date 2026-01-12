@@ -5,6 +5,7 @@ import {
   CallToolRequestSchema,
   CallToolResult,
   CallToolResultSchema,
+  EmptyResult,
   Implementation,
   ListPromptsRequest,
   ListPromptsRequestSchema,
@@ -51,6 +52,8 @@ import {
   type McpUiToolResultNotification,
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
+  McpUiUpdateModelContextRequest,
+  McpUiUpdateModelContextRequestSchema,
   McpUiHostCapabilities,
   McpUiHostContext,
   McpUiHostContextChangedNotification,
@@ -66,7 +69,6 @@ import {
   McpUiOpenLinkRequestSchema,
   McpUiOpenLinkResult,
   McpUiResourceTeardownRequest,
-  McpUiResourceTeardownResult,
   McpUiResourceTeardownResultSchema,
   McpUiSandboxProxyReadyNotification,
   McpUiSandboxProxyReadyNotificationSchema,
@@ -74,6 +76,7 @@ import {
   McpUiRequestDisplayModeRequest,
   McpUiRequestDisplayModeRequestSchema,
   McpUiRequestDisplayModeResult,
+  McpUiResourcePermissions,
 } from "./types";
 export * from "./types";
 export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE } from "./app";
@@ -122,6 +125,36 @@ export function getToolUiResourceUri(tool: {
     throw new Error(`Invalid UI resource URI: ${JSON.stringify(uri)}`);
   }
   return undefined;
+}
+
+/**
+ * Build iframe `allow` attribute string from permissions.
+ *
+ * Maps McpUiResourcePermissions to the Permission Policy allow attribute
+ * format used by iframes (e.g., "microphone; clipboard-write").
+ *
+ * @param permissions - Permissions requested by the UI resource
+ * @returns Space-separated permission directives, or empty string if none
+ *
+ * @example
+ * ```typescript
+ * const allow = buildAllowAttribute({ microphone: {}, clipboardWrite: {} });
+ * // Returns: "microphone; clipboard-write"
+ * iframe.setAttribute("allow", allow);
+ * ```
+ */
+export function buildAllowAttribute(
+  permissions: McpUiResourcePermissions | undefined,
+): string {
+  if (!permissions) return "";
+
+  const allowList: string[] = [];
+  if (permissions.camera) allowList.push("camera");
+  if (permissions.microphone) allowList.push("microphone");
+  if (permissions.geolocation) allowList.push("geolocation");
+  if (permissions.clipboardWrite) allowList.push("clipboard-write");
+
+  return allowList.join("; ");
 }
 
 /**
@@ -629,6 +662,48 @@ export class AppBridge extends Protocol<
       LoggingMessageNotificationSchema,
       async (notification) => {
         callback(notification.params);
+      },
+    );
+  }
+
+  /**
+   * Register a handler for model context updates from the Guest UI.
+   *
+   * The Guest UI sends `ui/update-model-context` requests to update the Host's
+   * model context. Each request overwrites the previous context stored by the Guest UI.
+   * Unlike logging messages, context updates are intended to be available to
+   * the model in future turns. Unlike messages, context updates do not trigger follow-ups.
+   *
+   * The host will typically defer sending the context to the model until the
+   * next user message (including `ui/message`), and will only send the last
+   * update received.
+   *
+   * @example
+   * ```typescript
+   * bridge.onupdatemodelcontext = async ({ content, structuredContent }, extra) => {
+   *   // Update the model context with the new snapshot
+   *   modelContext = {
+   *     type: "app_context",
+   *     content,
+   *     structuredContent,
+   *     timestamp: Date.now()
+   *   };
+   *   return {};
+   * };
+   * ```
+   *
+   * @see {@link McpUiUpdateModelContextRequest} for the request type
+   */
+  set onupdatemodelcontext(
+    callback: (
+      params: McpUiUpdateModelContextRequest["params"],
+      extra: RequestHandlerExtra,
+    ) => Promise<EmptyResult>,
+  ) {
+    this.setRequestHandler(
+      McpUiUpdateModelContextRequestSchema,
+      async (request, extra) => {
+        return callback(request.params, extra);
       },
     );
   }

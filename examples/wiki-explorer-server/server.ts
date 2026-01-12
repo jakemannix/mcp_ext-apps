@@ -1,3 +1,8 @@
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
@@ -8,12 +13,6 @@ import * as cheerio from "cheerio";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import {
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-  registerAppResource,
-  registerAppTool,
-} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -95,7 +94,20 @@ export function createServer(): McpServer {
           .default("https://en.wikipedia.org/wiki/Model_Context_Protocol")
           .describe("Wikipedia page URL"),
       }),
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: z.object({
+        page: z.object({
+          url: z.string(),
+          title: z.string(),
+        }),
+        links: z.array(
+          z.object({
+            url: z.string(),
+            title: z.string(),
+          }),
+        ),
+        error: z.string().nullable(),
+      }),
+      _meta: { ui: { resourceUri } },
     },
     async ({ url }): Promise<CallToolResult> => {
       let title = url;
@@ -121,11 +133,17 @@ export function createServer(): McpServer {
         const links = extractWikiLinks(new URL(url), html);
 
         const result = { page: { url, title }, links, error: null };
-        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
       } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         const result = { page: { url, title }, links: [], error };
-        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+        return {
+          content: [{ type: "text", text: JSON.stringify(result) }],
+          structuredContent: result,
+        };
       }
     },
   );

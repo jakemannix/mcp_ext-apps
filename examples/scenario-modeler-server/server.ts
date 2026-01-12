@@ -1,3 +1,8 @@
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
@@ -7,12 +12,6 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import {
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-  registerAppResource,
-  registerAppTool,
-} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -62,6 +61,13 @@ const GetScenarioDataInputSchema = z.object({
   customInputs: ScenarioInputsSchema.optional().describe(
     "Custom scenario parameters to compute projections for",
   ),
+});
+
+const GetScenarioDataOutputSchema = z.object({
+  templates: z.array(ScenarioTemplateSchema),
+  defaultInputs: ScenarioInputsSchema,
+  customProjections: z.array(MonthlyProjectionSchema).optional(),
+  customSummary: ScenarioSummarySchema.optional(),
 });
 
 // Types derived from schemas
@@ -244,6 +250,37 @@ const DEFAULT_INPUTS: ScenarioInputs = {
 };
 
 // ============================================================================
+// Formatters for text output
+// ============================================================================
+
+function formatCurrency(value: number): string {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (absValue >= 1_000_000) {
+    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
+  }
+  if (absValue >= 1_000) {
+    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
+  }
+  return `${sign}$${Math.round(absValue)}`;
+}
+
+function formatScenarioSummary(
+  summary: ScenarioSummary,
+  label: string,
+): string {
+  return [
+    `${label}:`,
+    `  Ending MRR: ${formatCurrency(summary.endingMRR)}`,
+    `  ARR: ${formatCurrency(summary.arr)}`,
+    `  Total Revenue: ${formatCurrency(summary.totalRevenue)}`,
+    `  Total Profit: ${formatCurrency(summary.totalProfit)}`,
+    `  MRR Growth: ${summary.mrrGrowthPct.toFixed(1)}%`,
+    `  Break-even: ${summary.breakEvenMonth ? `Month ${summary.breakEvenMonth}` : "Not achieved"}`,
+  ].join("\n");
+}
+
+// ============================================================================
 // MCP Server
 // ============================================================================
 
@@ -269,7 +306,8 @@ export function createServer(): McpServer {
         description:
           "Returns SaaS scenario templates and optionally computes custom projections for given inputs",
         inputSchema: GetScenarioDataInputSchema.shape,
-        _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+        outputSchema: GetScenarioDataOutputSchema.shape,
+        _meta: { ui: { resourceUri } },
       },
       async (args: {
         customInputs?: ScenarioInputs;
@@ -278,18 +316,28 @@ export function createServer(): McpServer {
           ? calculateScenario(args.customInputs)
           : undefined;
 
+        const text = [
+          "SaaS Scenario Modeler",
+          "=".repeat(40),
+          "",
+          "Available Templates:",
+          ...SCENARIO_TEMPLATES.map(
+            (t) => `  ${t.icon} ${t.name}: ${t.description}`,
+          ),
+          "",
+          customScenario
+            ? formatScenarioSummary(customScenario.summary, "Custom Scenario")
+            : "Use customInputs parameter to compute projections for a specific scenario.",
+        ].join("\n");
+
         return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                templates: SCENARIO_TEMPLATES,
-                defaultInputs: DEFAULT_INPUTS,
-                customProjections: customScenario?.projections,
-                customSummary: customScenario?.summary,
-              }),
-            },
-          ],
+          content: [{ type: "text", text }],
+          structuredContent: {
+            templates: SCENARIO_TEMPLATES,
+            defaultInputs: DEFAULT_INPUTS,
+            customProjections: customScenario?.projections,
+            customSummary: customScenario?.summary,
+          },
         };
       },
     );

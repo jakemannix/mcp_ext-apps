@@ -6,7 +6,6 @@ import path from "node:path";
 import { z } from "zod";
 import {
   RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
@@ -152,6 +151,17 @@ function generateCohortData(
   };
 }
 
+function formatCohortSummary(data: CohortData): string {
+  const avgRetention = data.cohorts
+    .flatMap((c) => c.cells)
+    .filter((cell) => cell.periodIndex > 0)
+    .reduce((sum, cell, _, arr) => sum + cell.retention / arr.length, 0);
+
+  return `Cohort Analysis: ${data.cohorts.length} cohorts, ${data.periods.length} periods
+Average retention: ${(avgRetention * 100).toFixed(1)}%
+Metric: ${data.metric}, Period: ${data.periodType}`;
+}
+
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "Cohort Heatmap Server",
@@ -169,7 +179,8 @@ export function createServer(): McpServer {
       description:
         "Returns cohort retention heatmap data showing customer retention over time by signup month",
       inputSchema: GetCohortDataInputSchema.shape,
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: CohortDataSchema.shape,
+      _meta: { ui: { resourceUri } },
     },
     async ({ metric, periodType, cohortCount, maxPeriods }) => {
       const data = generateCohortData(
@@ -180,7 +191,8 @@ export function createServer(): McpServer {
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
+        content: [{ type: "text", text: formatCohortSummary(data) }],
+        structuredContent: data,
       };
     },
   );

@@ -3,18 +3,17 @@
  *
  * Provides tools for rendering interactive 3D scenes using Three.js.
  */
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import {
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-  registerAppResource,
-  registerAppTool,
-} from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "./server-utils.js";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
@@ -166,16 +165,17 @@ export function createServer(): McpServer {
           .default(400)
           .describe("Height in pixels"),
       },
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: z.object({
+        code: z.string(),
+        height: z.number(),
+      }),
+      _meta: { ui: { resourceUri } },
     },
     async ({ code, height }) => {
+      const data = { code, height };
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ code, height }),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify(data) }],
+        structuredContent: data,
       };
     },
   );

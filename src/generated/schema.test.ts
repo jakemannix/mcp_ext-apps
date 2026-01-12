@@ -47,6 +47,10 @@ export type McpUiResourceCspSchemaInferredType = z.infer<
   typeof generated.McpUiResourceCspSchema
 >;
 
+export type McpUiResourcePermissionsSchemaInferredType = z.infer<
+  typeof generated.McpUiResourcePermissionsSchema
+>;
+
 export type McpUiSizeChangedNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiSizeChangedNotificationSchema
 >;
@@ -77,6 +81,10 @@ export type McpUiResourceTeardownRequestSchemaInferredType = z.infer<
 
 export type McpUiResourceTeardownResultSchemaInferredType = z.infer<
   typeof generated.McpUiResourceTeardownResultSchema
+>;
+
+export type McpUiSupportedContentBlockModalitiesSchemaInferredType = z.infer<
+  typeof generated.McpUiSupportedContentBlockModalitiesSchema
 >;
 
 export type McpUiHostCapabilitiesSchemaInferredType = z.infer<
@@ -131,6 +139,10 @@ export type McpUiHostContextChangedNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiHostContextChangedNotificationSchema
 >;
 
+export type McpUiUpdateModelContextRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiUpdateModelContextRequestSchema
+>;
+
 export type McpUiInitializeRequestSchemaInferredType = z.infer<
   typeof generated.McpUiInitializeRequestSchema
 >;
@@ -173,6 +185,12 @@ expectType<McpUiSandboxProxyReadyNotificationSchemaInferredType>(
 );
 expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
 expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
+expectType<spec.McpUiResourcePermissions>(
+  {} as McpUiResourcePermissionsSchemaInferredType,
+);
+expectType<McpUiResourcePermissionsSchemaInferredType>(
+  {} as spec.McpUiResourcePermissions,
+);
 expectType<spec.McpUiSizeChangedNotification>(
   {} as McpUiSizeChangedNotificationSchemaInferredType,
 );
@@ -212,6 +230,12 @@ expectType<spec.McpUiResourceTeardownResult>(
 );
 expectType<McpUiResourceTeardownResultSchemaInferredType>(
   {} as spec.McpUiResourceTeardownResult,
+);
+expectType<spec.McpUiSupportedContentBlockModalities>(
+  {} as McpUiSupportedContentBlockModalitiesSchemaInferredType,
+);
+expectType<McpUiSupportedContentBlockModalitiesSchemaInferredType>(
+  {} as spec.McpUiSupportedContentBlockModalities,
 );
 expectType<spec.McpUiHostCapabilities>(
   {} as McpUiHostCapabilitiesSchemaInferredType,
@@ -278,6 +302,12 @@ expectType<spec.McpUiHostContextChangedNotification>(
 );
 expectType<McpUiHostContextChangedNotificationSchemaInferredType>(
   {} as spec.McpUiHostContextChangedNotification,
+);
+expectType<spec.McpUiUpdateModelContextRequest>(
+  {} as McpUiUpdateModelContextRequestSchemaInferredType,
+);
+expectType<McpUiUpdateModelContextRequestSchemaInferredType>(
+  {} as spec.McpUiUpdateModelContextRequest,
 );
 expectType<spec.McpUiInitializeRequest>(
   {} as McpUiInitializeRequestSchemaInferredType,

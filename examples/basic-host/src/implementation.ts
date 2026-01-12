@@ -1,4 +1,4 @@
-import { RESOURCE_MIME_TYPE, getToolUiResourceUri, type McpUiSandboxProxyReadyNotification, AppBridge, PostMessageTransport, type McpUiResourceCsp } from "@modelcontextprotocol/ext-apps/app-bridge";
+import { RESOURCE_MIME_TYPE, getToolUiResourceUri, type McpUiSandboxProxyReadyNotification, AppBridge, PostMessageTransport, type McpUiResourceCsp, type McpUiResourcePermissions, buildAllowAttribute, type McpUiUpdateModelContextRequest, type McpUiMessageRequest } from "@modelcontextprotocol/ext-apps/app-bridge";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
@@ -43,6 +43,7 @@ export async function connectToServer(serverUrl: URL): Promise<ServerInfo> {
 interface UiResourceData {
   html: string;
   csp?: McpUiResourceCsp;
+  permissions?: McpUiResourcePermissions;
 }
 
 export interface ToolCallInfo {
@@ -105,26 +106,34 @@ async function getUiResource(serverInfo: ServerInfo, uri: string): Promise<UiRes
 
   const html = "blob" in content ? atob(content.blob) : content.text;
 
-  // Extract CSP metadata from resource content._meta.ui.csp (or content.meta for Python SDK)
+  // Extract CSP and permissions metadata from resource content._meta.ui (or content.meta for Python SDK)
   log.info("Resource content keys:", Object.keys(content));
   log.info("Resource content._meta:", (content as any)._meta);
 
   // Try both _meta (spec) and meta (Python SDK quirk)
   const contentMeta = (content as any)._meta || (content as any).meta;
   const csp = contentMeta?.ui?.csp;
+  const permissions = contentMeta?.ui?.permissions;
 
-  return { html, csp };
+  return { html, csp, permissions };
 }
 
 
 export function loadSandboxProxy(
   iframe: HTMLIFrameElement,
   csp?: McpUiResourceCsp,
+  permissions?: McpUiResourcePermissions,
 ): Promise<boolean> {
   // Prevent reload
   if (iframe.src) return Promise.resolve(false);
 
   iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+
+  // Set Permission Policy allow attribute based on requested permissions
+  const allowAttribute = buildAllowAttribute(permissions);
+  if (allowAttribute) {
+    iframe.setAttribute("allow", allowAttribute);
+  }
 
   const readyNotification: McpUiSandboxProxyReadyNotification["method"] =
     "ui/notifications/sandbox-proxy-ready";
@@ -168,10 +177,10 @@ export async function initializeApp(
     new PostMessageTransport(iframe.contentWindow!, iframe.contentWindow!),
   );
 
-  // Load inner iframe HTML with CSP metadata
-  const { html, csp } = await appResourcePromise;
-  log.info("Sending UI resource HTML to MCP App", csp ? `(CSP: ${JSON.stringify(csp)})` : "");
-  await appBridge.sendSandboxResourceReady({ html, csp });
+  // Load inner iframe HTML with CSP and permissions metadata
+  const { html, csp, permissions } = await appResourcePromise;
+  log.info("Sending UI resource HTML to MCP App", csp ? `(CSP: ${JSON.stringify(csp)})` : "", permissions ? `(Permissions: ${JSON.stringify(permissions)})` : "");
+  await appBridge.sendSandboxResourceReady({ html, csp, permissions });
 
   // Wait for inner iframe to be ready
   log.info("Waiting for MCP App to initialize...");
@@ -213,12 +222,26 @@ function hookInitializedCallback(appBridge: AppBridge): Promise<void> {
 }
 
 
-export function newAppBridge(serverInfo: ServerInfo, iframe: HTMLIFrameElement): AppBridge {
+export type ModelContext = McpUiUpdateModelContextRequest["params"];
+export type AppMessage = McpUiMessageRequest["params"];
+
+export interface AppBridgeCallbacks {
+  onContextUpdate?: (context: ModelContext | null) => void;
+  onMessage?: (message: AppMessage) => void;
+}
+
+export function newAppBridge(
+  serverInfo: ServerInfo,
+  iframe: HTMLIFrameElement,
+  callbacks?: AppBridgeCallbacks,
+): AppBridge {
   const serverCapabilities = serverInfo.client.getServerCapabilities();
   const appBridge = new AppBridge(serverInfo.client, IMPLEMENTATION, {
     openLinks: {},
     serverTools: serverCapabilities?.tools,
     serverResources: serverCapabilities?.resources,
+    // Declare support for model context updates
+    updateModelContext: { text: {} },
   });
 
   // Register all handlers before calling connect(). The Guest UI can start
@@ -227,6 +250,7 @@ export function newAppBridge(serverInfo: ServerInfo, iframe: HTMLIFrameElement):
 
   appBridge.onmessage = async (params, _extra) => {
     log.info("Message from MCP App:", params);
+    callbacks?.onMessage?.(params);
     return {};
   };
 
@@ -238,6 +262,15 @@ export function newAppBridge(serverInfo: ServerInfo, iframe: HTMLIFrameElement):
 
   appBridge.onloggingmessage = (params) => {
     log.info("Log message from MCP App:", params);
+  };
+
+  appBridge.onupdatemodelcontext = async (params) => {
+    log.info("Model context update from MCP App:", params);
+    // Normalize: empty content array means clear context
+    const hasContent = params.content && params.content.length > 0;
+    const hasStructured = params.structuredContent && Object.keys(params.structuredContent).length > 0;
+    callbacks?.onContextUpdate?.(hasContent || hasStructured ? params : null);
+    return {};
   };
 
   appBridge.onsizechange = async ({ width, height }) => {
