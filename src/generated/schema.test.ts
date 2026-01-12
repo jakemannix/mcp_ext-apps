@@ -47,6 +47,8 @@ export type McpUiResourceTeardownRequestSchemaInferredType = z.infer<typeof gene
 
 export type McpUiResourceTeardownResultSchemaInferredType = z.infer<typeof generated.McpUiResourceTeardownResultSchema>;
 
+export type McpUiSupportedContentBlockModalitiesSchemaInferredType = z.infer<typeof generated.McpUiSupportedContentBlockModalitiesSchema>;
+
 export type McpUiHostCapabilitiesSchemaInferredType = z.infer<typeof generated.McpUiHostCapabilitiesSchema>;
 
 export type McpUiAppCapabilitiesSchemaInferredType = z.infer<typeof generated.McpUiAppCapabilitiesSchema>;
@@ -115,6 +117,8 @@ expectType<spec.McpUiResourceTeardownRequest>({} as McpUiResourceTeardownRequest
 expectType<McpUiResourceTeardownRequestSchemaInferredType>({} as spec.McpUiResourceTeardownRequest)
 expectType<spec.McpUiResourceTeardownResult>({} as McpUiResourceTeardownResultSchemaInferredType)
 expectType<McpUiResourceTeardownResultSchemaInferredType>({} as spec.McpUiResourceTeardownResult)
+expectType<spec.McpUiSupportedContentBlockModalities>({} as McpUiSupportedContentBlockModalitiesSchemaInferredType)
+expectType<McpUiSupportedContentBlockModalitiesSchemaInferredType>({} as spec.McpUiSupportedContentBlockModalities)
 expectType<spec.McpUiHostCapabilities>({} as McpUiHostCapabilitiesSchemaInferredType)
 expectType<McpUiHostCapabilitiesSchemaInferredType>({} as spec.McpUiHostCapabilities)
 expectType<spec.McpUiAppCapabilities>({} as McpUiAppCapabilitiesSchemaInferredType)

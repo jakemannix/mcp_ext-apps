@@ -187,6 +187,21 @@ export const McpUiResourceTeardownRequestSchema = z.object({
  */
 export const McpUiResourceTeardownResultSchema = z.record(z.string(), z.unknown());
 
+export const McpUiSupportedContentBlockModalitiesSchema = z.object({
+    /** @description Host supports text content blocks. */
+    text: z.object({}).optional().describe("Host supports text content blocks."),
+    /** @description Host supports image content blocks. */
+    image: z.object({}).optional().describe("Host supports image content blocks."),
+    /** @description Host supports audio content blocks. */
+    audio: z.object({}).optional().describe("Host supports audio content blocks."),
+    /** @description Host supports resource content blocks. */
+    resource: z.object({}).optional().describe("Host supports resource content blocks."),
+    /** @description Host supports resource link content blocks. */
+    resourceLink: z.object({}).optional().describe("Host supports resource link content blocks."),
+    /** @description Host supports structured content. */
+    structuredContent: z.object({}).optional().describe("Host supports structured content.")
+});
+
 /**
  * @description Capabilities supported by the host application.
  * @see {@link McpUiInitializeResult} for the initialization result that includes these capabilities
@@ -208,21 +223,10 @@ export const McpUiHostCapabilitiesSchema = z.object({
     }).optional().describe("Host can proxy resource reads to the MCP server."),
     /** @description Host accepts log messages. */
     logging: z.object({}).optional().describe("Host accepts log messages."),
-    /** @description Host accepts context updates to be included in the model's context for future turns. */
-    updateModelContext: z.object({
-        /** @description Host supports text content blocks. */
-        text: z.object({}).optional().describe("Host supports text content blocks."),
-        /** @description Host supports image content blocks. */
-        image: z.object({}).optional().describe("Host supports image content blocks."),
-        /** @description Host supports audio content blocks. */
-        audio: z.object({}).optional().describe("Host supports audio content blocks."),
-        /** @description Host supports resource content blocks. */
-        resource: z.object({}).optional().describe("Host supports resource content blocks."),
-        /** @description Host supports resource link content blocks. */
-        resourceLink: z.object({}).optional().describe("Host supports resource link content blocks."),
-        /** @description Host supports structured content. */
-        structuredContent: z.object({}).optional().describe("Host supports structured content.")
-    }).optional().describe("Host accepts context updates to be included in the model's context for future turns.")
+    /** @description Host accepts context updates (ui/update-model-context) to be included in the model's context for future turns. */
+    updateModelContext: McpUiSupportedContentBlockModalitiesSchema.optional().describe("Host accepts context updates (ui/update-model-context) to be included in the model's context for future turns."),
+    /** @description Host supports receiving content messages (ui/message) from the Guest UI. */
+    message: McpUiSupportedContentBlockModalitiesSchema.optional().describe("Host supports receiving content messages (ui/message) from the Guest UI.")
 });
 
 /**

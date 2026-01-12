@@ -30,7 +30,6 @@
     },
     "McpUiDisplayMode": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Display mode for UI presentation.",
       "anyOf": [
         {
           "type": "string",
@@ -44,7 +43,8 @@
           "type": "string",
           "const": "pip"
         }
-      ]
+      ],
+      "description": "Display mode for UI presentation."
     },
     "McpUiHostCapabilities": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -91,7 +91,50 @@
           "additionalProperties": false
         },
         "updateModelContext": {
-          "description": "Host accepts context updates to be included in the model's context for future turns.",
+          "description": "Host accepts context updates (ui/update-model-context) to be included in the model's context for future turns.",
+          "type": "object",
+          "properties": {
+            "text": {
+              "description": "Host supports text content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "image": {
+              "description": "Host supports image content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "audio": {
+              "description": "Host supports audio content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "resource": {
+              "description": "Host supports resource content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "resourceLink": {
+              "description": "Host supports resource link content blocks.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            },
+            "structuredContent": {
+              "description": "Host supports structured content.",
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "message": {
+          "description": "Host supports receiving content messages (ui/message) from the Guest UI.",
           "type": "object",
           "properties": {
             "text": {
@@ -145,7 +188,6 @@
           "const": "ui/notifications/host-context-changed"
         },
         "params": {
-          "description": "Partial context update containing only changed fields.",
           "type": "object",
           "properties": {
             "toolInfo": {
@@ -153,7 +195,6 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "description": "JSON-RPC id of the tools/call request.",
                   "anyOf": [
                     {
                       "type": "string"
@@ -163,10 +204,10 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     }
-                  ]
+                  ],
+                  "description": "JSON-RPC id of the tools/call request."
                 },
                 "tool": {
-                  "description": "Tool definition including name, inputSchema, etc.",
                   "type": "object",
                   "properties": {
                     "name": {
@@ -191,9 +232,18 @@
                             "items": {
                               "type": "string"
                             }
+                          },
+                          "theme": {
+                            "type": "string",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
                           }
                         },
-                        "required": ["src"],
+                        "required": [
+                          "src"
+                        ],
                         "additionalProperties": false
                       }
                     },
@@ -221,7 +271,9 @@
                           }
                         }
                       },
-                      "required": ["type"],
+                      "required": [
+                        "type"
+                      ],
                       "additionalProperties": {}
                     },
                     "outputSchema": {
@@ -245,7 +297,9 @@
                           }
                         }
                       },
-                      "required": ["type"],
+                      "required": [
+                        "type"
+                      ],
                       "additionalProperties": {}
                     },
                     "annotations": {
@@ -274,7 +328,11 @@
                       "properties": {
                         "taskSupport": {
                           "type": "string",
-                          "enum": ["required", "optional", "forbidden"]
+                          "enum": [
+                            "required",
+                            "optional",
+                            "forbidden"
+                          ]
                         }
                       },
                       "additionalProperties": false
@@ -287,11 +345,18 @@
                       "additionalProperties": {}
                     }
                   },
-                  "required": ["name", "inputSchema"],
-                  "additionalProperties": false
+                  "required": [
+                    "name",
+                    "inputSchema"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Tool definition including name, inputSchema, etc."
                 }
               },
-              "required": ["id", "tool"],
+              "required": [
+                "id",
+                "tool"
+              ],
               "additionalProperties": false
             },
             "theme": {
@@ -315,7 +380,6 @@
                   "description": "CSS variables for theming the app.",
                   "type": "object",
                   "propertyNames": {
-                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                     "anyOf": [
                       {
                         "type": "string",
@@ -621,17 +685,96 @@
                         "type": "string",
                         "const": "--shadow-lg"
                       }
-                    ]
+                    ],
+                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
                   },
                   "additionalProperties": {
-                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {}
-                    ]
-                  }
+                    ],
+                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+                  },
+                  "required": [
+                    "--color-background-primary",
+                    "--color-background-secondary",
+                    "--color-background-tertiary",
+                    "--color-background-inverse",
+                    "--color-background-ghost",
+                    "--color-background-info",
+                    "--color-background-danger",
+                    "--color-background-success",
+                    "--color-background-warning",
+                    "--color-background-disabled",
+                    "--color-text-primary",
+                    "--color-text-secondary",
+                    "--color-text-tertiary",
+                    "--color-text-inverse",
+                    "--color-text-info",
+                    "--color-text-danger",
+                    "--color-text-success",
+                    "--color-text-warning",
+                    "--color-text-disabled",
+                    "--color-text-ghost",
+                    "--color-border-primary",
+                    "--color-border-secondary",
+                    "--color-border-tertiary",
+                    "--color-border-inverse",
+                    "--color-border-ghost",
+                    "--color-border-info",
+                    "--color-border-danger",
+                    "--color-border-success",
+                    "--color-border-warning",
+                    "--color-border-disabled",
+                    "--color-ring-primary",
+                    "--color-ring-secondary",
+                    "--color-ring-inverse",
+                    "--color-ring-info",
+                    "--color-ring-danger",
+                    "--color-ring-success",
+                    "--color-ring-warning",
+                    "--font-sans",
+                    "--font-mono",
+                    "--font-weight-normal",
+                    "--font-weight-medium",
+                    "--font-weight-semibold",
+                    "--font-weight-bold",
+                    "--font-text-xs-size",
+                    "--font-text-sm-size",
+                    "--font-text-md-size",
+                    "--font-text-lg-size",
+                    "--font-heading-xs-size",
+                    "--font-heading-sm-size",
+                    "--font-heading-md-size",
+                    "--font-heading-lg-size",
+                    "--font-heading-xl-size",
+                    "--font-heading-2xl-size",
+                    "--font-heading-3xl-size",
+                    "--font-text-xs-line-height",
+                    "--font-text-sm-line-height",
+                    "--font-text-md-line-height",
+                    "--font-text-lg-line-height",
+                    "--font-heading-xs-line-height",
+                    "--font-heading-sm-line-height",
+                    "--font-heading-md-line-height",
+                    "--font-heading-lg-line-height",
+                    "--font-heading-xl-line-height",
+                    "--font-heading-2xl-line-height",
+                    "--font-heading-3xl-line-height",
+                    "--border-radius-xs",
+                    "--border-radius-sm",
+                    "--border-radius-md",
+                    "--border-radius-lg",
+                    "--border-radius-xl",
+                    "--border-radius-full",
+                    "--border-width-regular",
+                    "--shadow-hairline",
+                    "--shadow-sm",
+                    "--shadow-md",
+                    "--shadow-lg"
+                  ]
                 },
                 "css": {
                   "description": "CSS blocks that apps can inject.",
@@ -676,12 +819,12 @@
               "type": "object",
               "properties": {
                 "width": {
-                  "description": "Current viewport width in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Current viewport width in pixels."
                 },
                 "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Current viewport height in pixels."
                 },
                 "maxHeight": {
                   "description": "Maximum available height in pixels (if constrained).",
@@ -692,7 +835,10 @@
                   "type": "number"
                 }
               },
-              "required": ["width", "height"],
+              "required": [
+                "width",
+                "height"
+              ],
               "additionalProperties": false
             },
             "locale": {
@@ -744,30 +890,39 @@
               "type": "object",
               "properties": {
                 "top": {
-                  "description": "Top safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Top safe area inset in pixels."
                 },
                 "right": {
-                  "description": "Right safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Right safe area inset in pixels."
                 },
                 "bottom": {
-                  "description": "Bottom safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Bottom safe area inset in pixels."
                 },
                 "left": {
-                  "description": "Left safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Left safe area inset in pixels."
                 }
               },
-              "required": ["top", "right", "bottom", "left"],
+              "required": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
               "additionalProperties": false
             }
           },
-          "additionalProperties": {}
+          "additionalProperties": {},
+          "description": "Partial context update containing only changed fields."
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiHostContext": {
@@ -779,7 +934,6 @@
           "type": "object",
           "properties": {
             "id": {
-              "description": "JSON-RPC id of the tools/call request.",
               "anyOf": [
                 {
                   "type": "string"
@@ -789,10 +943,10 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991
                 }
-              ]
+              ],
+              "description": "JSON-RPC id of the tools/call request."
             },
             "tool": {
-              "description": "Tool definition including name, inputSchema, etc.",
               "type": "object",
               "properties": {
                 "name": {
@@ -817,9 +971,18 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "theme": {
+                        "type": "string",
+                        "enum": [
+                          "light",
+                          "dark"
+                        ]
                       }
                     },
-                    "required": ["src"],
+                    "required": [
+                      "src"
+                    ],
                     "additionalProperties": false
                   }
                 },
@@ -847,7 +1010,9 @@
                       }
                     }
                   },
-                  "required": ["type"],
+                  "required": [
+                    "type"
+                  ],
                   "additionalProperties": {}
                 },
                 "outputSchema": {
@@ -871,7 +1036,9 @@
                       }
                     }
                   },
-                  "required": ["type"],
+                  "required": [
+                    "type"
+                  ],
                   "additionalProperties": {}
                 },
                 "annotations": {
@@ -900,7 +1067,11 @@
                   "properties": {
                     "taskSupport": {
                       "type": "string",
-                      "enum": ["required", "optional", "forbidden"]
+                      "enum": [
+                        "required",
+                        "optional",
+                        "forbidden"
+                      ]
                     }
                   },
                   "additionalProperties": false
@@ -913,11 +1084,18 @@
                   "additionalProperties": {}
                 }
               },
-              "required": ["name", "inputSchema"],
-              "additionalProperties": false
+              "required": [
+                "name",
+                "inputSchema"
+              ],
+              "additionalProperties": false,
+              "description": "Tool definition including name, inputSchema, etc."
             }
           },
-          "required": ["id", "tool"],
+          "required": [
+            "id",
+            "tool"
+          ],
           "additionalProperties": false
         },
         "theme": {
@@ -941,7 +1119,6 @@
               "description": "CSS variables for theming the app.",
               "type": "object",
               "propertyNames": {
-                "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                 "anyOf": [
                   {
                     "type": "string",
@@ -1247,17 +1424,96 @@
                     "type": "string",
                     "const": "--shadow-lg"
                   }
-                ]
+                ],
+                "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
               },
               "additionalProperties": {
-                "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                 "anyOf": [
                   {
                     "type": "string"
                   },
                   {}
-                ]
-              }
+                ],
+                "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+              },
+              "required": [
+                "--color-background-primary",
+                "--color-background-secondary",
+                "--color-background-tertiary",
+                "--color-background-inverse",
+                "--color-background-ghost",
+                "--color-background-info",
+                "--color-background-danger",
+                "--color-background-success",
+                "--color-background-warning",
+                "--color-background-disabled",
+                "--color-text-primary",
+                "--color-text-secondary",
+                "--color-text-tertiary",
+                "--color-text-inverse",
+                "--color-text-info",
+                "--color-text-danger",
+                "--color-text-success",
+                "--color-text-warning",
+                "--color-text-disabled",
+                "--color-text-ghost",
+                "--color-border-primary",
+                "--color-border-secondary",
+                "--color-border-tertiary",
+                "--color-border-inverse",
+                "--color-border-ghost",
+                "--color-border-info",
+                "--color-border-danger",
+                "--color-border-success",
+                "--color-border-warning",
+                "--color-border-disabled",
+                "--color-ring-primary",
+                "--color-ring-secondary",
+                "--color-ring-inverse",
+                "--color-ring-info",
+                "--color-ring-danger",
+                "--color-ring-success",
+                "--color-ring-warning",
+                "--font-sans",
+                "--font-mono",
+                "--font-weight-normal",
+                "--font-weight-medium",
+                "--font-weight-semibold",
+                "--font-weight-bold",
+                "--font-text-xs-size",
+                "--font-text-sm-size",
+                "--font-text-md-size",
+                "--font-text-lg-size",
+                "--font-heading-xs-size",
+                "--font-heading-sm-size",
+                "--font-heading-md-size",
+                "--font-heading-lg-size",
+                "--font-heading-xl-size",
+                "--font-heading-2xl-size",
+                "--font-heading-3xl-size",
+                "--font-text-xs-line-height",
+                "--font-text-sm-line-height",
+                "--font-text-md-line-height",
+                "--font-text-lg-line-height",
+                "--font-heading-xs-line-height",
+                "--font-heading-sm-line-height",
+                "--font-heading-md-line-height",
+                "--font-heading-lg-line-height",
+                "--font-heading-xl-line-height",
+                "--font-heading-2xl-line-height",
+                "--font-heading-3xl-line-height",
+                "--border-radius-xs",
+                "--border-radius-sm",
+                "--border-radius-md",
+                "--border-radius-lg",
+                "--border-radius-xl",
+                "--border-radius-full",
+                "--border-width-regular",
+                "--shadow-hairline",
+                "--shadow-sm",
+                "--shadow-md",
+                "--shadow-lg"
+              ]
             },
             "css": {
               "description": "CSS blocks that apps can inject.",
@@ -1302,12 +1558,12 @@
           "type": "object",
           "properties": {
             "width": {
-              "description": "Current viewport width in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Current viewport width in pixels."
             },
             "height": {
-              "description": "Current viewport height in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Current viewport height in pixels."
             },
             "maxHeight": {
               "description": "Maximum available height in pixels (if constrained).",
@@ -1318,7 +1574,10 @@
               "type": "number"
             }
           },
-          "required": ["width", "height"],
+          "required": [
+            "width",
+            "height"
+          ],
           "additionalProperties": false
         },
         "locale": {
@@ -1370,23 +1629,28 @@
           "type": "object",
           "properties": {
             "top": {
-              "description": "Top safe area inset in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Top safe area inset in pixels."
             },
             "right": {
-              "description": "Right safe area inset in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Right safe area inset in pixels."
             },
             "bottom": {
-              "description": "Bottom safe area inset in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Bottom safe area inset in pixels."
             },
             "left": {
-              "description": "Left safe area inset in pixels.",
-              "type": "number"
+              "type": "number",
+              "description": "Left safe area inset in pixels."
             }
           },
-          "required": ["top", "right", "bottom", "left"],
+          "required": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ],
           "additionalProperties": false
         }
       },
@@ -1411,7 +1675,6 @@
           "description": "CSS variables for theming the app.",
           "type": "object",
           "propertyNames": {
-            "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
             "anyOf": [
               {
                 "type": "string",
@@ -1717,17 +1980,96 @@
                 "type": "string",
                 "const": "--shadow-lg"
               }
-            ]
+            ],
+            "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
           },
           "additionalProperties": {
-            "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
             "anyOf": [
               {
                 "type": "string"
               },
               {}
-            ]
-          }
+            ],
+            "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+          },
+          "required": [
+            "--color-background-primary",
+            "--color-background-secondary",
+            "--color-background-tertiary",
+            "--color-background-inverse",
+            "--color-background-ghost",
+            "--color-background-info",
+            "--color-background-danger",
+            "--color-background-success",
+            "--color-background-warning",
+            "--color-background-disabled",
+            "--color-text-primary",
+            "--color-text-secondary",
+            "--color-text-tertiary",
+            "--color-text-inverse",
+            "--color-text-info",
+            "--color-text-danger",
+            "--color-text-success",
+            "--color-text-warning",
+            "--color-text-disabled",
+            "--color-text-ghost",
+            "--color-border-primary",
+            "--color-border-secondary",
+            "--color-border-tertiary",
+            "--color-border-inverse",
+            "--color-border-ghost",
+            "--color-border-info",
+            "--color-border-danger",
+            "--color-border-success",
+            "--color-border-warning",
+            "--color-border-disabled",
+            "--color-ring-primary",
+            "--color-ring-secondary",
+            "--color-ring-inverse",
+            "--color-ring-info",
+            "--color-ring-danger",
+            "--color-ring-success",
+            "--color-ring-warning",
+            "--font-sans",
+            "--font-mono",
+            "--font-weight-normal",
+            "--font-weight-medium",
+            "--font-weight-semibold",
+            "--font-weight-bold",
+            "--font-text-xs-size",
+            "--font-text-sm-size",
+            "--font-text-md-size",
+            "--font-text-lg-size",
+            "--font-heading-xs-size",
+            "--font-heading-sm-size",
+            "--font-heading-md-size",
+            "--font-heading-lg-size",
+            "--font-heading-xl-size",
+            "--font-heading-2xl-size",
+            "--font-heading-3xl-size",
+            "--font-text-xs-line-height",
+            "--font-text-sm-line-height",
+            "--font-text-md-line-height",
+            "--font-text-lg-line-height",
+            "--font-heading-xs-line-height",
+            "--font-heading-sm-line-height",
+            "--font-heading-md-line-height",
+            "--font-heading-lg-line-height",
+            "--font-heading-xl-line-height",
+            "--font-heading-2xl-line-height",
+            "--font-heading-3xl-line-height",
+            "--border-radius-xs",
+            "--border-radius-sm",
+            "--border-radius-md",
+            "--border-radius-lg",
+            "--border-radius-xl",
+            "--border-radius-full",
+            "--border-width-regular",
+            "--shadow-hairline",
+            "--shadow-sm",
+            "--shadow-md",
+            "--shadow-lg"
+          ]
         },
         "css": {
           "description": "CSS blocks that apps can inject.",
@@ -1755,7 +2097,6 @@
           "type": "object",
           "properties": {
             "appInfo": {
-              "description": "App identification (name and version).",
               "type": "object",
               "properties": {
                 "name": {
@@ -1780,9 +2121,18 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "theme": {
+                        "type": "string",
+                        "enum": [
+                          "light",
+                          "dark"
+                        ]
                       }
                     },
-                    "required": ["src"],
+                    "required": [
+                      "src"
+                    ],
                     "additionalProperties": false
                   }
                 },
@@ -1791,13 +2141,19 @@
                 },
                 "websiteUrl": {
                   "type": "string"
+                },
+                "description": {
+                  "type": "string"
                 }
               },
-              "required": ["name", "version"],
-              "additionalProperties": false
+              "required": [
+                "name",
+                "version"
+              ],
+              "additionalProperties": false,
+              "description": "App identification (name and version)."
             },
             "appCapabilities": {
-              "description": "Features and capabilities this app provides.",
               "type": "object",
               "properties": {
                 "experimental": {
@@ -1818,18 +2174,26 @@
                   "additionalProperties": false
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "description": "Features and capabilities this app provides."
             },
             "protocolVersion": {
-              "description": "Protocol version this app supports.",
-              "type": "string"
+              "type": "string",
+              "description": "Protocol version this app supports."
             }
           },
-          "required": ["appInfo", "appCapabilities", "protocolVersion"],
+          "required": [
+            "appInfo",
+            "appCapabilities",
+            "protocolVersion"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiInitializeResult": {
@@ -1837,11 +2201,10 @@
       "type": "object",
       "properties": {
         "protocolVersion": {
-          "description": "Negotiated protocol version string (e.g., \"2025-11-21\").",
-          "type": "string"
+          "type": "string",
+          "description": "Negotiated protocol version string (e.g., \"2025-11-21\")."
         },
         "hostInfo": {
-          "description": "Host application identification and version.",
           "type": "object",
           "properties": {
             "name": {
@@ -1866,9 +2229,18 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "theme": {
+                    "type": "string",
+                    "enum": [
+                      "light",
+                      "dark"
+                    ]
                   }
                 },
-                "required": ["src"],
+                "required": [
+                  "src"
+                ],
                 "additionalProperties": false
               }
             },
@@ -1877,13 +2249,19 @@
             },
             "websiteUrl": {
               "type": "string"
+            },
+            "description": {
+              "type": "string"
             }
           },
-          "required": ["name", "version"],
-          "additionalProperties": false
+          "required": [
+            "name",
+            "version"
+          ],
+          "additionalProperties": false,
+          "description": "Host application identification and version."
         },
         "hostCapabilities": {
-          "description": "Features and capabilities provided by the host.",
           "type": "object",
           "properties": {
             "experimental": {
@@ -1927,7 +2305,50 @@
               "additionalProperties": false
             },
             "updateModelContext": {
-              "description": "Host accepts context updates to be included in the model's context for future turns.",
+              "description": "Host accepts context updates (ui/update-model-context) to be included in the model's context for future turns.",
+              "type": "object",
+              "properties": {
+                "text": {
+                  "description": "Host supports text content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "image": {
+                  "description": "Host supports image content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "audio": {
+                  "description": "Host supports audio content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "resource": {
+                  "description": "Host supports resource content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "resourceLink": {
+                  "description": "Host supports resource link content blocks.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                },
+                "structuredContent": {
+                  "description": "Host supports structured content.",
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "message": {
+              "description": "Host supports receiving content messages (ui/message) from the Guest UI.",
               "type": "object",
               "properties": {
                 "text": {
@@ -1970,10 +2391,10 @@
               "additionalProperties": false
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Features and capabilities provided by the host."
         },
         "hostContext": {
-          "description": "Rich context about the host environment.",
           "type": "object",
           "properties": {
             "toolInfo": {
@@ -1981,7 +2402,6 @@
               "type": "object",
               "properties": {
                 "id": {
-                  "description": "JSON-RPC id of the tools/call request.",
                   "anyOf": [
                     {
                       "type": "string"
@@ -1991,10 +2411,10 @@
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
                     }
-                  ]
+                  ],
+                  "description": "JSON-RPC id of the tools/call request."
                 },
                 "tool": {
-                  "description": "Tool definition including name, inputSchema, etc.",
                   "type": "object",
                   "properties": {
                     "name": {
@@ -2019,9 +2439,18 @@
                             "items": {
                               "type": "string"
                             }
+                          },
+                          "theme": {
+                            "type": "string",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
                           }
                         },
-                        "required": ["src"],
+                        "required": [
+                          "src"
+                        ],
                         "additionalProperties": false
                       }
                     },
@@ -2049,7 +2478,9 @@
                           }
                         }
                       },
-                      "required": ["type"],
+                      "required": [
+                        "type"
+                      ],
                       "additionalProperties": {}
                     },
                     "outputSchema": {
@@ -2073,7 +2504,9 @@
                           }
                         }
                       },
-                      "required": ["type"],
+                      "required": [
+                        "type"
+                      ],
                       "additionalProperties": {}
                     },
                     "annotations": {
@@ -2102,7 +2535,11 @@
                       "properties": {
                         "taskSupport": {
                           "type": "string",
-                          "enum": ["required", "optional", "forbidden"]
+                          "enum": [
+                            "required",
+                            "optional",
+                            "forbidden"
+                          ]
                         }
                       },
                       "additionalProperties": false
@@ -2115,11 +2552,18 @@
                       "additionalProperties": {}
                     }
                   },
-                  "required": ["name", "inputSchema"],
-                  "additionalProperties": false
+                  "required": [
+                    "name",
+                    "inputSchema"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Tool definition including name, inputSchema, etc."
                 }
               },
-              "required": ["id", "tool"],
+              "required": [
+                "id",
+                "tool"
+              ],
               "additionalProperties": false
             },
             "theme": {
@@ -2143,7 +2587,6 @@
                   "description": "CSS variables for theming the app.",
                   "type": "object",
                   "propertyNames": {
-                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                     "anyOf": [
                       {
                         "type": "string",
@@ -2449,17 +2892,96 @@
                         "type": "string",
                         "const": "--shadow-lg"
                       }
-                    ]
+                    ],
+                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
                   },
                   "additionalProperties": {
-                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {}
-                    ]
-                  }
+                    ],
+                    "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+                  },
+                  "required": [
+                    "--color-background-primary",
+                    "--color-background-secondary",
+                    "--color-background-tertiary",
+                    "--color-background-inverse",
+                    "--color-background-ghost",
+                    "--color-background-info",
+                    "--color-background-danger",
+                    "--color-background-success",
+                    "--color-background-warning",
+                    "--color-background-disabled",
+                    "--color-text-primary",
+                    "--color-text-secondary",
+                    "--color-text-tertiary",
+                    "--color-text-inverse",
+                    "--color-text-info",
+                    "--color-text-danger",
+                    "--color-text-success",
+                    "--color-text-warning",
+                    "--color-text-disabled",
+                    "--color-text-ghost",
+                    "--color-border-primary",
+                    "--color-border-secondary",
+                    "--color-border-tertiary",
+                    "--color-border-inverse",
+                    "--color-border-ghost",
+                    "--color-border-info",
+                    "--color-border-danger",
+                    "--color-border-success",
+                    "--color-border-warning",
+                    "--color-border-disabled",
+                    "--color-ring-primary",
+                    "--color-ring-secondary",
+                    "--color-ring-inverse",
+                    "--color-ring-info",
+                    "--color-ring-danger",
+                    "--color-ring-success",
+                    "--color-ring-warning",
+                    "--font-sans",
+                    "--font-mono",
+                    "--font-weight-normal",
+                    "--font-weight-medium",
+                    "--font-weight-semibold",
+                    "--font-weight-bold",
+                    "--font-text-xs-size",
+                    "--font-text-sm-size",
+                    "--font-text-md-size",
+                    "--font-text-lg-size",
+                    "--font-heading-xs-size",
+                    "--font-heading-sm-size",
+                    "--font-heading-md-size",
+                    "--font-heading-lg-size",
+                    "--font-heading-xl-size",
+                    "--font-heading-2xl-size",
+                    "--font-heading-3xl-size",
+                    "--font-text-xs-line-height",
+                    "--font-text-sm-line-height",
+                    "--font-text-md-line-height",
+                    "--font-text-lg-line-height",
+                    "--font-heading-xs-line-height",
+                    "--font-heading-sm-line-height",
+                    "--font-heading-md-line-height",
+                    "--font-heading-lg-line-height",
+                    "--font-heading-xl-line-height",
+                    "--font-heading-2xl-line-height",
+                    "--font-heading-3xl-line-height",
+                    "--border-radius-xs",
+                    "--border-radius-sm",
+                    "--border-radius-md",
+                    "--border-radius-lg",
+                    "--border-radius-xl",
+                    "--border-radius-full",
+                    "--border-width-regular",
+                    "--shadow-hairline",
+                    "--shadow-sm",
+                    "--shadow-md",
+                    "--shadow-lg"
+                  ]
                 },
                 "css": {
                   "description": "CSS blocks that apps can inject.",
@@ -2504,12 +3026,12 @@
               "type": "object",
               "properties": {
                 "width": {
-                  "description": "Current viewport width in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Current viewport width in pixels."
                 },
                 "height": {
-                  "description": "Current viewport height in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Current viewport height in pixels."
                 },
                 "maxHeight": {
                   "description": "Maximum available height in pixels (if constrained).",
@@ -2520,7 +3042,10 @@
                   "type": "number"
                 }
               },
-              "required": ["width", "height"],
+              "required": [
+                "width",
+                "height"
+              ],
               "additionalProperties": false
             },
             "locale": {
@@ -2572,27 +3097,33 @@
               "type": "object",
               "properties": {
                 "top": {
-                  "description": "Top safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Top safe area inset in pixels."
                 },
                 "right": {
-                  "description": "Right safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Right safe area inset in pixels."
                 },
                 "bottom": {
-                  "description": "Bottom safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Bottom safe area inset in pixels."
                 },
                 "left": {
-                  "description": "Left safe area inset in pixels.",
-                  "type": "number"
+                  "type": "number",
+                  "description": "Left safe area inset in pixels."
                 }
               },
-              "required": ["top", "right", "bottom", "left"],
+              "required": [
+                "top",
+                "right",
+                "bottom",
+                "left"
+              ],
               "additionalProperties": false
             }
           },
-          "additionalProperties": {}
+          "additionalProperties": {},
+          "description": "Rich context about the host environment."
         }
       },
       "required": [
@@ -2617,7 +3148,9 @@
           "additionalProperties": false
         }
       },
-      "required": ["method"],
+      "required": [
+        "method"
+      ],
       "additionalProperties": false
     },
     "McpUiMessageRequest": {
@@ -2632,12 +3165,11 @@
           "type": "object",
           "properties": {
             "role": {
-              "description": "Message role, currently only \"user\" is supported.",
               "type": "string",
-              "const": "user"
+              "const": "user",
+              "description": "Message role, currently only \"user\" is supported."
             },
             "content": {
-              "description": "Message content blocks (text, image, etc.).",
               "type": "array",
               "items": {
                 "anyOf": [
@@ -2658,7 +3190,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -2682,7 +3217,10 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "text"],
+                    "required": [
+                      "type",
+                      "text"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -2705,7 +3243,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -2729,7 +3270,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -2752,7 +3297,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -2776,7 +3324,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -2804,9 +3356,18 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "theme": {
+                              "type": "string",
+                              "enum": [
+                                "light",
+                                "dark"
+                              ]
                             }
                           },
-                          "required": ["src"],
+                          "required": [
+                            "src"
+                          ],
                           "additionalProperties": false
                         }
                       },
@@ -2826,7 +3387,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -2852,7 +3416,11 @@
                         "const": "resource_link"
                       }
                     },
-                    "required": ["name", "uri", "type"],
+                    "required": [
+                      "name",
+                      "uri",
+                      "type"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -2884,7 +3452,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "text"],
+                            "required": [
+                              "uri",
+                              "text"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -2907,7 +3478,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "blob"],
+                            "required": [
+                              "uri",
+                              "blob"
+                            ],
                             "additionalProperties": false
                           }
                         ]
@@ -2919,7 +3493,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -2943,18 +3520,28 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "resource"],
+                    "required": [
+                      "type",
+                      "resource"
+                    ],
                     "additionalProperties": false
                   }
                 ]
-              }
+              },
+              "description": "Message content blocks (text, image, etc.)."
             }
           },
-          "required": ["role", "content"],
+          "required": [
+            "role",
+            "content"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiMessageResult": {
@@ -2980,15 +3567,20 @@
           "type": "object",
           "properties": {
             "url": {
-              "description": "URL to open in the host's browser",
-              "type": "string"
+              "type": "string",
+              "description": "URL to open in the host's browser"
             }
           },
-          "required": ["url"],
+          "required": [
+            "url"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiOpenLinkResult": {
@@ -3014,7 +3606,6 @@
           "type": "object",
           "properties": {
             "mode": {
-              "description": "The display mode being requested.",
               "anyOf": [
                 {
                   "type": "string",
@@ -3028,14 +3619,20 @@
                   "type": "string",
                   "const": "pip"
                 }
-              ]
+              ],
+              "description": "The display mode being requested."
             }
           },
-          "required": ["mode"],
+          "required": [
+            "mode"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiRequestDisplayModeResult": {
@@ -3043,7 +3640,6 @@
       "type": "object",
       "properties": {
         "mode": {
-          "description": "The display mode that was actually set. May differ from requested if not supported.",
           "anyOf": [
             {
               "type": "string",
@@ -3057,10 +3653,13 @@
               "type": "string",
               "const": "pip"
             }
-          ]
+          ],
+          "description": "The display mode that was actually set. May differ from requested if not supported."
         }
       },
-      "required": ["mode"],
+      "required": [
+        "mode"
+      ],
       "additionalProperties": {}
     },
     "McpUiResourceCsp": {
@@ -3134,7 +3733,10 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiResourceTeardownResult": {
@@ -3159,7 +3761,10 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiSandboxResourceReadyNotification": {
@@ -3174,8 +3779,8 @@
           "type": "object",
           "properties": {
             "html": {
-              "description": "HTML content to load into the inner iframe.",
-              "type": "string"
+              "type": "string",
+              "description": "HTML content to load into the inner iframe."
             },
             "sandbox": {
               "description": "Optional override for the inner iframe's sandbox attribute.",
@@ -3203,11 +3808,16 @@
               "additionalProperties": false
             }
           },
-          "required": ["html"],
+          "required": [
+            "html"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiSizeChangedNotification": {
@@ -3233,12 +3843,14 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiStyleVariableKey": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "CSS variable keys available to MCP apps for theming.",
       "anyOf": [
         {
           "type": "string",
@@ -3544,14 +4156,13 @@
           "type": "string",
           "const": "--shadow-lg"
         }
-      ]
+      ],
+      "description": "CSS variable keys available to MCP apps for theming."
     },
     "McpUiStyles": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
       "type": "object",
       "propertyNames": {
-        "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
         "anyOf": [
           {
             "type": "string",
@@ -3857,21 +4468,143 @@
             "type": "string",
             "const": "--shadow-lg"
           }
-        ]
+        ],
+        "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
       },
       "additionalProperties": {
-        "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation.",
         "anyOf": [
           {
             "type": "string"
           },
           {}
-        ]
-      }
+        ],
+        "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+      },
+      "required": [
+        "--color-background-primary",
+        "--color-background-secondary",
+        "--color-background-tertiary",
+        "--color-background-inverse",
+        "--color-background-ghost",
+        "--color-background-info",
+        "--color-background-danger",
+        "--color-background-success",
+        "--color-background-warning",
+        "--color-background-disabled",
+        "--color-text-primary",
+        "--color-text-secondary",
+        "--color-text-tertiary",
+        "--color-text-inverse",
+        "--color-text-info",
+        "--color-text-danger",
+        "--color-text-success",
+        "--color-text-warning",
+        "--color-text-disabled",
+        "--color-text-ghost",
+        "--color-border-primary",
+        "--color-border-secondary",
+        "--color-border-tertiary",
+        "--color-border-inverse",
+        "--color-border-ghost",
+        "--color-border-info",
+        "--color-border-danger",
+        "--color-border-success",
+        "--color-border-warning",
+        "--color-border-disabled",
+        "--color-ring-primary",
+        "--color-ring-secondary",
+        "--color-ring-inverse",
+        "--color-ring-info",
+        "--color-ring-danger",
+        "--color-ring-success",
+        "--color-ring-warning",
+        "--font-sans",
+        "--font-mono",
+        "--font-weight-normal",
+        "--font-weight-medium",
+        "--font-weight-semibold",
+        "--font-weight-bold",
+        "--font-text-xs-size",
+        "--font-text-sm-size",
+        "--font-text-md-size",
+        "--font-text-lg-size",
+        "--font-heading-xs-size",
+        "--font-heading-sm-size",
+        "--font-heading-md-size",
+        "--font-heading-lg-size",
+        "--font-heading-xl-size",
+        "--font-heading-2xl-size",
+        "--font-heading-3xl-size",
+        "--font-text-xs-line-height",
+        "--font-text-sm-line-height",
+        "--font-text-md-line-height",
+        "--font-text-lg-line-height",
+        "--font-heading-xs-line-height",
+        "--font-heading-sm-line-height",
+        "--font-heading-md-line-height",
+        "--font-heading-lg-line-height",
+        "--font-heading-xl-line-height",
+        "--font-heading-2xl-line-height",
+        "--font-heading-3xl-line-height",
+        "--border-radius-xs",
+        "--border-radius-sm",
+        "--border-radius-md",
+        "--border-radius-lg",
+        "--border-radius-xl",
+        "--border-radius-full",
+        "--border-width-regular",
+        "--shadow-hairline",
+        "--shadow-sm",
+        "--shadow-md",
+        "--shadow-lg"
+      ],
+      "description": "Style variables for theming MCP apps.\n\nIndividual style keys are optional - hosts may provide any subset of these values.\nValues are strings containing CSS values (colors, sizes, font stacks, etc.).\n\nNote: This type uses `Record<K, string | undefined>` rather than `Partial<Record<K, string>>`\nfor compatibility with Zod schema generation. Both are functionally equivalent for validation."
+    },
+    "McpUiSupportedContentBlockModalities": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "text": {
+          "description": "Host supports text content blocks.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "image": {
+          "description": "Host supports image content blocks.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "audio": {
+          "description": "Host supports audio content blocks.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "resource": {
+          "description": "Host supports resource content blocks.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "resourceLink": {
+          "description": "Host supports resource link content blocks.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "structuredContent": {
+          "description": "Host supports structured content.",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     },
     "McpUiTheme": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Color theme preference for the host environment.",
       "anyOf": [
         {
           "type": "string",
@@ -3881,7 +4614,8 @@
           "type": "string",
           "const": "dark"
         }
-      ]
+      ],
+      "description": "Color theme preference for the host environment."
     },
     "McpUiToolCancelledNotification": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3902,7 +4636,10 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiToolInputNotification": {
@@ -3930,7 +4667,10 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiToolInputPartialNotification": {
@@ -3958,7 +4698,10 @@
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiToolMeta": {
@@ -3972,7 +4715,6 @@
           "description": "Who can access this tool. Default: [\"model\", \"app\"]\n- \"model\": Tool visible to and callable by the agent\n- \"app\": Tool callable by the app from this server only",
           "type": "array",
           "items": {
-            "description": "Tool visibility scope - who can access the tool.",
             "anyOf": [
               {
                 "type": "string",
@@ -3982,11 +4724,14 @@
                 "type": "string",
                 "const": "app"
               }
-            ]
+            ],
+            "description": "Tool visibility scope - who can access the tool."
           }
         }
       },
-      "required": ["resourceUri"],
+      "required": [
+        "resourceUri"
+      ],
       "additionalProperties": false
     },
     "McpUiToolResultNotification": {
@@ -3998,12 +4743,23 @@
           "const": "ui/notifications/tool-result"
         },
         "params": {
-          "description": "Standard MCP tool execution result.",
           "type": "object",
           "properties": {
             "_meta": {
               "type": "object",
               "properties": {
+                "progressToken": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  ]
+                },
                 "io.modelcontextprotocol/related-task": {
                   "type": "object",
                   "properties": {
@@ -4011,8 +4767,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["taskId"],
-                  "additionalProperties": {}
+                  "required": [
+                    "taskId"
+                  ],
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": {}
@@ -4039,7 +4797,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4063,7 +4824,10 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "text"],
+                    "required": [
+                      "type",
+                      "text"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4086,7 +4850,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4110,7 +4877,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4133,7 +4904,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4157,7 +4931,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4185,9 +4963,18 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "theme": {
+                              "type": "string",
+                              "enum": [
+                                "light",
+                                "dark"
+                              ]
                             }
                           },
-                          "required": ["src"],
+                          "required": [
+                            "src"
+                          ],
                           "additionalProperties": false
                         }
                       },
@@ -4207,7 +4994,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4233,7 +5023,11 @@
                         "const": "resource_link"
                       }
                     },
-                    "required": ["name", "uri", "type"],
+                    "required": [
+                      "name",
+                      "uri",
+                      "type"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4265,7 +5059,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "text"],
+                            "required": [
+                              "uri",
+                              "text"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -4288,7 +5085,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "blob"],
+                            "required": [
+                              "uri",
+                              "blob"
+                            ],
                             "additionalProperties": false
                           }
                         ]
@@ -4300,7 +5100,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4324,7 +5127,10 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "resource"],
+                    "required": [
+                      "type",
+                      "resource"
+                    ],
                     "additionalProperties": false
                   }
                 ]
@@ -4341,16 +5147,21 @@
               "type": "boolean"
             }
           },
-          "required": ["content"],
-          "additionalProperties": {}
+          "required": [
+            "content"
+          ],
+          "additionalProperties": {},
+          "description": "Standard MCP tool execution result."
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiToolVisibility": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Tool visibility scope - who can access the tool.",
       "anyOf": [
         {
           "type": "string",
@@ -4360,7 +5171,8 @@
           "type": "string",
           "const": "app"
         }
-      ]
+      ],
+      "description": "Tool visibility scope - who can access the tool."
     },
     "McpUiUpdateModelContextRequest": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4395,7 +5207,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4419,7 +5234,10 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "text"],
+                    "required": [
+                      "type",
+                      "text"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4442,7 +5260,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4466,7 +5287,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4489,7 +5314,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4513,7 +5341,11 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "data", "mimeType"],
+                    "required": [
+                      "type",
+                      "data",
+                      "mimeType"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4541,9 +5373,18 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "theme": {
+                              "type": "string",
+                              "enum": [
+                                "light",
+                                "dark"
+                              ]
                             }
                           },
-                          "required": ["src"],
+                          "required": [
+                            "src"
+                          ],
                           "additionalProperties": false
                         }
                       },
@@ -4563,7 +5404,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4589,7 +5433,11 @@
                         "const": "resource_link"
                       }
                     },
-                    "required": ["name", "uri", "type"],
+                    "required": [
+                      "name",
+                      "uri",
+                      "type"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -4621,7 +5469,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "text"],
+                            "required": [
+                              "uri",
+                              "text"
+                            ],
                             "additionalProperties": false
                           },
                           {
@@ -4644,7 +5495,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["uri", "blob"],
+                            "required": [
+                              "uri",
+                              "blob"
+                            ],
                             "additionalProperties": false
                           }
                         ]
@@ -4656,7 +5510,10 @@
                             "type": "array",
                             "items": {
                               "type": "string",
-                              "enum": ["user", "assistant"]
+                              "enum": [
+                                "user",
+                                "assistant"
+                              ]
                             }
                           },
                           "priority": {
@@ -4680,7 +5537,10 @@
                         "additionalProperties": {}
                       }
                     },
-                    "required": ["type", "resource"],
+                    "required": [
+                      "type",
+                      "resource"
+                    ],
                     "additionalProperties": false
                   }
                 ]
@@ -4689,19 +5549,29 @@
             "structuredContent": {
               "description": "Structured content for machine-readable context data.",
               "type": "object",
-              "additionalProperties": {}
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "description": "Structured content for machine-readable context data."
+              }
             }
           },
           "additionalProperties": false
         }
       },
-      "required": ["method", "params"],
+      "required": [
+        "method",
+        "params"
+      ],
       "additionalProperties": false
     },
     "McpUiUpdateModelContextResult": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
-      "properties": {},
+      "propertyNames": {
+        "type": "string"
+      },
       "additionalProperties": {}
     }
   }

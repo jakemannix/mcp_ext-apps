@@ -428,6 +428,21 @@ export interface McpUiResourceTeardownResult {
   [key: string]: unknown;
 }
 
+export interface McpUiSupportedContentBlockModalities {
+  /** @description Host supports text content blocks. */
+  text?: {};
+  /** @description Host supports image content blocks. */
+  image?: {};
+  /** @description Host supports audio content blocks. */
+  audio?: {};
+  /** @description Host supports resource content blocks. */
+  resource?: {};
+  /** @description Host supports resource link content blocks. */
+  resourceLink?: {};
+  /** @description Host supports structured content. */
+  structuredContent?: {};
+}
+
 /**
  * @description Capabilities supported by the host application.
  * @see {@link McpUiInitializeResult} for the initialization result that includes these capabilities
@@ -449,21 +464,10 @@ export interface McpUiHostCapabilities {
   };
   /** @description Host accepts log messages. */
   logging?: {};
-  /** @description Host accepts context updates to be included in the model's context for future turns. */
-  updateModelContext?: {
-    /** @description Host supports text content blocks. */
-    text?: {};
-    /** @description Host supports image content blocks. */
-    image?: {};
-    /** @description Host supports audio content blocks. */
-    audio?: {};
-    /** @description Host supports resource content blocks. */
-    resource?: {};
-    /** @description Host supports resource link content blocks. */
-    resourceLink?: {};
-    /** @description Host supports structured content. */
-    structuredContent?: {};
-  };
+  /** @description Host accepts context updates (ui/update-model-context) to be included in the model's context for future turns. */
+  updateModelContext?: McpUiSupportedContentBlockModalities;
+  /** @description Host supports receiving content messages (ui/message) from the Guest UI. */
+  message?: McpUiSupportedContentBlockModalities;
 }
 
 /**
