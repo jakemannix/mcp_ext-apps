@@ -100,19 +100,27 @@
               "properties": {
                 "camera": {
                   "description": "Request camera access (Permission Policy `camera` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "microphone": {
                   "description": "Request microphone access (Permission Policy `microphone` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "geolocation": {
                   "description": "Request geolocation access (Permission Policy `geolocation` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "clipboardWrite": {
                   "description": "Request clipboard write access (Permission Policy `clipboard-write` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -2307,19 +2315,27 @@
                   "properties": {
                     "camera": {
                       "description": "Request camera access (Permission Policy `camera` feature).",
-                      "type": "boolean"
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
                     },
                     "microphone": {
                       "description": "Request microphone access (Permission Policy `microphone` feature).",
-                      "type": "boolean"
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
                     },
                     "geolocation": {
                       "description": "Request geolocation access (Permission Policy `geolocation` feature).",
-                      "type": "boolean"
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
                     },
                     "clipboardWrite": {
                       "description": "Request clipboard write access (Permission Policy `clipboard-write` feature).",
-                      "type": "boolean"
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": false
                     }
                   },
                   "additionalProperties": false
@@ -3668,19 +3684,27 @@
           "properties": {
             "camera": {
               "description": "Request camera access (Permission Policy `camera` feature).",
-              "type": "boolean"
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
             },
             "microphone": {
               "description": "Request microphone access (Permission Policy `microphone` feature).",
-              "type": "boolean"
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
             },
             "geolocation": {
               "description": "Request geolocation access (Permission Policy `geolocation` feature).",
-              "type": "boolean"
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
             },
             "clipboardWrite": {
               "description": "Request clipboard write access (Permission Policy `clipboard-write` feature).",
-              "type": "boolean"
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
             }
           },
           "additionalProperties": false
@@ -3702,19 +3726,27 @@
       "properties": {
         "camera": {
           "description": "Request camera access (Permission Policy `camera` feature).",
-          "type": "boolean"
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
         },
         "microphone": {
           "description": "Request microphone access (Permission Policy `microphone` feature).",
-          "type": "boolean"
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
         },
         "geolocation": {
           "description": "Request geolocation access (Permission Policy `geolocation` feature).",
-          "type": "boolean"
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
         },
         "clipboardWrite": {
           "description": "Request clipboard write access (Permission Policy `clipboard-write` feature).",
-          "type": "boolean"
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -3821,19 +3853,27 @@
               "properties": {
                 "camera": {
                   "description": "Request camera access (Permission Policy `camera` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "microphone": {
                   "description": "Request microphone access (Permission Policy `microphone` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "geolocation": {
                   "description": "Request geolocation access (Permission Policy `geolocation` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 },
                 "clipboardWrite": {
                   "description": "Request clipboard write access (Permission Policy `clipboard-write` feature).",
-                  "type": "boolean"
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

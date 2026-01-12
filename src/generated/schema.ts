@@ -219,26 +219,26 @@ export const McpUiResourceCspSchema = z.object({
 export const McpUiResourcePermissionsSchema = z.object({
   /** @description Request camera access (Permission Policy `camera` feature). */
   camera: z
-    .boolean()
+    .object({})
     .optional()
     .describe("Request camera access (Permission Policy `camera` feature)."),
   /** @description Request microphone access (Permission Policy `microphone` feature). */
   microphone: z
-    .boolean()
+    .object({})
     .optional()
     .describe(
       "Request microphone access (Permission Policy `microphone` feature).",
     ),
   /** @description Request geolocation access (Permission Policy `geolocation` feature). */
   geolocation: z
-    .boolean()
+    .object({})
     .optional()
     .describe(
       "Request geolocation access (Permission Policy `geolocation` feature).",
     ),
   /** @description Request clipboard write access (Permission Policy `clipboard-write` feature). */
   clipboardWrite: z
-    .boolean()
+    .object({})
     .optional()
     .describe(
       "Request clipboard write access (Permission Policy `clipboard-write` feature).",

@@ -514,13 +514,13 @@ export interface McpUiResourceCsp {
  */
 export interface McpUiResourcePermissions {
   /** @description Request camera access (Permission Policy `camera` feature). */
-  camera?: boolean;
+  camera?: {};
   /** @description Request microphone access (Permission Policy `microphone` feature). */
-  microphone?: boolean;
+  microphone?: {};
   /** @description Request geolocation access (Permission Policy `geolocation` feature). */
-  geolocation?: boolean;
+  geolocation?: {};
   /** @description Request clipboard write access (Permission Policy `clipboard-write` feature). */
-  clipboardWrite?: boolean;
+  clipboardWrite?: {};
 }
 
 /**
