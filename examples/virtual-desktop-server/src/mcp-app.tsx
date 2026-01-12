@@ -403,9 +403,87 @@ function ViewDesktopInner({
     }
   }, [noVncReady, extractedInfo, connectionState, connect]);
 
-  // Note: Dynamic resize is not supported by TigerVNC.
-  // Resolution is set at container creation time via the `resolution` parameter.
-  // The VNC viewer scales to fit using scaleViewport=true.
+  // Resize desktop when container size changes
+  useEffect(() => {
+    if (!app || !extractedInfo || connectionState !== "connected") return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Available xrandr modes in the container (common resolutions)
+    const AVAILABLE_MODES = [
+      { width: 1920, height: 1200 },
+      { width: 1920, height: 1080 },
+      { width: 1680, height: 1050 },
+      { width: 1600, height: 1200 },
+      { width: 1400, height: 1050 },
+      { width: 1360, height: 768 },
+      { width: 1280, height: 1024 },
+      { width: 1280, height: 960 },
+      { width: 1280, height: 800 },
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+      { width: 800, height: 600 },
+    ];
+
+    // Find best matching mode for given dimensions
+    const findBestMode = (width: number, height: number) => {
+      // Find modes that fit within the container
+      const fittingModes = AVAILABLE_MODES.filter(
+        (m) => m.width <= width && m.height <= height,
+      );
+      if (fittingModes.length === 0) return AVAILABLE_MODES[AVAILABLE_MODES.length - 1];
+      // Pick the largest fitting mode
+      return fittingModes[0];
+    };
+
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    let lastMode = { width: 0, height: 0 };
+    const RESIZE_DEBOUNCE = 1000; // ms
+
+    const handleResize = (entries: ResizeObserverEntry[]) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      const { width, height } = entry.contentRect;
+      if (width < 640 || height < 480) return;
+
+      const bestMode = findBestMode(Math.floor(width), Math.floor(height));
+
+      // Skip if same mode
+      if (bestMode.width === lastMode.width && bestMode.height === lastMode.height) {
+        return;
+      }
+
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+
+      resizeTimeout = setTimeout(async () => {
+        lastMode = bestMode;
+        log.info(`Resizing desktop to ${bestMode.width}x${bestMode.height}`);
+        try {
+          await app.callServerTool({
+            name: "exec",
+            arguments: {
+              name: extractedInfo.name,
+              command: `xrandr -s ${bestMode.width}x${bestMode.height}`,
+              background: false,
+              timeout: 5000,
+            },
+          });
+        } catch (e) {
+          log.warn("Failed to resize desktop:", e);
+        }
+      }, RESIZE_DEBOUNCE);
+    };
+
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(container);
+
+    return () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      observer.disconnect();
+    };
+  }, [app, extractedInfo, connectionState]);
 
   // Cleanup on unmount only
   useEffect(() => {
