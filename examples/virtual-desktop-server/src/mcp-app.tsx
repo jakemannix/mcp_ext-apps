@@ -265,6 +265,7 @@ function ViewDesktopInner({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rfbRef = useRef<RFBInstance | null>(null);
+  const isConnectingRef = useRef(false); // Guard against duplicate connections
 
   // Extract desktop info from tool result text if not in metadata
   const extractedInfo = useExtractDesktopInfo(toolResult, desktopInfo);
@@ -292,6 +293,13 @@ function ViewDesktopInner({
   // Connect to VNC server
   const connect = useCallback(() => {
     if (!extractedInfo || !containerRef.current || !RFBClass) return;
+
+    // Guard against duplicate connection attempts
+    if (isConnectingRef.current) {
+      log.info("Connection already in progress, skipping");
+      return;
+    }
+    isConnectingRef.current = true;
 
     // Disconnect existing connection and clear container
     if (rfbRef.current) {
@@ -332,6 +340,7 @@ function ViewDesktopInner({
 
       rfb.addEventListener("connect", () => {
         log.info("Connected to VNC server");
+        isConnectingRef.current = false;
         setConnectionState("connected");
         setErrorMessage(null);
       });
@@ -345,6 +354,7 @@ function ViewDesktopInner({
             "reason:",
             e.detail.reason || "none",
           );
+          isConnectingRef.current = false;
 
           if (e.detail.clean) {
             setConnectionState("disconnected");
@@ -358,6 +368,7 @@ function ViewDesktopInner({
 
       rfb.addEventListener("securityfailure", (e: CustomEvent) => {
         log.error("Security failure:", e.detail);
+        isConnectingRef.current = false;
         setConnectionState("error");
         setErrorMessage(
           `Security failure: ${(e.detail as { reason?: string })?.reason || "Unknown"}`,
@@ -382,6 +393,7 @@ function ViewDesktopInner({
       rfbRef.current = rfb;
     } catch (e) {
       log.error("Failed to connect:", e);
+      isConnectingRef.current = false;
       setConnectionState("error");
       setErrorMessage(
         `Failed to connect: ${e instanceof Error ? e.message : String(e)}`,
@@ -432,7 +444,8 @@ function ViewDesktopInner({
       const fittingModes = AVAILABLE_MODES.filter(
         (m) => m.width <= width && m.height <= height,
       );
-      if (fittingModes.length === 0) return AVAILABLE_MODES[AVAILABLE_MODES.length - 1];
+      if (fittingModes.length === 0)
+        return AVAILABLE_MODES[AVAILABLE_MODES.length - 1];
       // Pick the largest fitting mode
       return fittingModes[0];
     };
@@ -451,7 +464,10 @@ function ViewDesktopInner({
       const bestMode = findBestMode(Math.floor(width), Math.floor(height));
 
       // Skip if same mode
-      if (bestMode.width === lastMode.width && bestMode.height === lastMode.height) {
+      if (
+        bestMode.width === lastMode.width &&
+        bestMode.height === lastMode.height
+      ) {
         return;
       }
 
