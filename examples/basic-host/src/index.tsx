@@ -54,13 +54,14 @@ interface HostProps {
 type ToolCallEntry = ToolCallInfo & { id: number };
 let nextToolCallId = 0;
 
-// Parse URL query params for debugging: ?server=name&tool=name&autoCall=true
+// Parse URL query params for debugging: ?server=name&tool=name&call=true
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
   return {
     server: params.get("server"),
     tool: params.get("tool"),
-    autoCall: params.get("autoCall") === "true",
+    // Support both "call" and legacy "autoCall"
+    autoCall: params.get("call") === "true" || params.get("autoCall") === "true",
   };
 }
 
@@ -168,7 +169,8 @@ function CallToolPanel({ serversPromise, addToolCall, initialServer, initialTool
     const url = new URL(window.location.href);
     url.searchParams.set("server", selectedServer.name);
     url.searchParams.set("tool", selectedTool);
-    url.searchParams.delete("autoCall"); // Don't auto-call on refresh
+    url.searchParams.set("call", "true"); // Auto-call on refresh
+    url.searchParams.delete("autoCall"); // Remove legacy param
     history.replaceState(null, "", url.toString());
   };
 
