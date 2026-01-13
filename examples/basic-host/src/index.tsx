@@ -1,10 +1,30 @@
-import { getToolUiResourceUri } from "@modelcontextprotocol/ext-apps/app-bridge";
+import { getToolUiResourceUri, McpUiToolMetaSchema } from "@modelcontextprotocol/ext-apps/app-bridge";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { Component, type ErrorInfo, type ReactNode, StrictMode, Suspense, use, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { callTool, connectToServer, hasAppHtml, initializeApp, loadSandboxProxy, log, newAppBridge, type ServerInfo, type ToolCallInfo, type ModelContext, type AppMessage } from "./implementation";
 import styles from "./index.module.css";
 
+/**
+ * Check if a tool is visible to the model (not app-only).
+ * Tools with `visibility: ["app"]` should not be shown in tool lists.
+ */
+function isToolVisibleToModel(tool: { _meta?: Record<string, unknown> }): boolean {
+  const result = McpUiToolMetaSchema.safeParse(tool._meta?.ui);
+  if (!result.success) return true; // default: visible to model
+  const visibility = result.data.visibility;
+  if (!visibility) return true; // default: visible to model
+  return visibility.includes("model");
+}
+
+/** Compare tools: UI-enabled first, then alphabetically by name. */
+function compareTools(a: Tool, b: Tool): number {
+  const aHasUi = !!getToolUiResourceUri(a);
+  const bHasUi = !!getToolUiResourceUri(b);
+  if (aHasUi && !bHasUi) return -1;
+  if (!aHasUi && bHasUi) return 1;
+  return a.name.localeCompare(b.name);
+}
 
 /**
  * Extract default values from a tool's JSON Schema inputSchema.
@@ -81,10 +101,11 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
   const [selectedTool, setSelectedTool] = useState("");
   const [inputJson, setInputJson] = useState("{}");
 
-  // Only show tools that have a UI resource
+  // Filter out app-only tools, prioritize tools with UIs
   const toolNames = selectedServer
     ? Array.from(selectedServer.tools.values())
-        .filter((tool) => !!getToolUiResourceUri(tool))
+        .filter((tool) => isToolVisibleToModel(tool))
+        .sort(compareTools)
         .map((tool) => tool.name)
     : [];
 
@@ -99,9 +120,11 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
 
   const handleServerSelect = (server: ServerInfo) => {
     setSelectedServer(server);
-    // Only consider tools with UI resources
-    const uiTools = Array.from(server.tools.values()).filter((tool) => !!getToolUiResourceUri(tool));
-    const firstTool = uiTools[0]?.name ?? "";
+    // Filter out app-only tools, prioritize tools with UIs
+    const visibleTools = Array.from(server.tools.values())
+      .filter((tool) => isToolVisibleToModel(tool))
+      .sort(compareTools);
+    const firstTool = visibleTools[0]?.name ?? "";
     setSelectedTool(firstTool);
     // Set input JSON to tool defaults (if any)
     setInputJson(getToolDefaults(server.tools.get(firstTool)));
