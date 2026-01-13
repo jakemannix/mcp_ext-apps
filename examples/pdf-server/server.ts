@@ -226,7 +226,7 @@ export function createServer(): McpServer {
   );
 
   // Default arxiv paper for demo
-  const DEFAULT_PDF_URL = "https://arxiv.org/pdf/2312.00752.pdf"; // "Practices for Governing Agentic AI Systems"
+  const DEFAULT_PDF_URL = "https://arxiv.org/pdf/2312.00752.pdf"; // "Mamba: Linear-Time Sequence Modeling with Selective State Spaces"
 
   // Tool: view_pdf (with UI)
   registerAppTool(

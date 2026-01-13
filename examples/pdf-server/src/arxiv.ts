@@ -87,11 +87,19 @@ export async function fetchArxivMetadata(
 
     // Parse XML response (simple regex extraction)
     // The arxiv API returns Atom XML with <entry> elements
-    const titleMatch = xml.match(/<title>([^<]+)<\/title>/);
+    // The first <title> is the feed title (query info), we want the entry title
+    const entryMatch = xml.match(/<entry>([\s\S]*?)<\/entry>/);
+    if (!entryMatch) {
+      console.error("[arxiv] No entry found in API response");
+      return {};
+    }
+    const entryXml = entryMatch[1];
+
+    const titleMatch = entryXml.match(/<title>([^<]+)<\/title>/);
     const authorMatches = [
-      ...xml.matchAll(/<author>\s*<name>([^<]+)<\/name>/g),
+      ...entryXml.matchAll(/<author>\s*<name>([^<]+)<\/name>/g),
     ];
-    const summaryMatch = xml.match(/<summary>([^]*?)<\/summary>/);
+    const summaryMatch = entryXml.match(/<summary>([\s\S]*?)<\/summary>/);
 
     // Clean up extracted values
     const title = titleMatch?.[1]
