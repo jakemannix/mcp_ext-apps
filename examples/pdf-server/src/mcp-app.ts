@@ -223,6 +223,11 @@ async function renderPage() {
     // Request host to resize app to fit content (inline mode only)
     requestFitToContent();
   } catch (err) {
+    // Ignore RenderingCancelledException - it's expected when we cancel a render
+    if (err instanceof Error && err.name === "RenderingCancelledException") {
+      log.info("Render cancelled (new render started)");
+      return;
+    }
     log.error("Error rendering page:", err);
     showError(`Failed to render page ${currentPage}`);
   }
