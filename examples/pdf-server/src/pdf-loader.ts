@@ -38,7 +38,8 @@ export async function loadPdfData(entry: PdfEntry): Promise<Uint8Array> {
   let data: Uint8Array;
   if (entry.sourceType === "local") {
     const buffer = await fs.readFile(entry.sourcePath);
-    data = new Uint8Array(buffer);
+    // Create a copy to own the buffer
+    data = new Uint8Array(buffer.buffer.slice(0));
   } else {
     // Fetch from URL (arxiv)
     console.error(`[pdf-loader] Fetching: ${entry.sourcePath}`);
@@ -49,7 +50,8 @@ export async function loadPdfData(entry: PdfEntry): Promise<Uint8Array> {
       );
     }
     const buffer = await response.arrayBuffer();
-    data = new Uint8Array(buffer);
+    // Create a copy to own the buffer (avoid detachment issues)
+    data = new Uint8Array(buffer.slice(0));
   }
 
   // Cache the data
@@ -76,14 +78,18 @@ export async function loadPdfBytesChunk(
   // Clamp byteCount to remaining bytes
   const actualByteCount = Math.min(byteCount, totalBytes - actualOffset);
 
-  // Extract the chunk - copy to avoid ArrayBuffer detachment issues
-  const chunk = new Uint8Array(
-    data.buffer.slice(
-      data.byteOffset + actualOffset,
-      data.byteOffset + actualOffset + actualByteCount,
-    ),
-  );
-  const base64 = Buffer.from(chunk).toString("base64");
+  // Extract the chunk - manual copy to avoid ArrayBuffer detachment issues
+  const chunk = new Uint8Array(actualByteCount);
+  for (let i = 0; i < actualByteCount; i++) {
+    chunk[i] = data[actualOffset + i];
+  }
+
+  // Convert to base64 using btoa (works in Bun)
+  let binary = "";
+  for (let i = 0; i < chunk.length; i++) {
+    binary += String.fromCharCode(chunk[i]);
+  }
+  const base64 = btoa(binary);
 
   const hasMore = actualOffset + actualByteCount < totalBytes;
 
@@ -114,9 +120,10 @@ export async function loadPdfTextChunk(
 ): Promise<PdfTextChunk> {
   const pdfjs = await getPdfjs();
 
-  // Load PDF document
+  // Load PDF document - pass a copy to avoid buffer detachment
   const data = await loadPdfData(entry);
-  const pdf = await pdfjs.getDocument({ data }).promise;
+  const dataCopy = new Uint8Array(data);
+  const pdf = await pdfjs.getDocument({ data: dataCopy }).promise;
 
   const totalPages = pdf.numPages;
 
@@ -198,7 +205,9 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
       entry.metadata.fileSizeBytes = data.byteLength;
     }
 
-    const pdf = await pdfjs.getDocument({ data }).promise;
+    // Pass a copy to pdfjs to avoid buffer detachment
+    const dataCopy = new Uint8Array(data);
+    const pdf = await pdfjs.getDocument({ data: dataCopy }).promise;
 
     try {
       // Get page count
