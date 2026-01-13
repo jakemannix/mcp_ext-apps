@@ -93,14 +93,11 @@ interface PersistedCameraState {
 }
 
 /**
- * Get localStorage key for persisting view state
- * Uses toolInfo.id (tool invocation ID) if available, otherwise falls back to "default".
- * localStorage is scoped per origin, so each tool call can remember its view state.
+ * Get localStorage key for persisting view state.
+ * Uses a fixed key so view persists across all tool calls for this server.
  */
 function getViewStorageKey(): string {
-  const context = app.getHostContext();
-  const toolId = context?.toolInfo?.id ?? "default";
-  return `map:${toolId}`;
+  return "map:viewState";
 }
 
 /**
