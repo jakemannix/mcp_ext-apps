@@ -1,5 +1,7 @@
 # PDF Server
 
+![Screenshot](screenshot.png)
+
 A didactic MCP server example demonstrating key MCP Apps SDK patterns.
 
 ## What This Example Demonstrates
@@ -9,6 +11,7 @@ A didactic MCP server example demonstrating key MCP Apps SDK patterns.
 On some host platforms, tool calls have size limits, so large PDFs cannot be sent in a single response. This example shows a possible workaround:
 
 **Server side** (`pdf-loader.ts`):
+
 ```typescript
 // Returns chunks with pagination metadata
 async function loadPdfBytesChunk(entry, offset, byteCount) {
@@ -23,6 +26,7 @@ async function loadPdfBytesChunk(entry, offset, byteCount) {
 ```
 
 **Client side** (`mcp-app.ts`):
+
 ```typescript
 // Load in chunks with progress
 while (hasMore) {
@@ -99,11 +103,11 @@ bun examples/pdf-server/server.ts --stdio ./papers/
 
 ## Tools
 
-| Tool | Visibility | Purpose |
-|------|------------|---------|
-| `list_pdfs` | Model | List indexed PDFs |
-| `display_pdf` | Model + UI | Display interactive viewer in chat |
-| `read_pdf_bytes` | App only | Chunked binary loading |
+| Tool             | Visibility | Purpose                            |
+| ---------------- | ---------- | ---------------------------------- |
+| `list_pdfs`      | Model      | List indexed PDFs                  |
+| `display_pdf`    | Model + UI | Display interactive viewer in chat |
+| `read_pdf_bytes` | App only   | Chunked binary loading             |
 
 ## Architecture
 
@@ -118,14 +122,14 @@ server.ts           # MCP server (233 lines)
 
 ## Key Patterns Shown
 
-| Pattern | Implementation |
-|---------|---------------|
-| App-only tools | `_meta: { ui: { visibility: ["app"] } }` |
-| Chunked responses | `hasMore` + `offset` pagination |
-| Model context | `app.updateModelContext()` |
-| Display modes | `app.requestDisplayMode()` |
-| External links | `app.openLink()` |
-| Size negotiation | `app.sendSizeChanged()` |
+| Pattern           | Implementation                           |
+| ----------------- | ---------------------------------------- |
+| App-only tools    | `_meta: { ui: { visibility: ["app"] } }` |
+| Chunked responses | `hasMore` + `offset` pagination          |
+| Model context     | `app.updateModelContext()`               |
+| Display modes     | `app.requestDisplayMode()`               |
+| External links    | `app.openLink()`                         |
+| Size negotiation  | `app.sendSizeChanged()`                  |
 
 ## Dependencies
 
