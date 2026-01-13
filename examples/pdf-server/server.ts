@@ -1,11 +1,11 @@
 /**
  * PDF MCP Server
  *
- * An MCP server that indexes and serves PDF files from local directories and arxiv URLs.
+ * An MCP server that indexes and serves PDF files from local directories and HTTP URLs.
  *
  * Usage:
  *   bun server.ts ./papers/ ./thesis.pdf                    # Local files
- *   bun server.ts https://arxiv.org/pdf/2301.12345.pdf      # arxiv URL
+ *   bun server.ts https://example.com/doc.pdf               # HTTP URL
  *   bun server.ts --stdio ./docs/                           # stdio mode for MCP clients
  */
 import {
@@ -29,6 +29,8 @@ import {
   buildPdfIndex,
   findEntryById,
   filterEntriesByFolder,
+  isHttpUrl,
+  createHttpEntry,
 } from "./src/pdf-indexer.js";
 import {
   loadPdfData,
@@ -36,8 +38,6 @@ import {
   loadPdfBytesChunk,
   populatePdfMetadata,
 } from "./src/pdf-loader.js";
-import { isArxivUrl, createArxivEntry } from "./src/arxiv.js";
-import { generateClaudeMd } from "./src/claude-md.js";
 import {
   ReadPdfTextInputSchema,
   ReadPdfBytesInputSchema,
@@ -57,6 +57,9 @@ import { startServer } from "./server-utils.js";
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 const RESOURCE_URI = "ui://pdf-viewer/mcp-app.html";
 
+// Default demo paper: "A Survey of Large Language Models" from arXiv (75 pages, ~2.5MB)
+const DEFAULT_PDF_URL = "https://arxiv.org/pdf/2303.18223.pdf";
+
 // Global index - populated at startup
 let pdfIndex: PdfIndex | null = null;
 
@@ -68,31 +71,6 @@ export function createServer(): McpServer {
     name: "PDF Server",
     version: "1.0.0",
   });
-
-  // Resource: CLAUDE.md index
-  server.registerResource(
-    "PDF Index",
-    "pdfs://index/CLAUDE.md",
-    {
-      mimeType: "text/markdown",
-      description: "Hierarchical markdown index of all loaded PDFs",
-    },
-    async (): Promise<ReadResourceResult> => {
-      if (!pdfIndex) {
-        throw new Error("PDF index not initialized");
-      }
-      const markdown = generateClaudeMd(pdfIndex);
-      return {
-        contents: [
-          {
-            uri: "pdfs://index/CLAUDE.md",
-            mimeType: "text/markdown",
-            text: markdown,
-          },
-        ],
-      };
-    },
-  );
 
   // Resource template: PDF metadata
   server.registerResource(
@@ -137,7 +115,7 @@ export function createServer(): McpServer {
       const input = ListPdfsInputSchema.parse(args) as ListPdfsInput;
       const entries = input.folder
         ? filterEntriesByFolder(pdfIndex, input.folder)
-        : pdfIndex.flatEntries;
+        : pdfIndex.entries;
 
       const output = ListPdfsOutputSchema.parse({
         entries,
@@ -278,9 +256,6 @@ export function createServer(): McpServer {
     },
   );
 
-  // Default arxiv paper for demo
-  // Large paper for demo: "A Survey of Large Language Models" (75 pages)
-  const DEFAULT_PDF_URL = "https://arxiv.org/pdf/2303.18223.pdf";
 
   // Tool: view_pdf (with UI)
   registerAppTool(
@@ -292,21 +267,18 @@ export function createServer(): McpServer {
 
 Can view PDFs from:
 - Indexed PDFs (use pdfId from list_pdfs)
-- arxiv URLs (provide a URL)
-
-Default: Opens "Practices for Governing Agentic AI Systems" paper.`,
+- Any HTTP(s) URL to a PDF`,
       inputSchema: {
         pdfId: z
           .string()
           .optional()
           .describe(
-            "PDF identifier from the index (e.g., 'local:abc123' or 'arxiv:2301.12345')",
+            "PDF identifier from the index (e.g., 'local:abc123' or 'http:abc123')",
           ),
         url: z
           .string()
-          .url()
-          .default(DEFAULT_PDF_URL)
-          .describe("arxiv PDF URL to view"),
+          .optional()
+          .describe("HTTP(s) URL to a PDF file"),
         page: z
           .number()
           .min(1)
@@ -346,27 +318,24 @@ Default: Opens "Practices for Governing Agentic AI Systems" paper.`,
           );
         }
       } else {
-        // Use URL (has default from schema)
-        const pdfUrl = url!; // Always defined due to .default()
+        // Use URL (default to demo paper if not provided)
+        const pdfUrl = url ?? DEFAULT_PDF_URL;
 
-        if (!isArxivUrl(pdfUrl)) {
-          throw new Error(`Only arxiv URLs are supported. Got: ${pdfUrl}`);
+        if (!isHttpUrl(pdfUrl)) {
+          throw new Error(`URL must be HTTP(s). Got: ${pdfUrl}`);
         }
 
         // Check if already indexed
-        const existingEntry = pdfIndex.flatEntries.find(
+        const existingEntry = pdfIndex.entries.find(
           (e) => e.sourcePath === pdfUrl,
         );
         if (existingEntry) {
           entry = existingEntry;
         } else {
           // Create and index on-the-fly
-          const newEntry = await createArxivEntry(pdfUrl);
-          if (!newEntry) {
-            throw new Error(`Failed to create entry for: ${pdfUrl}`);
-          }
+          const newEntry = await createHttpEntry(pdfUrl);
           await populatePdfMetadata(newEntry);
-          pdfIndex.flatEntries.push(newEntry);
+          pdfIndex.entries.push(newEntry);
           pdfIndex.totalPdfs++;
           pdfIndex.totalPages += newEntry.metadata.pageCount;
           pdfIndex.totalSizeBytes += newEntry.metadata.fileSizeBytes;
@@ -374,7 +343,7 @@ Default: Opens "Practices for Governing Agentic AI Systems" paper.`,
         }
       }
 
-      // Include source URL for HTTP sources (arxiv) - allows linking to original
+      // Include source URL for HTTP sources - allows linking to original
       const sourceUrl = entry.sourcePath.startsWith("http")
         ? entry.sourcePath
         : undefined;
@@ -442,17 +411,14 @@ function parseArgs(): { sources: string[]; stdio: boolean } {
   return { sources, stdio };
 }
 
-// Default demo paper: "A Survey of Large Language Models" (75 pages, ~2.5MB)
-const DEFAULT_SOURCE = "https://arxiv.org/pdf/2303.18223.pdf";
-
 async function main() {
   const { sources, stdio } = parseArgs();
 
   // Use default paper if no sources provided
-  const effectiveSources = sources.length > 0 ? sources : [DEFAULT_SOURCE];
+  const effectiveSources = sources.length > 0 ? sources : [DEFAULT_PDF_URL];
   if (sources.length === 0) {
     console.error(
-      `[pdf-server] No sources provided, using default: ${DEFAULT_SOURCE}`,
+      `[pdf-server] No sources provided, using default: ${DEFAULT_PDF_URL}`,
     );
   }
 

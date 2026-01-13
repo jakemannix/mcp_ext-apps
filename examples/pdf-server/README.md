@@ -1,11 +1,11 @@
 # PDF Server
 
-An MCP server that indexes and serves PDF files from local directories and arxiv URLs, with an interactive viewer UI.
+An MCP server that indexes and serves PDF files from local directories and HTTP URLs, with an interactive viewer UI.
 
 ## Features
 
 - **Local PDF indexing**: Recursively scans directories for PDF files
-- **arxiv integration**: Fetches PDFs and metadata from arxiv URLs
+- **HTTP PDF loading**: Fetches PDFs from any HTTP(s) URL with Range request support
 - **Interactive viewer**: Single-page display with zoom, navigation, text selection
 - **Chunked text extraction**: Paginated text loading for large documents
 - **Auto-resize**: Viewer adjusts height to fit content without scrolling
@@ -18,7 +18,6 @@ This example showcases several MCP Apps SDK features:
 | --------------------------- | ------------------------------------------------------------------- |
 | **App Tool with UI**        | `view_pdf` opens an interactive PDF viewer                          |
 | **App-only Tools**          | `read_pdf_text` is hidden from model, used internally by the viewer |
-| **Resources**               | `pdfs://index/CLAUDE.md` provides a markdown index of all PDFs      |
 | **Resource Templates**      | `pdfs://metadata/{pdfId}` and `pdfs://content/{pdfId}`              |
 | **Binary Resource Content** | PDF files served as base64 blobs                                    |
 | **structuredContent**       | Tool results include typed data for the UI                          |
@@ -39,17 +38,17 @@ bun examples/pdf-server/server.ts ./thesis.pdf
 # Serve from multiple sources
 bun examples/pdf-server/server.ts ./docs/ ./presentations/
 
-# Fetch and serve an arxiv paper
-bun examples/pdf-server/server.ts https://arxiv.org/pdf/2301.12345.pdf
+# Fetch and serve a PDF from any HTTP URL
+bun examples/pdf-server/server.ts https://example.com/document.pdf
 
-# Mix local files and arxiv URLs
+# Mix local files and HTTP URLs
 bun examples/pdf-server/server.ts ./papers/ https://arxiv.org/pdf/2401.00001.pdf
 
 # Run in stdio mode for MCP clients
 bun examples/pdf-server/server.ts --stdio ./docs/
 ```
 
-**Default behavior**: When run without arguments from the examples server, it loads a sample arxiv paper.
+**Default behavior**: When run without arguments, it loads a sample PDF from arXiv.
 
 ## Tools
 
@@ -60,7 +59,7 @@ Opens an interactive PDF viewer with navigation controls.
 **Input:**
 
 - `pdfId` (optional): ID from `list_pdfs`
-- `url` (optional): arxiv URL to load
+- `url` (optional): HTTP(s) URL to a PDF file
 - `page` (optional): Starting page number (default: 1)
 
 ### `list_pdfs`
@@ -83,7 +82,6 @@ Extracts text from a PDF with chunked pagination. Hidden from the model, used in
 
 ## Resources
 
-- `pdfs://index/CLAUDE.md` - Markdown index of all loaded PDFs
 - `pdfs://metadata/{pdfId}` - JSON metadata for a specific PDF
 - `pdfs://content/{pdfId}` - Binary PDF content (base64 blob)
 
@@ -104,9 +102,7 @@ server.ts           # MCP server with tools and resources
 ├── src/
 │   ├── types.ts        # Zod schemas for inputs/outputs
 │   ├── pdf-indexer.ts  # Directory scanning, index building
-│   ├── pdf-loader.ts   # pdfjs-dist wrapper, text extraction
-│   ├── arxiv.ts        # arxiv URL parsing, metadata fetching
-│   ├── claude-md.ts    # CLAUDE.md markdown generator
+│   ├── pdf-loader.ts   # pdfjs-dist wrapper, text extraction, HTTP Range requests
 │   └── mcp-app.ts      # Interactive viewer UI (vanilla JS)
 ```
 

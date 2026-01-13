@@ -41,7 +41,7 @@ export async function loadPdfData(entry: PdfEntry): Promise<Uint8Array> {
     // Create a copy to own the buffer
     data = new Uint8Array(buffer.buffer.slice(0));
   } else {
-    // Fetch from URL (arxiv)
+    // Fetch from HTTP URL
     console.error(`[pdf-loader] Fetching: ${entry.sourcePath}`);
     const response = await fetch(entry.sourcePath);
     if (!response.ok) {
@@ -60,36 +60,89 @@ export async function loadPdfData(entry: PdfEntry): Promise<Uint8Array> {
 }
 
 /**
+ * Fetch a range of bytes from an HTTP URL using Range requests.
+ * Returns null if the server doesn't support Range requests.
+ */
+async function fetchHttpRange(
+  url: string,
+  start: number,
+  end: number,
+): Promise<{ data: Uint8Array; totalSize: number } | null> {
+  try {
+    const response = await fetch(url, {
+      headers: { Range: `bytes=${start}-${end}` },
+    });
+
+    if (response.status === 206) {
+      // Partial Content - Range request successful
+      const contentRange = response.headers.get("Content-Range");
+      const totalMatch = contentRange?.match(/\/(\d+)$/);
+      const totalSize = totalMatch ? parseInt(totalMatch[1], 10) : 0;
+
+      const buffer = await response.arrayBuffer();
+      return {
+        data: new Uint8Array(buffer.slice(0)),
+        totalSize,
+      };
+    }
+
+    // Server doesn't support Range requests
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Load a chunk of PDF binary data.
  *
- * Returns a chunk with metadata for pagination. The first call (offset=0)
- * fetches the entire PDF and caches it, subsequent calls serve from cache.
+ * For HTTP sources, uses Range requests to fetch only the needed bytes.
+ * Falls back to full fetch if Range requests are not supported.
  */
 export async function loadPdfBytesChunk(
   entry: PdfEntry,
   offset: number = 0,
   byteCount: number = DEFAULT_BINARY_CHUNK_SIZE,
 ): Promise<PdfBytesChunk> {
-  const data = await loadPdfData(entry);
-  const totalBytes = data.length;
+  let chunk: Uint8Array;
+  let totalBytes: number;
 
-  // Clamp offset to valid range
+  // Try Range request for HTTP sources (only if not already cached)
+  if (entry.sourceType === "http" && !pdfDataCache.has(entry.id)) {
+    const endByte = offset + byteCount - 1;
+    const rangeResult = await fetchHttpRange(entry.sourcePath, offset, endByte);
+
+    if (rangeResult) {
+      chunk = rangeResult.data;
+      totalBytes = rangeResult.totalSize;
+
+      console.error(
+        `[pdf-loader] Range: offset=${offset}, bytes=${chunk.length}/${totalBytes}`,
+      );
+
+      const hasMore = offset + chunk.length < totalBytes;
+      return {
+        pdfId: entry.id,
+        bytes: Buffer.from(chunk).toString("base64"),
+        offset,
+        byteCount: chunk.length,
+        totalBytes,
+        hasMore,
+      };
+    }
+    // Fall through to full fetch if Range not supported
+  }
+
+  // Full fetch (local files or HTTP without Range support)
+  const data = await loadPdfData(entry);
+  totalBytes = data.length;
+
+  // Clamp offset and byteCount to valid range
   const actualOffset = Math.min(offset, totalBytes);
-  // Clamp byteCount to remaining bytes
   const actualByteCount = Math.min(byteCount, totalBytes - actualOffset);
 
-  // Extract the chunk - manual copy to avoid ArrayBuffer detachment issues
-  const chunk = new Uint8Array(actualByteCount);
-  for (let i = 0; i < actualByteCount; i++) {
-    chunk[i] = data[actualOffset + i];
-  }
-
-  // Convert to base64 using btoa (works in Bun)
-  let binary = "";
-  for (let i = 0; i < chunk.length; i++) {
-    binary += String.fromCharCode(chunk[i]);
-  }
-  const base64 = btoa(binary);
+  // Extract the chunk
+  chunk = data.slice(actualOffset, actualOffset + actualByteCount);
 
   const hasMore = actualOffset + actualByteCount < totalBytes;
 
@@ -99,9 +152,9 @@ export async function loadPdfBytesChunk(
 
   return {
     pdfId: entry.id,
-    bytes: base64,
+    bytes: Buffer.from(chunk).toString("base64"),
     offset: actualOffset,
-    byteCount: actualByteCount,
+    byteCount: chunk.length,
     totalBytes,
     hasMore,
   };
@@ -200,8 +253,8 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
     const pdfjs = await getPdfjs();
     const data = await loadPdfData(entry);
 
-    // Update file size for arxiv entries
-    if (entry.sourceType === "arxiv" && entry.metadata.fileSizeBytes === 0) {
+    // Update file size for HTTP entries (not known until fetched)
+    if (entry.sourceType === "http" && entry.metadata.fileSizeBytes === 0) {
       entry.metadata.fileSizeBytes = data.byteLength;
     }
 
@@ -245,7 +298,7 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
       // Update display name from title if available
       if (
         entry.metadata.title &&
-        (entry.displayName.startsWith("arxiv:") ||
+        (entry.displayName.startsWith("http:") ||
           entry.displayName === entry.id)
       ) {
         entry.displayName = entry.metadata.title;
@@ -263,13 +316,3 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
   }
 }
 
-/**
- * Get a summary of a PDF's content (first N bytes of text).
- */
-export async function getPdfSummary(
-  entry: PdfEntry,
-  maxBytes: number = 2000,
-): Promise<string> {
-  const chunk = await loadPdfTextChunk(entry, 1, maxBytes);
-  return chunk.text;
-}

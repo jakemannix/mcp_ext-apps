@@ -15,18 +15,11 @@ export const DEFAULT_CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 /** Safe limit for tool response to stay under 1MB limit (~900KB) */
 export const MAX_TOOL_RESPONSE_BYTES = 900 * 1024;
 
-/** Regex to match arxiv PDF URLs: https://arxiv.org/pdf/XXXX.XXXXX.pdf */
-export const ARXIV_PDF_REGEX =
-  /^https:\/\/arxiv\.org\/pdf\/(\d+\.\d+)(v\d+)?\.pdf$/;
-
-/** Regex to match arxiv abstract URLs: https://arxiv.org/abs/XXXX.XXXXX */
-export const ARXIV_ABS_REGEX = /^https:\/\/arxiv\.org\/abs\/(\d+\.\d+)(v\d+)?$/;
-
 // ============================================================================
 // Source Type
 // ============================================================================
 
-export const PdfSourceTypeSchema = z.enum(["local", "arxiv"]);
+export const PdfSourceTypeSchema = z.enum(["local", "http"]);
 export type PdfSourceType = z.infer<typeof PdfSourceTypeSchema>;
 
 // ============================================================================
@@ -51,11 +44,11 @@ export type PdfMetadata = z.infer<typeof PdfMetadataSchema>;
 // ============================================================================
 
 export const PdfEntrySchema = z.object({
-  /** Unique identifier: "local:<hash>" or "arxiv:<paper-id>" */
+  /** Unique identifier: "local:<hash>" or "http:<url-hash>" */
   id: z.string(),
   /** Source type discriminator */
   sourceType: PdfSourceTypeSchema,
-  /** Original file path or arxiv URL */
+  /** Original file path or HTTP URL */
   sourcePath: z.string(),
   /** Human-readable display name */
   displayName: z.string(),
@@ -69,37 +62,14 @@ export const PdfEntrySchema = z.object({
 export type PdfEntry = z.infer<typeof PdfEntrySchema>;
 
 // ============================================================================
-// PDF Folder (Hierarchical Structure)
-// ============================================================================
-
-export interface PdfFolder {
-  /** Folder name (empty for root) */
-  name: string;
-  /** PDF entries in this folder */
-  entries: PdfEntry[];
-  /** Subfolders */
-  subfolders: PdfFolder[];
-}
-
-export const PdfFolderSchema: z.ZodType<PdfFolder> = z.lazy(() =>
-  z.object({
-    name: z.string(),
-    entries: z.array(PdfEntrySchema),
-    subfolders: z.array(PdfFolderSchema),
-  }),
-);
-
-// ============================================================================
 // PDF Index
 // ============================================================================
 
 export const PdfIndexSchema = z.object({
   /** ISO timestamp when index was generated */
   generatedAt: z.string(),
-  /** Hierarchical folder structure */
-  rootFolders: z.array(PdfFolderSchema),
-  /** Flattened list of all entries for quick lookup */
-  flatEntries: z.array(PdfEntrySchema),
+  /** List of all PDF entries */
+  entries: z.array(PdfEntrySchema),
   /** Total number of PDFs indexed */
   totalPdfs: z.number(),
   /** Total number of pages across all PDFs */
