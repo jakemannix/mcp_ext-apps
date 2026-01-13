@@ -53,7 +53,7 @@ const SERVERS = [
     dir: "customer-segmentation-server",
   },
   { key: "map-server", name: "CesiumJS Map Server", dir: "map-server" },
-  { key: "pdf-server", name: "PDF Viewer Server", dir: "pdf-server" },
+  { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
   {
     key: "scenario-modeler",
     name: "SaaS Scenario Modeler",

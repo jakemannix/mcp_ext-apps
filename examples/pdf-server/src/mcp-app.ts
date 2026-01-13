@@ -34,13 +34,6 @@ let pdfUrl = "";
 let pdfTitle: string | undefined;
 let currentRenderTask: { cancel: () => void } | null = null;
 
-/** Elide URL for display, keeping start and end */
-function elideUrl(url: string, maxLen = 50): string {
-  if (url.length <= maxLen) return url;
-  const keep = Math.floor((maxLen - 3) / 2);
-  return url.slice(0, keep) + "..." + url.slice(-keep);
-}
-
 // DOM Elements
 const mainEl = document.querySelector(".main") as HTMLElement;
 const loadingEl = document.getElementById("loading")!;
@@ -142,8 +135,8 @@ function showViewer() {
 }
 
 function updateControls() {
-  // Show elided URL with full URL as tooltip, clickable to open
-  titleEl.textContent = elideUrl(pdfUrl, 60);
+  // Show URL with CSS ellipsis, full URL as tooltip, clickable to open
+  titleEl.textContent = pdfUrl;
   titleEl.title = pdfUrl;
   titleEl.style.textDecoration = "underline";
   titleEl.style.cursor = "pointer";

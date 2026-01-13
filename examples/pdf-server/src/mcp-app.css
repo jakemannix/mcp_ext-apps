@@ -113,6 +113,7 @@ body {
 .toolbar-left {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .pdf-title {
@@ -121,20 +122,22 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.9rem;
+  display: block;
+  max-width: 100%;
 }
 
 .toolbar-center {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  flex: 1;
-  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* Page Navigation */
