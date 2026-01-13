@@ -58,11 +58,11 @@ const fullscreenBtn = document.getElementById("fullscreen-btn") as HTMLButtonEle
 let currentDisplayMode: "inline" | "fullscreen" = "inline";
 
 // Create app instance
-// autoResize will be enabled/disabled based on containerDimensions
+// autoResize disabled - app fills its container, doesn't request size changes
 const app = new App(
   { name: "PDF Viewer", version: "1.0.0" },
   {},
-  { autoResize: true }, // Will be controlled by containerDimensions logic
+  { autoResize: false },
 );
 
 // UI State functions
@@ -160,13 +160,6 @@ async function renderPage() {
 
     updateControls();
     updatePageContext();
-
-    // Notify host of content size after render
-    // Add toolbar height (~60px) to canvas height
-    const contentHeight = Math.ceil(viewport.height) + 60;
-    const contentWidth = Math.ceil(viewport.width);
-    log.info("Sending size change:", contentWidth, contentHeight);
-    app.sendSizeChanged({ width: contentWidth, height: contentHeight });
   } catch (err) {
     log.error("Error rendering page:", err);
     showError(`Failed to render page ${currentPage}`);
@@ -368,6 +361,8 @@ app.onerror = (err) => {
 };
 
 function handleHostContextChanged(ctx: McpUiHostContext) {
+  log.info("Host context changed:", ctx);
+
   // Apply safe area insets
   if (ctx.safeAreaInsets) {
     mainEl.style.paddingTop = `${ctx.safeAreaInsets.top}px`;
@@ -376,30 +371,9 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
     mainEl.style.paddingLeft = `${ctx.safeAreaInsets.left}px`;
   }
 
-  // Handle containerDimensions for proper sizing
-  const dims = ctx.containerDimensions;
-  const canvasContainer = document.querySelector(".canvas-container") as HTMLElement;
-
-  if (dims && canvasContainer) {
-    if ("height" in dims && dims.height) {
-      // Fixed height: fill the container
-      canvasContainer.style.height = "100%";
-      canvasContainer.style.maxHeight = "none";
-      mainEl.style.height = "100vh";
-      log.info("Fixed height mode:", dims.height);
-    } else if ("maxHeight" in dims && dims.maxHeight) {
-      // Flexible height: set max-height, let content determine actual height
-      canvasContainer.style.height = "auto";
-      canvasContainer.style.maxHeight = `${dims.maxHeight - 60}px`; // Reserve space for toolbar
-      mainEl.style.height = "auto";
-      log.info("Flexible height mode, maxHeight:", dims.maxHeight);
-    } else {
-      // Unbounded: use reasonable default
-      canvasContainer.style.height = "auto";
-      canvasContainer.style.maxHeight = "600px";
-      mainEl.style.height = "auto";
-      log.info("Unbounded height mode");
-    }
+  // Log containerDimensions for debugging
+  if (ctx.containerDimensions) {
+    log.info("Container dimensions:", ctx.containerDimensions);
   }
 
   // Handle display mode changes
