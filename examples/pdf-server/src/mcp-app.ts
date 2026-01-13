@@ -3,11 +3,13 @@
  *
  * An interactive PDF viewer using PDF.js with navigation controls.
  * Fetches PDF content via MCP resources and renders pages.
+ * Supports text selection via PDF.js text layer.
  */
 import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ReadResourceResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import * as pdfjsLib from "pdfjs-dist";
+import { TextLayer } from "pdfjs-dist";
 import "./global.css";
 import "./mcp-app.css";
 
@@ -24,10 +26,12 @@ const log = {
 
 // State
 let pdfDocument: pdfjsLib.PDFDocumentProxy | null = null;
+let pdfBytes: Uint8Array | null = null;
 let currentPage = 1;
 let totalPages = 0;
 let scale = 1.0;
 let pdfTitle = "";
+let pdfId = "";
 
 // DOM Elements
 const mainEl = document.querySelector(".main") as HTMLElement;
@@ -37,13 +41,19 @@ const errorEl = document.getElementById("error")!;
 const errorMessageEl = document.getElementById("error-message")!;
 const viewerEl = document.getElementById("viewer")!;
 const canvasEl = document.getElementById("pdf-canvas") as HTMLCanvasElement;
+const textLayerEl = document.getElementById("text-layer")!;
 const titleEl = document.getElementById("pdf-title")!;
-const pageInfoEl = document.getElementById("page-info")!;
+const pageInputEl = document.getElementById("page-input") as HTMLInputElement;
+const totalPagesEl = document.getElementById("total-pages")!;
 const prevBtn = document.getElementById("prev-btn") as HTMLButtonElement;
 const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
 const zoomOutBtn = document.getElementById("zoom-out-btn") as HTMLButtonElement;
 const zoomInBtn = document.getElementById("zoom-in-btn") as HTMLButtonElement;
 const zoomLevelEl = document.getElementById("zoom-level")!;
+const downloadBtn = document.getElementById("download-btn") as HTMLButtonElement;
+
+// Create app instance
+const app = new App({ name: "PDF Viewer", version: "1.0.0" });
 
 // UI State functions
 function showLoading(text: string) {
@@ -67,14 +77,42 @@ function showViewer() {
 }
 
 function updateControls() {
-  pageInfoEl.textContent = `Page ${currentPage} of ${totalPages}`;
   titleEl.textContent = pdfTitle;
+  pageInputEl.value = String(currentPage);
+  totalPagesEl.textContent = `of ${totalPages}`;
   prevBtn.disabled = currentPage <= 1;
   nextBtn.disabled = currentPage >= totalPages;
   zoomLevelEl.textContent = `${Math.round(scale * 100)}%`;
 }
 
-// Render current page
+// Extract text from current page and update model context
+async function updatePageContext() {
+  if (!pdfDocument) return;
+
+  try {
+    const page = await pdfDocument.getPage(currentPage);
+    const textContent = await page.getTextContent();
+    const pageText = (textContent.items as Array<{ str?: string }>)
+      .map((item) => item.str || "")
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // Update model context with current page text
+    app.updateModelContext({
+      structuredContent: {
+        pdfId,
+        currentPage,
+        totalPages,
+        pageText: pageText.slice(0, 5000), // Limit to 5000 chars
+      },
+    });
+  } catch (err) {
+    log.error("Error updating context:", err);
+  }
+}
+
+// Render current page with text layer for selection
 async function renderPage() {
   if (!pdfDocument) return;
 
@@ -86,15 +124,32 @@ async function renderPage() {
     const ctx = canvasEl.getContext("2d")!;
     canvasEl.width = viewport.width;
     canvasEl.height = viewport.height;
+    canvasEl.style.width = `${viewport.width}px`;
+    canvasEl.style.height = `${viewport.height}px`;
 
-    // Render
+    // Clear and setup text layer
+    textLayerEl.innerHTML = "";
+    textLayerEl.style.width = `${viewport.width}px`;
+    textLayerEl.style.height = `${viewport.height}px`;
+
+    // Render canvas
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (page.render as any)({
       canvasContext: ctx,
       viewport,
     }).promise;
 
+    // Render text layer for selection
+    const textContent = await page.getTextContent();
+    const textLayer = new TextLayer({
+      textContentSource: textContent,
+      container: textLayerEl,
+      viewport,
+    });
+    await textLayer.render();
+
     updateControls();
+    updatePageContext();
   } catch (err) {
     log.error("Error rendering page:", err);
     showError(`Failed to render page ${currentPage}`);
@@ -103,10 +158,13 @@ async function renderPage() {
 
 // Navigation
 function goToPage(page: number) {
-  if (page >= 1 && page <= totalPages) {
-    currentPage = page;
+  const targetPage = Math.max(1, Math.min(page, totalPages));
+  if (targetPage !== currentPage) {
+    currentPage = targetPage;
     renderPage();
   }
+  // Always update input to reflect actual page
+  pageInputEl.value = String(currentPage);
 }
 
 function prevPage() {
@@ -127,30 +185,70 @@ function zoomOut() {
   renderPage();
 }
 
+function downloadPdf() {
+  if (!pdfBytes) return;
+
+  // Create a copy to ensure we have a proper ArrayBuffer
+  const buffer = new Uint8Array(pdfBytes).buffer;
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${pdfTitle || "document"}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // Event listeners
 prevBtn.addEventListener("click", prevPage);
 nextBtn.addEventListener("click", nextPage);
 zoomOutBtn.addEventListener("click", zoomOut);
 zoomInBtn.addEventListener("click", zoomIn);
+downloadBtn.addEventListener("click", downloadPdf);
+
+// Page input handling
+pageInputEl.addEventListener("change", () => {
+  const page = parseInt(pageInputEl.value, 10);
+  if (!isNaN(page)) {
+    goToPage(page);
+  } else {
+    pageInputEl.value = String(currentPage);
+  }
+});
+
+pageInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    pageInputEl.blur();
+  }
+});
 
 // Keyboard navigation
 document.addEventListener("keydown", (e) => {
+  // Don't handle if typing in input
+  if (document.activeElement === pageInputEl) return;
+
   switch (e.key) {
     case "ArrowLeft":
     case "PageUp":
       prevPage();
+      e.preventDefault();
       break;
     case "ArrowRight":
     case "PageDown":
     case " ":
       nextPage();
+      e.preventDefault();
       break;
     case "+":
     case "=":
       zoomIn();
+      e.preventDefault();
       break;
     case "-":
       zoomOut();
+      e.preventDefault();
       break;
   }
 });
@@ -172,9 +270,6 @@ function parseToolResult(result: CallToolResult): {
   } | null;
 }
 
-// Create app instance
-const app = new App({ name: "PDF Viewer", version: "1.0.0" });
-
 // Handle tool result
 app.ontoolresult = async (result) => {
   log.info("Received tool result:", result);
@@ -185,6 +280,7 @@ app.ontoolresult = async (result) => {
     return;
   }
 
+  pdfId = parsed.pdfId;
   const { pdfUri, title, pageCount, initialPage } = parsed;
   pdfTitle = title;
   totalPages = pageCount;
@@ -212,13 +308,13 @@ app.ontoolresult = async (result) => {
 
     // Convert base64 to Uint8Array
     const binaryString = atob(content.blob);
-    const bytes = new Uint8Array(binaryString.length);
+    pdfBytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+      pdfBytes[i] = binaryString.charCodeAt(i);
     }
 
     // Load PDF with PDF.js
-    pdfDocument = await pdfjsLib.getDocument({ data: bytes }).promise;
+    pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
     totalPages = pdfDocument.numPages;
 
     log.info("PDF loaded, pages:", totalPages);

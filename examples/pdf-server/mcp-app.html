@@ -30,7 +30,17 @@
             <button id="prev-btn" class="nav-btn" title="Previous page (←)">
               ◀
             </button>
-            <span id="page-info" class="page-info">Page 1 of 1</span>
+            <div class="page-nav">
+              <input
+                id="page-input"
+                type="number"
+                class="page-input"
+                min="1"
+                value="1"
+                title="Go to page"
+              />
+              <span id="total-pages" class="total-pages">of 1</span>
+            </div>
             <button id="next-btn" class="nav-btn" title="Next page (→)">
               ▶
             </button>
@@ -43,12 +53,18 @@
             <button id="zoom-in-btn" class="zoom-btn" title="Zoom in (+)">
               +
             </button>
+            <button id="download-btn" class="download-btn" title="Download PDF">
+              ⬇
+            </button>
           </div>
         </div>
 
-        <!-- Canvas Container -->
-        <div class="canvas-container">
-          <canvas id="pdf-canvas"></canvas>
+        <!-- Canvas Container with Text Layer -->
+        <div id="canvas-container" class="canvas-container">
+          <div class="page-wrapper">
+            <canvas id="pdf-canvas"></canvas>
+            <div id="text-layer" class="text-layer"></div>
+          </div>
         </div>
       </div>
     </div>

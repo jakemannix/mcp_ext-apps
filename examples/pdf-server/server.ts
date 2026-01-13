@@ -233,9 +233,9 @@ export function createServer(): McpServer {
 
 Can view PDFs from:
 - Indexed PDFs (use pdfId from list_pdfs)
-- arxiv URLs (e.g., https://arxiv.org/pdf/2312.00752.pdf)
+- arxiv URLs (provide a URL)
 
-If no parameters provided, opens a default demo PDF.`,
+Default: Opens "Practices for Governing Agentic AI Systems" paper.`,
       inputSchema: {
         pdfId: z
           .string()
@@ -246,12 +246,12 @@ If no parameters provided, opens a default demo PDF.`,
         url: z
           .string()
           .url()
-          .optional()
-          .describe("arxiv PDF URL to view (e.g., 'https://arxiv.org/pdf/2312.00752.pdf')"),
+          .default(DEFAULT_PDF_URL)
+          .describe("arxiv PDF URL to view"),
         page: z
           .number()
           .min(1)
-          .optional()
+          .default(1)
           .describe("Initial page to display (1-based)"),
       },
       outputSchema: z.object({
@@ -271,14 +271,14 @@ If no parameters provided, opens a default demo PDF.`,
       let entry;
 
       if (pdfId) {
-        // Look up by ID
+        // Look up by ID (takes precedence over url)
         entry = findEntryById(pdfIndex, pdfId);
         if (!entry) {
           throw new Error(`PDF not found: ${pdfId}. Use list_pdfs to see available PDFs.`);
         }
       } else {
-        // Use URL (or default)
-        const pdfUrl = url || DEFAULT_PDF_URL;
+        // Use URL (has default from schema)
+        const pdfUrl = url!; // Always defined due to .default()
 
         if (!isArxivUrl(pdfUrl)) {
           throw new Error(`Only arxiv URLs are supported. Got: ${pdfUrl}`);

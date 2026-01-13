@@ -69,6 +69,7 @@
   background: var(--bg000, #ffffff);
   border-bottom: 1px solid var(--bg200, #e0e0e0);
   flex-shrink: 0;
+  gap: 0.5rem;
 }
 
 .toolbar-left {
@@ -98,15 +99,48 @@
   justify-content: flex-end;
 }
 
-.page-info {
+/* Page Navigation */
+.page-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.page-input {
+  width: 50px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--bg200, #e0e0e0);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  background: var(--bg000, #ffffff);
+  color: var(--text000, #1a1a1a);
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: var(--text100, #666);
+}
+
+/* Hide number input spinners */
+.page-input::-webkit-outer-spin-button,
+.page-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.page-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.total-pages {
   font-size: 0.85rem;
   color: var(--text100, #666);
-  min-width: 100px;
-  text-align: center;
+  white-space: nowrap;
 }
 
 .nav-btn,
-.zoom-btn {
+.zoom-btn,
+.download-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,7 +156,8 @@
 }
 
 .nav-btn:hover:not(:disabled),
-.zoom-btn:hover:not(:disabled) {
+.zoom-btn:hover:not(:disabled),
+.download-btn:hover {
   background: var(--bg100, #f5f5f5);
   border-color: var(--bg300, #ccc);
 }
@@ -150,7 +185,73 @@
   background: var(--bg200, #e0e0e0);
 }
 
-#pdf-canvas {
+.page-wrapper {
+  position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background: white;
+}
+
+#pdf-canvas {
+  display: block;
+}
+
+/* Text Layer for Selection */
+.text-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  opacity: 0.2;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+}
+
+.text-layer span,
+.text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.text-layer ::selection {
+  background: rgba(0, 0, 255, 0.3);
+}
+
+.text-layer .highlight {
+  margin: -1px;
+  padding: 1px;
+  background-color: rgba(180, 0, 170, 0.4);
+  border-radius: 4px;
+}
+
+.text-layer .highlight.appended {
+  position: initial;
+}
+
+.text-layer .highlight.begin {
+  border-radius: 4px 0 0 4px;
+}
+
+.text-layer .highlight.end {
+  border-radius: 0 4px 4px 0;
+}
+
+.text-layer .highlight.middle {
+  border-radius: 0;
+}
+
+.text-layer .highlight.selected {
+  background-color: rgba(0, 100, 0, 0.4);
+}
+
+/* Ensure text layer spans are selectable */
+.text-layer > span {
+  pointer-events: all;
 }
