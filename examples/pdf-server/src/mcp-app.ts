@@ -289,11 +289,50 @@ async function renderPage() {
   }
 }
 
+// Page persistence
+function getStorageKey(): string | null {
+  const ctx = app.getHostContext();
+  const toolId = ctx?.toolInfo?.id;
+  if (!pdfSourceUrl || toolId === undefined) {
+    return null;
+  }
+  return `pdf:${pdfSourceUrl}:${toolId}`;
+}
+
+function saveCurrentPage() {
+  const key = getStorageKey();
+  if (key) {
+    try {
+      localStorage.setItem(key, String(currentPage));
+    } catch {
+      // Ignore storage errors
+    }
+  }
+}
+
+function loadSavedPage(): number | null {
+  const key = getStorageKey();
+  if (!key) return null;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const page = parseInt(saved, 10);
+      if (!isNaN(page) && page >= 1) {
+        return page;
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return null;
+}
+
 // Navigation
 function goToPage(page: number) {
   const targetPage = Math.max(1, Math.min(page, totalPages));
   if (targetPage !== currentPage) {
     currentPage = targetPage;
+    saveCurrentPage();
     renderPage();
   }
   pageInputEl.value = String(currentPage);
@@ -427,6 +466,13 @@ canvasContainerEl.addEventListener(
       return; // Vertical scroll - let it scroll normally
     }
 
+    // Check if navigation would be valid before preventing default
+    const wouldGoNext = e.deltaX > 0 && currentPage < totalPages;
+    const wouldGoPrev = e.deltaX < 0 && currentPage > 1;
+    if (!wouldGoNext && !wouldGoPrev) {
+      return; // Don't prevent default - let browser handle (e.g., back navigation)
+    }
+
     e.preventDefault();
     horizontalScrollAccumulator += e.deltaX;
 
@@ -525,7 +571,6 @@ async function loadPdfInChunks(pdfIdToLoad: string): Promise<Uint8Array> {
 
     offset += chunk.byteCount;
     updateProgress(offset, totalBytes);
-
   }
 
   // Combine all chunks
@@ -536,7 +581,9 @@ async function loadPdfInChunks(pdfIdToLoad: string): Promise<Uint8Array> {
     pos += chunk.length;
   }
 
-  log.info(`PDF loaded: ${(totalBytes / 1024).toFixed(0)} KB in ${chunks.length} chunks`);
+  log.info(
+    `PDF loaded: ${(totalBytes / 1024).toFixed(0)} KB in ${chunks.length} chunks`,
+  );
   return fullPdf;
 }
 
@@ -555,9 +602,23 @@ app.ontoolresult = async (result) => {
   pdfTitle = title;
   pdfSourceUrl = sourceUrl;
   totalPages = pageCount;
-  currentPage = initialPage;
 
-  log.info("PDF ID:", pdfId, "Title:", title, "Pages:", pageCount);
+  // Restore saved page or use initial page from tool result
+  const savedPage = loadSavedPage();
+  currentPage =
+    savedPage && savedPage <= pageCount ? savedPage : initialPage;
+
+  log.info(
+    "PDF ID:",
+    pdfId,
+    "Title:",
+    title,
+    "Pages:",
+    pageCount,
+    "Starting at:",
+    currentPage,
+    savedPage ? "(restored)" : "",
+  );
 
   showLoading("Loading PDF in chunks...");
 
