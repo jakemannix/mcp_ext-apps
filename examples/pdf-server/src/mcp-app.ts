@@ -1,9 +1,11 @@
 /**
  * PDF Viewer MCP App
  *
- * An interactive PDF viewer using PDF.js with navigation controls.
- * Fetches PDF content via MCP resources and renders pages.
- * Supports text selection via PDF.js text layer.
+ * Interactive PDF viewer with horizontal page scrolling and lazy loading.
+ * - Fixed height based on viewport minus insets
+ * - Horizontal scroll with snap points for page switching
+ * - Lazy page rendering (only visible + adjacent pages)
+ * - Text selection via PDF.js TextLayer
  */
 import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -32,6 +34,9 @@ let totalPages = 0;
 let scale = 1.0;
 let pdfTitle = "";
 let pdfId = "";
+let viewerHeight = 400; // Default, updated from host context
+const renderedPages = new Set<number>();
+const pageElements = new Map<number, HTMLElement>();
 
 // DOM Elements
 const mainEl = document.querySelector(".main") as HTMLElement;
@@ -40,8 +45,7 @@ const loadingTextEl = document.getElementById("loading-text")!;
 const errorEl = document.getElementById("error")!;
 const errorMessageEl = document.getElementById("error-message")!;
 const viewerEl = document.getElementById("viewer")!;
-const canvasEl = document.getElementById("pdf-canvas") as HTMLCanvasElement;
-const textLayerEl = document.getElementById("text-layer")!;
+const pagesContainerEl = document.getElementById("pages-container")!;
 const titleEl = document.getElementById("pdf-title")!;
 const pageInputEl = document.getElementById("page-input") as HTMLInputElement;
 const totalPagesEl = document.getElementById("total-pages")!;
@@ -79,6 +83,7 @@ function showViewer() {
 function updateControls() {
   titleEl.textContent = pdfTitle;
   pageInputEl.value = String(currentPage);
+  pageInputEl.max = String(totalPages);
   totalPagesEl.textContent = `of ${totalPages}`;
   prevBtn.disabled = currentPage <= 1;
   nextBtn.disabled = currentPage >= totalPages;
@@ -98,13 +103,12 @@ async function updatePageContext() {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Update model context with current page text
     app.updateModelContext({
       structuredContent: {
         pdfId,
         currentPage,
         totalPages,
-        pageText: pageText.slice(0, 5000), // Limit to 5000 chars
+        pageText: pageText.slice(0, 5000),
       },
     });
   } catch (err) {
@@ -112,47 +116,99 @@ async function updatePageContext() {
   }
 }
 
-// Render current page with text layer for selection
-async function renderPage() {
-  if (!pdfDocument) return;
+// Create placeholder elements for all pages
+function createPagePlaceholders() {
+  pagesContainerEl.innerHTML = "";
+  renderedPages.clear();
+  pageElements.clear();
+
+  for (let i = 1; i <= totalPages; i++) {
+    const pageWrapper = document.createElement("div");
+    pageWrapper.className = "page-wrapper";
+    pageWrapper.dataset.page = String(i);
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "page-placeholder";
+    placeholder.textContent = `Page ${i}`;
+    pageWrapper.appendChild(placeholder);
+
+    pagesContainerEl.appendChild(pageWrapper);
+    pageElements.set(i, pageWrapper);
+  }
+}
+
+// Render a single page
+async function renderPageContent(pageNum: number) {
+  if (!pdfDocument || renderedPages.has(pageNum)) return;
+
+  const pageWrapper = pageElements.get(pageNum);
+  if (!pageWrapper) return;
+
+  renderedPages.add(pageNum);
 
   try {
-    const page = await pdfDocument.getPage(currentPage);
+    const page = await pdfDocument.getPage(pageNum);
     const viewport = page.getViewport({ scale });
 
-    // Set canvas dimensions
-    const ctx = canvasEl.getContext("2d")!;
-    canvasEl.width = viewport.width;
-    canvasEl.height = viewport.height;
-    canvasEl.style.width = `${viewport.width}px`;
-    canvasEl.style.height = `${viewport.height}px`;
+    // Clear placeholder
+    pageWrapper.innerHTML = "";
 
-    // Clear and setup text layer
-    textLayerEl.innerHTML = "";
-    textLayerEl.style.width = `${viewport.width}px`;
-    textLayerEl.style.height = `${viewport.height}px`;
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    canvas.className = "pdf-canvas";
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    canvas.style.width = `${viewport.width}px`;
+    canvas.style.height = `${viewport.height}px`;
+
+    // Create text layer
+    const textLayerDiv = document.createElement("div");
+    textLayerDiv.className = "text-layer";
+    textLayerDiv.style.width = `${viewport.width}px`;
+    textLayerDiv.style.height = `${viewport.height}px`;
+
+    pageWrapper.appendChild(canvas);
+    pageWrapper.appendChild(textLayerDiv);
 
     // Render canvas
+    const ctx = canvas.getContext("2d")!;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (page.render as any)({
       canvasContext: ctx,
       viewport,
     }).promise;
 
-    // Render text layer for selection
+    // Render text layer
     const textContent = await page.getTextContent();
     const textLayer = new TextLayer({
       textContentSource: textContent,
-      container: textLayerEl,
+      container: textLayerDiv,
       viewport,
     });
     await textLayer.render();
-
-    updateControls();
-    updatePageContext();
   } catch (err) {
-    log.error("Error rendering page:", err);
-    showError(`Failed to render page ${currentPage}`);
+    log.error(`Error rendering page ${pageNum}:`, err);
+    pageWrapper.innerHTML = `<div class="page-error">Failed to load page ${pageNum}</div>`;
+  }
+}
+
+// Lazy load visible pages and adjacent ones
+function loadVisiblePages() {
+  // Render current page and 1 on each side
+  const pagesToRender = [
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+  ].filter((p) => p >= 1 && p <= totalPages);
+
+  pagesToRender.forEach((pageNum) => renderPageContent(pageNum));
+}
+
+// Scroll to a specific page
+function scrollToPage(pageNum: number) {
+  const pageWrapper = pageElements.get(pageNum);
+  if (pageWrapper) {
+    pageWrapper.scrollIntoView({ behavior: "smooth", inline: "start" });
   }
 }
 
@@ -161,9 +217,11 @@ function goToPage(page: number) {
   const targetPage = Math.max(1, Math.min(page, totalPages));
   if (targetPage !== currentPage) {
     currentPage = targetPage;
-    renderPage();
+    scrollToPage(currentPage);
+    loadVisiblePages();
+    updateControls();
+    updatePageContext();
   }
-  // Always update input to reflect actual page
   pageInputEl.value = String(currentPage);
 }
 
@@ -177,18 +235,22 @@ function nextPage() {
 
 function zoomIn() {
   scale = Math.min(scale + 0.25, 3.0);
-  renderPage();
+  reRenderAllPages();
 }
 
 function zoomOut() {
   scale = Math.max(scale - 0.25, 0.5);
-  renderPage();
+  reRenderAllPages();
+}
+
+function reRenderAllPages() {
+  renderedPages.clear();
+  loadVisiblePages();
+  updateControls();
 }
 
 function downloadPdf() {
   if (!pdfBytes) return;
-
-  // Create a copy to ensure we have a proper ArrayBuffer
   const buffer = new Uint8Array(pdfBytes).buffer;
   const blob = new Blob([buffer], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
@@ -201,6 +263,34 @@ function downloadPdf() {
   URL.revokeObjectURL(url);
 }
 
+// Detect current page from scroll position
+function handleScroll() {
+  const container = pagesContainerEl;
+
+  // Find which page is most visible
+  let bestPage = 1;
+  let bestVisibility = 0;
+
+  pageElements.forEach((el, pageNum) => {
+    const rect = el.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const visibleWidth = Math.min(rect.right, containerRect.right) - Math.max(rect.left, containerRect.left);
+    const visibility = Math.max(0, visibleWidth) / rect.width;
+
+    if (visibility > bestVisibility) {
+      bestVisibility = visibility;
+      bestPage = pageNum;
+    }
+  });
+
+  if (bestPage !== currentPage) {
+    currentPage = bestPage;
+    loadVisiblePages();
+    updateControls();
+    updatePageContext();
+  }
+}
+
 // Event listeners
 prevBtn.addEventListener("click", prevPage);
 nextBtn.addEventListener("click", nextPage);
@@ -208,7 +298,6 @@ zoomOutBtn.addEventListener("click", zoomOut);
 zoomInBtn.addEventListener("click", zoomIn);
 downloadBtn.addEventListener("click", downloadPdf);
 
-// Page input handling
 pageInputEl.addEventListener("change", () => {
   const page = parseInt(pageInputEl.value, 10);
   if (!isNaN(page)) {
@@ -224,9 +313,15 @@ pageInputEl.addEventListener("keydown", (e) => {
   }
 });
 
+// Scroll listener for page detection
+pagesContainerEl.addEventListener("scroll", handleScroll);
+pagesContainerEl.addEventListener("scrollend", () => {
+  // Ensure we load pages after scroll settles
+  loadVisiblePages();
+});
+
 // Keyboard navigation
 document.addEventListener("keydown", (e) => {
-  // Don't handle if typing in input
   if (document.activeElement === pageInputEl) return;
 
   switch (e.key) {
@@ -291,7 +386,6 @@ app.ontoolresult = async (result) => {
   showLoading("Fetching PDF content...");
 
   try {
-    // Fetch PDF binary via MCP resource
     const resourceResult = await app.request(
       { method: "resources/read", params: { uri: pdfUri } },
       ReadResourceResultSchema,
@@ -306,21 +400,27 @@ app.ontoolresult = async (result) => {
 
     showLoading("Loading PDF document...");
 
-    // Convert base64 to Uint8Array
     const binaryString = atob(content.blob);
     pdfBytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       pdfBytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Load PDF with PDF.js
     pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
     totalPages = pdfDocument.numPages;
 
     log.info("PDF loaded, pages:", totalPages);
 
+    // Create placeholders for all pages
+    createPagePlaceholders();
+
     showViewer();
-    renderPage();
+
+    // Initial render
+    scrollToPage(currentPage);
+    loadVisiblePages();
+    updateControls();
+    updatePageContext();
   } catch (err) {
     log.error("Error loading PDF:", err);
     showError(err instanceof Error ? err.message : String(err));
@@ -332,6 +432,16 @@ app.onerror = (err) => {
   showError(err instanceof Error ? err.message : String(err));
 };
 
+function updateViewerHeight(ctx: McpUiHostContext) {
+  // Calculate available height from viewport minus insets
+  const insets = ctx.safeAreaInsets || { top: 0, bottom: 0, left: 0, right: 0 };
+  const toolbarHeight = 48; // Approximate toolbar height
+  viewerHeight = Math.max(300, window.innerHeight - insets.top - insets.bottom - toolbarHeight);
+
+  // Set fixed height on pages container
+  pagesContainerEl.style.height = `${viewerHeight}px`;
+}
+
 function handleHostContextChanged(ctx: McpUiHostContext) {
   if (ctx.safeAreaInsets) {
     mainEl.style.paddingTop = `${ctx.safeAreaInsets.top}px`;
@@ -339,6 +449,7 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
     mainEl.style.paddingBottom = `${ctx.safeAreaInsets.bottom}px`;
     mainEl.style.paddingLeft = `${ctx.safeAreaInsets.left}px`;
   }
+  updateViewerHeight(ctx);
 }
 
 app.onhostcontextchanged = handleHostContextChanged;
