@@ -3,3 +3,4 @@ examples/basic-host/**/*.tsx
 examples/basic-server-*/**/*.ts
 examples/basic-server-*/**/*.tsx
 **/vendor/**
+SKILL.md
