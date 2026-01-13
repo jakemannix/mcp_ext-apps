@@ -159,6 +159,97 @@ function updateControls() {
   zoomLevelEl.textContent = `${Math.round(scale * 100)}%`;
 }
 
+/**
+ * Format page text with optional selection, truncating intelligently.
+ * - If selection exists, ensures it's visible in the output
+ * - Adds <truncated-content/> markers where text is elided
+ * - Wraps selection in <pdf-selection> tags
+ */
+function formatPageContent(
+  text: string,
+  maxLength: number,
+  selection?: { start: number; end: number },
+): string {
+  const SELECTION_TAG = "pdf-selection";
+  const TRUNCATED = "<truncated-content/>";
+  const tagOverhead = `<${SELECTION_TAG}></${SELECTION_TAG}>`.length;
+
+  // No truncation needed
+  if (text.length <= maxLength) {
+    if (!selection) return text;
+    return (
+      text.slice(0, selection.start) +
+      `<${SELECTION_TAG}>${text.slice(selection.start, selection.end)}</${SELECTION_TAG}>` +
+      text.slice(selection.end)
+    );
+  }
+
+  // Truncation needed, no selection - just truncate end
+  if (!selection) {
+    return text.slice(0, maxLength) + "\n" + TRUNCATED;
+  }
+
+  // Truncation needed with selection - center window around selection
+  const selLen = selection.end - selection.start;
+  const contextBudget = maxLength - selLen - tagOverhead - TRUNCATED.length * 2 - 4;
+
+  if (contextBudget <= 0) {
+    // Selection too long - truncate it
+    const truncatedSel = text.slice(selection.start, selection.start + maxLength - tagOverhead - 40);
+    return TRUNCATED + "\n" + `<${SELECTION_TAG}>${truncatedSel}</${SELECTION_TAG}>` + "\n" + TRUNCATED;
+  }
+
+  // Split context budget: more before than after for readability
+  const beforeBudget = Math.floor(contextBudget * 0.6);
+  const afterBudget = contextBudget - beforeBudget;
+
+  const windowStart = Math.max(0, selection.start - beforeBudget);
+  const windowEnd = Math.min(text.length, selection.end + afterBudget);
+
+  // Adjust selection positions to window
+  const adjStart = selection.start - windowStart;
+  const adjEnd = selection.end - windowStart;
+  const windowText = text.slice(windowStart, windowEnd);
+
+  const result =
+    (windowStart > 0 ? TRUNCATED + "\n" : "") +
+    windowText.slice(0, adjStart) +
+    `<${SELECTION_TAG}>${windowText.slice(adjStart, adjEnd)}</${SELECTION_TAG}>` +
+    windowText.slice(adjEnd) +
+    (windowEnd < text.length ? "\n" + TRUNCATED : "");
+
+  return result;
+}
+
+/**
+ * Find selection position in page text using fuzzy matching.
+ * TextLayer spans may lack spaces between them, so we try both exact and spaceless match.
+ */
+function findSelectionInText(
+  pageText: string,
+  selectedText: string,
+): { start: number; end: number } | undefined {
+  if (!selectedText || selectedText.length <= 2) return undefined;
+
+  // Try exact match
+  let start = pageText.indexOf(selectedText);
+  if (start >= 0) {
+    return { start, end: start + selectedText.length };
+  }
+
+  // Try spaceless match (TextLayer spans may not have spaces)
+  const noSpaceSel = selectedText.replace(/\s+/g, "");
+  const noSpaceText = pageText.replace(/\s+/g, "");
+  const noSpaceStart = noSpaceText.indexOf(noSpaceSel);
+  if (noSpaceStart >= 0) {
+    // Map back to approximate position in original
+    start = Math.floor((noSpaceStart / noSpaceText.length) * pageText.length);
+    return { start, end: start + selectedText.length };
+  }
+
+  return undefined;
+}
+
 // Extract text from current page and update model context as markdown
 async function updatePageContext() {
   if (!pdfDocument) return;
@@ -166,51 +257,31 @@ async function updatePageContext() {
   try {
     const page = await pdfDocument.getPage(currentPage);
     const textContent = await page.getTextContent();
-    let pageText = (textContent.items as Array<{ str?: string }>)
+    const pageText = (textContent.items as Array<{ str?: string }>)
       .map((item) => item.str || "")
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
 
-    // Check for text selection and find its position
+    // Find selection position
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const rawSelected = sel.toString();
-      const selectedText = rawSelected.replace(/\s+/g, " ").trim();
+    const selectedText = sel?.toString().replace(/\s+/g, " ").trim();
+    const selection = selectedText ? findSelectionInText(pageText, selectedText) : undefined;
 
-      if (selectedText && selectedText.length > 2) {
-        // Try exact match first
-        let start = pageText.indexOf(selectedText);
-
-        // If no match, try matching without spaces (TextLayer spans may not have spaces)
-        if (start < 0) {
-          const noSpaceSelected = selectedText.replace(/\s+/g, "");
-          const noSpacePageText = pageText.replace(/\s+/g, "");
-          const noSpaceStart = noSpacePageText.indexOf(noSpaceSelected);
-          if (noSpaceStart >= 0) {
-            start = Math.floor((noSpaceStart / noSpacePageText.length) * pageText.length);
-          }
-        }
-
-        if (start >= 0) {
-          // Wrap selection in tags
-          const end = start + selectedText.length;
-          pageText =
-            pageText.slice(0, start) +
-            `<pdf-selection>${pageText.slice(start, end)}</pdf-selection>` +
-            pageText.slice(end);
-          log.info("Selection tagged:", selectedText.slice(0, 30));
-        }
-      }
+    if (selection) {
+      log.info("Selection found:", selectedText?.slice(0, 30), "at", selection.start);
     }
 
-    // Format as markdown with YAML front matter
+    // Format content with selection and truncation
+    const content = formatPageContent(pageText, 5000, selection);
+
     const markdown = `---
+pdf-title: ${pdfTitle}
 url: ${pdfSourceUrl || pdfId}
-page: ${currentPage}/${totalPages}
+current-page: ${currentPage}/${totalPages}
 ---
 
-${pageText.slice(0, 5000)}`;
+${content}`;
 
     app.updateModelContext({ content: [{ type: "text", text: markdown }] });
   } catch (err) {
