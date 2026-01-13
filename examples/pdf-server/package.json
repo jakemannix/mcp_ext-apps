@@ -2,7 +2,7 @@
   "name": "@modelcontextprotocol/server-pdf",
   "version": "0.4.0",
   "type": "module",
-  "description": "MCP server for loading and extracting text from PDF files with chunked pagination",
+  "description": "MCP server for loading and extracting text from PDF files with chunked pagination and interactive viewer",
   "repository": {
     "type": "git",
     "url": "https://github.com/modelcontextprotocol/ext-apps",
@@ -17,8 +17,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build",
+    "watch": "cross-env NODE_ENV=development INPUT=mcp-app.html vite build --watch",
     "serve": "bun --watch server.ts",
+    "serve:http": "bun --watch server.ts https://arxiv.org/pdf/2301.00001.pdf",
+    "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'npm run serve:http'",
     "start": "npm run serve"
   },
   "dependencies": {
@@ -31,8 +34,12 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "concurrently": "^9.2.1",
     "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
     "express": "^5.1.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }

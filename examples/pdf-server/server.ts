@@ -9,6 +9,11 @@
  *   bun server.ts --stdio ./docs/                           # stdio mode for MCP clients
  */
 import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
+import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -17,12 +22,15 @@ import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
 import {
   buildPdfIndex,
   findEntryById,
   filterEntriesByFolder,
 } from "./src/pdf-indexer.js";
-import { loadPdfTextChunk } from "./src/pdf-loader.js";
+import { loadPdfData, loadPdfTextChunk } from "./src/pdf-loader.js";
 import { generateClaudeMd } from "./src/claude-md.js";
 import {
   ReadPdfTextInputSchema,
@@ -35,6 +43,9 @@ import {
   type ListPdfsInput,
 } from "./src/types.js";
 import { startServer } from "./server-utils.js";
+
+const DIST_DIR = path.join(import.meta.dirname, "dist");
+const RESOURCE_URI = "ui://pdf-viewer/mcp-app.html";
 
 // Global index - populated at startup
 let pdfIndex: PdfIndex | null = null;
@@ -160,6 +171,121 @@ export function createServer(): McpServer {
       return {
         content: [{ type: "text", text: output.text }],
         structuredContent: output,
+      };
+    },
+  );
+
+  // Resource template: PDF binary content (for viewer)
+  server.registerResource(
+    "PDF Content",
+    new ResourceTemplate("pdfs://content/{pdfId}", { list: undefined }),
+    {
+      mimeType: "application/pdf",
+      description: "Raw PDF binary content as base64 blob",
+    },
+    async (uri: URL, variables): Promise<ReadResourceResult> => {
+      if (!pdfIndex) {
+        throw new Error("PDF index not initialized");
+      }
+      const pdfId = Array.isArray(variables.pdfId)
+        ? variables.pdfId[0]
+        : variables.pdfId;
+      const entry = findEntryById(pdfIndex, pdfId as string);
+      if (!entry) {
+        throw new Error(`PDF not found: ${pdfId}`);
+      }
+
+      // Load PDF binary data
+      const data = await loadPdfData(entry);
+      const base64 = Buffer.from(data).toString("base64");
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: "application/pdf",
+            blob: base64,
+          },
+        ],
+      };
+    },
+  );
+
+  // Tool: view_pdf (with UI)
+  registerAppTool(
+    server,
+    "view_pdf",
+    {
+      title: "View PDF",
+      description: `Open an interactive PDF viewer with navigation controls.
+
+Available PDFs: ${pdfIndex?.totalPdfs ?? 0}
+Use list_pdfs to see available PDF IDs.`,
+      inputSchema: {
+        pdfId: z
+          .string()
+          .describe(
+            "PDF identifier from the index (e.g., 'local:abc123' or 'arxiv:2301.12345')",
+          ),
+        page: z
+          .number()
+          .min(1)
+          .optional()
+          .describe("Initial page to display (1-based)"),
+      },
+      outputSchema: z.object({
+        pdfId: z.string(),
+        pdfUri: z.string(),
+        title: z.string(),
+        pageCount: z.number(),
+        initialPage: z.number(),
+      }),
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
+    },
+    async ({ pdfId, page }): Promise<CallToolResult> => {
+      if (!pdfIndex) {
+        throw new Error("PDF index not initialized");
+      }
+      const entry = findEntryById(pdfIndex, pdfId);
+      if (!entry) {
+        throw new Error(`PDF not found: ${pdfId}. Use list_pdfs to see available PDFs.`);
+      }
+
+      const result = {
+        pdfId: entry.id,
+        pdfUri: `pdfs://content/${encodeURIComponent(entry.id)}`,
+        title: entry.displayName,
+        pageCount: entry.metadata.pageCount,
+        initialPage: Math.min(page ?? 1, entry.metadata.pageCount),
+      };
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Opening PDF viewer for "${entry.displayName}" (${entry.metadata.pageCount} pages)`,
+          },
+        ],
+        structuredContent: result,
+      };
+    },
+  );
+
+  // Register the MCP App resource (the UI)
+  registerAppResource(
+    server,
+    RESOURCE_URI,
+    RESOURCE_URI,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
+      return {
+        contents: [
+          { uri: RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: html },
+        ],
       };
     },
   );

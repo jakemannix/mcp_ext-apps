@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Viewer</title>
+  </head>
+  <body>
+    <div class="main">
+      <!-- Loading State -->
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p id="loading-text">Loading PDF...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="error" class="error" style="display: none">
+        <div class="error-icon">⚠️</div>
+        <p id="error-message">An error occurred</p>
+      </div>
+
+      <!-- PDF Viewer -->
+      <div id="viewer" class="viewer" style="display: none">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <span id="pdf-title" class="pdf-title">Document</span>
+          </div>
+          <div class="toolbar-center">
+            <button id="prev-btn" class="nav-btn" title="Previous page (←)">
+              ◀
+            </button>
+            <span id="page-info" class="page-info">Page 1 of 1</span>
+            <button id="next-btn" class="nav-btn" title="Next page (→)">
+              ▶
+            </button>
+          </div>
+          <div class="toolbar-right">
+            <button id="zoom-out-btn" class="zoom-btn" title="Zoom out (-)">
+              −
+            </button>
+            <span id="zoom-level" class="zoom-level">100%</span>
+            <button id="zoom-in-btn" class="zoom-btn" title="Zoom in (+)">
+              +
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container">
+          <canvas id="pdf-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/mcp-app.ts"></script>
+  </body>
+</html>
