@@ -4,14 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build",
+    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json",
     "watch": "cross-env INPUT=mcp-app.html vite build --watch",
     "serve:http": "bun --watch server.ts",
     "serve:stdio": "bun server.ts --stdio",
     "start": "npm run start:http",
     "start:http": "cross-env NODE_ENV=development npm run build && npm run serve:http",
     "start:stdio": "cross-env NODE_ENV=development npm run build && npm run serve:stdio",
-    "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'npm run serve:http'"
+    "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'npm run serve:http'",
+    "build:server": "tsc -p tsconfig.server.json"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "../..",
@@ -33,5 +34,16 @@
     "typescript": "^5.9.3",
     "vite": "^6.0.0",
     "vite-plugin-singlefile": "^2.3.0"
-  }
+  },
+  "main": "dist/server/server.js",
+  "types": "dist/server/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server/server.d.ts",
+      "default": "./dist/server/server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }
