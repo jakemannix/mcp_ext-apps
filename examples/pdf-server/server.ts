@@ -277,7 +277,7 @@ Can view PDFs from:
           ),
         url: z
           .string()
-          .optional()
+          .default(DEFAULT_PDF_URL)
           .describe("HTTP(s) URL to a PDF file"),
         page: z
           .number()
@@ -318,22 +318,20 @@ Can view PDFs from:
           );
         }
       } else {
-        // Use URL (default to demo paper if not provided)
-        const pdfUrl = url ?? DEFAULT_PDF_URL;
-
-        if (!isHttpUrl(pdfUrl)) {
-          throw new Error(`URL must be HTTP(s). Got: ${pdfUrl}`);
+        // Use URL (has default from schema)
+        if (!isHttpUrl(url)) {
+          throw new Error(`URL must be HTTP(s). Got: ${url}`);
         }
 
         // Check if already indexed
         const existingEntry = pdfIndex.entries.find(
-          (e) => e.sourcePath === pdfUrl,
+          (e) => e.sourcePath === url,
         );
         if (existingEntry) {
           entry = existingEntry;
         } else {
           // Create and index on-the-fly
-          const newEntry = await createHttpEntry(pdfUrl);
+          const newEntry = await createHttpEntry(url);
           await populatePdfMetadata(newEntry);
           pdfIndex.entries.push(newEntry);
           pdfIndex.totalPdfs++;
@@ -415,7 +413,11 @@ async function main() {
   const { sources, stdio } = parseArgs();
 
   // Use default paper if no sources provided
-  const effectiveSources = sources.length > 0 ? sources : [DEFAULT_PDF_URL];
+  const effectiveSources = sources.length > 0 ? sources : [
+    DEFAULT_PDF_URL,
+    "/Users/ochafik/code/tmp/mcp-apps-psr/sample.pdf",
+    "https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf",
+  ];
   if (sources.length === 0) {
     console.error(
       `[pdf-server] No sources provided, using default: ${DEFAULT_PDF_URL}`,
