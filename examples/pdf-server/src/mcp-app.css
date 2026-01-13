@@ -7,6 +7,7 @@
   color: var(--text000, #1a1a1a);
   overflow: hidden; /* Prevent scrollbars in inline mode - we request exact size */
   border-radius: 0.75rem;
+  border: 1px solid var(--bg200, rgba(0, 0, 0, 0.08));
 }
 
 /* Loading State */
@@ -273,6 +274,7 @@
   z-index: 1000;
   overflow: hidden; /* No scrolling on main - only canvas-container scrolls */
   border-radius: 0;
+  border: none;
 }
 
 .main.fullscreen .viewer {
