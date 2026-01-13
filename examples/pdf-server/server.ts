@@ -19,7 +19,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 
-import { buildPdfIndex, findEntryByUrl, createEntry, isArxivUrl, isFileUrl, toFileUrl } from "./src/pdf-indexer.js";
+import { buildPdfIndex, findEntryByUrl, createEntry, isArxivUrl, isFileUrl, toFileUrl, normalizeArxivUrl } from "./src/pdf-indexer.js";
 import { loadPdfBytesChunk, populatePdfMetadata } from "./src/pdf-loader.js";
 import { ReadPdfBytesInputSchema, PdfBytesChunkSchema, type PdfIndex } from "./src/types.js";
 import { startServer } from "./server-utils.js";
@@ -86,13 +86,15 @@ export function createServer(): McpServer {
       }),
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
-    async ({ url, page }): Promise<CallToolResult> => {
+    async ({ url: rawUrl, page }): Promise<CallToolResult> => {
       if (!pdfIndex) throw new Error("Not initialized");
+
+      // Normalize arxiv URLs to PDF format
+      const url = isArxivUrl(rawUrl) ? normalizeArxivUrl(rawUrl) : rawUrl;
 
       let entry = findEntryByUrl(pdfIndex, url);
 
       if (!entry) {
-        // Dynamic loading: only arxiv.org allowed
         if (isFileUrl(url)) {
           throw new Error("File URLs must be in the initial list");
         }
@@ -144,12 +146,14 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
     if (arg === "--stdio") {
       stdio = true;
     } else if (!arg.startsWith("-")) {
-      // Convert local paths to file:// URLs
-      if (arg.startsWith("http://") || arg.startsWith("https://") || arg.startsWith("file://")) {
-        urls.push(arg);
-      } else {
-        urls.push(toFileUrl(arg));
+      // Convert local paths to file:// URLs, normalize arxiv URLs
+      let url = arg;
+      if (!arg.startsWith("http://") && !arg.startsWith("https://") && !arg.startsWith("file://")) {
+        url = toFileUrl(arg);
+      } else if (isArxivUrl(arg)) {
+        url = normalizeArxivUrl(arg);
       }
+      urls.push(url);
     }
   }
 

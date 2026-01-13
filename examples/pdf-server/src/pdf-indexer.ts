@@ -7,7 +7,12 @@ import { populatePdfMetadata } from "./pdf-loader.js";
 
 /** Check if URL is from arxiv.org */
 export function isArxivUrl(url: string): boolean {
-  return url.startsWith("https://arxiv.org/") || url.startsWith("http://arxiv.org/");
+  return /^https?:\/\/arxiv\.org\//.test(url);
+}
+
+/** Normalize arxiv URL to PDF format */
+export function normalizeArxivUrl(url: string): string {
+  return url.replace(/arxiv\.org\/abs\//, "arxiv.org/pdf/");
 }
 
 /** Check if URL is a file:// URL */
