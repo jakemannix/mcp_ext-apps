@@ -82,14 +82,20 @@ titleEl.onclick = () => app.openLink(sourceUrl);
 # Default: loads a sample arxiv paper
 bun examples/pdf-server/server.ts
 
-# Load specific PDFs (any URL works for initial args)
+# Load local files (converted to file:// URLs)
+bun examples/pdf-server/server.ts ./docs/paper.pdf /path/to/thesis.pdf
+
+# Load from URLs
 bun examples/pdf-server/server.ts https://arxiv.org/pdf/2401.00001.pdf
 
+# Mix local and remote
+bun examples/pdf-server/server.ts ./local.pdf https://arxiv.org/pdf/2401.00001.pdf
+
 # stdio mode for MCP clients
-bun examples/pdf-server/server.ts --stdio
+bun examples/pdf-server/server.ts --stdio ./papers/
 ```
 
-**Note**: For security, dynamic URLs (via `view_pdf` tool) are restricted to arxiv.org.
+**Security**: Dynamic URLs (via `view_pdf` tool) are restricted to arxiv.org. Local files must be in the initial list.
 
 ## Tools
 

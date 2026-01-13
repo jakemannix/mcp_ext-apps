@@ -23,7 +23,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 
-import { buildPdfIndex, findEntryById, createEntry, isArxivUrl } from "./src/pdf-indexer.js";
+import { buildPdfIndex, findEntryById, createEntry, isArxivUrl, isFileUrl, toFileUrl } from "./src/pdf-indexer.js";
 import { loadPdfTextChunk, loadPdfBytesChunk, populatePdfMetadata } from "./src/pdf-loader.js";
 import {
   ReadPdfTextInputSchema,
@@ -128,7 +128,7 @@ export function createServer(): McpServer {
 - Model context updates (page text + selection)
 - External links (openLink)
 
-Accepts arxiv.org URLs or IDs from list_pdfs.`,
+Use pdfId from list_pdfs, or provide an arxiv.org URL.`,
       inputSchema: {
         pdfId: z.string().optional().describe("PDF ID from list_pdfs"),
         url: z.string().default(DEFAULT_PDF).describe("arxiv.org PDF URL"),
@@ -151,13 +151,18 @@ Accepts arxiv.org URLs or IDs from list_pdfs.`,
         entry = findEntryById(pdfIndex, pdfId);
         if (!entry) throw new Error(`PDF not found: ${pdfId}`);
       } else {
-        // Dynamic URLs: only arxiv.org allowed for security
-        if (!isArxivUrl(url)) {
-          throw new Error(`Only arxiv.org URLs allowed dynamically. Got: ${url}`);
-        }
-
+        // Check if URL is already indexed (file:// URLs must be pre-indexed)
         entry = pdfIndex.entries.find((e) => e.url === url);
+
         if (!entry) {
+          // Dynamic URLs: only arxiv.org allowed (file:// must be in initial list)
+          if (isFileUrl(url)) {
+            throw new Error(`File URLs must be in the initial list. Use pdfId instead.`);
+          }
+          if (!isArxivUrl(url)) {
+            throw new Error(`Only arxiv.org URLs can be loaded dynamically. Got: ${url}`);
+          }
+
           entry = createEntry(url);
           await populatePdfMetadata(entry);
           pdfIndex.entries.push(entry);
@@ -206,8 +211,16 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
   let stdio = false;
 
   for (const arg of args) {
-    if (arg === "--stdio") stdio = true;
-    else if (!arg.startsWith("-")) urls.push(arg);
+    if (arg === "--stdio") {
+      stdio = true;
+    } else if (!arg.startsWith("-")) {
+      // Convert local paths to file:// URLs
+      if (arg.startsWith("http://") || arg.startsWith("https://") || arg.startsWith("file://")) {
+        urls.push(arg);
+      } else {
+        urls.push(toFileUrl(arg));
+      }
+    }
   }
 
   return { urls: urls.length > 0 ? urls : [DEFAULT_PDF], stdio };

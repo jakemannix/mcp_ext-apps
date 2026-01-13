@@ -2,12 +2,24 @@
  * PDF Indexer - Simplified URL-based indexing
  */
 import { createHash } from "node:crypto";
+import path from "node:path";
 import type { PdfIndex, PdfEntry } from "./types.js";
 import { populatePdfMetadata } from "./pdf-loader.js";
 
 /** Check if URL is from arxiv.org */
 export function isArxivUrl(url: string): boolean {
   return url.startsWith("https://arxiv.org/") || url.startsWith("http://arxiv.org/");
+}
+
+/** Check if URL is a file:// URL */
+export function isFileUrl(url: string): boolean {
+  return url.startsWith("file://");
+}
+
+/** Convert local path to file:// URL */
+export function toFileUrl(filePath: string): string {
+  const abs = path.resolve(filePath);
+  return `file://${abs}`;
 }
 
 /** Create a PdfEntry from a URL */

@@ -1,3 +1,7 @@
+body {
+  overscroll-behavior-x: none;
+}
+
 .main {
   display: flex;
   flex-direction: column;

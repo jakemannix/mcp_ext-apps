@@ -6,8 +6,10 @@
  * - HTTP Range requests for streaming
  * - Caching for repeated requests
  */
+import fs from "node:fs/promises";
 import type { PdfEntry, PdfTextChunk, PdfBytesChunk } from "./types.js";
 import { MAX_CHUNK_BYTES } from "./types.js";
+import { isFileUrl } from "./pdf-indexer.js";
 
 // Cache for loaded PDFs
 const pdfCache = new Map<string, Uint8Array>();
@@ -31,12 +33,21 @@ export async function loadPdfData(entry: PdfEntry): Promise<Uint8Array> {
   if (cached) return cached;
 
   console.error(`[loader] Fetching: ${entry.url}`);
-  const response = await fetch(entry.url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.status}`);
+
+  let data: Uint8Array;
+  if (isFileUrl(entry.url)) {
+    // Local file: read from disk
+    const filePath = entry.url.replace("file://", "");
+    data = new Uint8Array(await fs.readFile(filePath));
+  } else {
+    // HTTP: fetch from network
+    const response = await fetch(entry.url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status}`);
+    }
+    data = new Uint8Array(await response.arrayBuffer());
   }
 
-  const data = new Uint8Array(await response.arrayBuffer());
   pdfCache.set(entry.id, data);
   return data;
 }
