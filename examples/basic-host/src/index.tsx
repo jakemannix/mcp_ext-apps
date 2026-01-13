@@ -54,9 +54,20 @@ interface HostProps {
 type ToolCallEntry = ToolCallInfo & { id: number };
 let nextToolCallId = 0;
 
+// Parse URL query params for debugging: ?server=name&tool=name&autoCall=true
+function getQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    server: params.get("server"),
+    tool: params.get("tool"),
+    autoCall: params.get("autoCall") === "true",
+  };
+}
+
 function Host({ serversPromise }: HostProps) {
   const [toolCalls, setToolCalls] = useState<ToolCallEntry[]>([]);
   const [destroyingIds, setDestroyingIds] = useState<Set<number>>(new Set());
+  const queryParams = useMemo(() => getQueryParams(), []);
 
   const requestClose = (id: number) => {
     setDestroyingIds((s) => new Set(s).add(id));
@@ -85,6 +96,9 @@ function Host({ serversPromise }: HostProps) {
       <CallToolPanel
         serversPromise={serversPromise}
         addToolCall={(info) => setToolCalls([...toolCalls, { ...info, id: nextToolCallId++ }])}
+        initialServer={queryParams.server}
+        initialTool={queryParams.tool}
+        autoCall={queryParams.autoCall}
       />
     </>
   );
@@ -95,11 +109,15 @@ function Host({ serversPromise }: HostProps) {
 interface CallToolPanelProps {
   serversPromise: Promise<ServerInfo[]>;
   addToolCall: (info: ToolCallInfo) => void;
+  initialServer?: string | null;
+  initialTool?: string | null;
+  autoCall?: boolean;
 }
-function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
+function CallToolPanel({ serversPromise, addToolCall, initialServer, initialTool, autoCall }: CallToolPanelProps) {
   const [selectedServer, setSelectedServer] = useState<ServerInfo | null>(null);
   const [selectedTool, setSelectedTool] = useState("");
   const [inputJson, setInputJson] = useState("{}");
+  const [hasAutoCalledRef] = useState({ called: false });
 
   // Filter out app-only tools, prioritize tools with UIs
   const toolNames = selectedServer
@@ -118,16 +136,21 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
     }
   }, [inputJson]);
 
-  const handleServerSelect = (server: ServerInfo) => {
+  const handleServerSelect = (server: ServerInfo, preferredTool?: string) => {
     setSelectedServer(server);
     // Filter out app-only tools, prioritize tools with UIs
     const visibleTools = Array.from(server.tools.values())
       .filter((tool) => isToolVisibleToModel(tool))
       .sort(compareTools);
-    const firstTool = visibleTools[0]?.name ?? "";
-    setSelectedTool(firstTool);
+
+    // Use preferred tool if it exists and is visible, otherwise first visible tool
+    const targetTool = preferredTool && visibleTools.some(t => t.name === preferredTool)
+      ? preferredTool
+      : visibleTools[0]?.name ?? "";
+
+    setSelectedTool(targetTool);
     // Set input JSON to tool defaults (if any)
-    setInputJson(getToolDefaults(server.tools.get(firstTool)));
+    setInputJson(getToolDefaults(server.tools.get(targetTool)));
   };
 
   const handleToolSelect = (toolName: string) => {
@@ -140,6 +163,13 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
     if (!selectedServer) return;
     const toolCallInfo = callTool(selectedServer, selectedTool, JSON.parse(inputJson));
     addToolCall(toolCallInfo);
+
+    // Update URL for easy refresh/sharing (without triggering navigation)
+    const url = new URL(window.location.href);
+    url.searchParams.set("server", selectedServer.name);
+    url.searchParams.set("tool", selectedTool);
+    url.searchParams.delete("autoCall"); // Don't auto-call on refresh
+    history.replaceState(null, "", url.toString());
   };
 
   return (
@@ -148,7 +178,17 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
         <label>
           Server
           <Suspense fallback={<select disabled><option>Loading...</option></select>}>
-            <ServerSelect serversPromise={serversPromise} onSelect={handleServerSelect} />
+            <ServerSelect
+              serversPromise={serversPromise}
+              onSelect={handleServerSelect}
+              initialServer={initialServer}
+              initialTool={initialTool}
+              autoCall={autoCall && !hasAutoCalledRef.called}
+              onAutoCall={() => {
+                hasAutoCalledRef.called = true;
+                setTimeout(handleSubmit, 100); // Small delay to ensure state is set
+              }}
+            />
           </Suspense>
         </label>
         <label>
@@ -184,17 +224,37 @@ function CallToolPanel({ serversPromise, addToolCall }: CallToolPanelProps) {
 // ServerSelect calls use() and renders the server <select>
 interface ServerSelectProps {
   serversPromise: Promise<ServerInfo[]>;
-  onSelect: (server: ServerInfo) => void;
+  onSelect: (server: ServerInfo, toolName?: string) => void;
+  initialServer?: string | null;
+  initialTool?: string | null;
+  autoCall?: boolean;
+  onAutoCall?: () => void;
 }
-function ServerSelect({ serversPromise, onSelect }: ServerSelectProps) {
+function ServerSelect({ serversPromise, onSelect, initialServer, initialTool, autoCall, onAutoCall }: ServerSelectProps) {
   const servers = use(serversPromise);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    // Find initial server index if specified
+    if (initialServer) {
+      const idx = servers.findIndex(s => s.name === initialServer);
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  });
+  const [hasCalledAutoCall, setHasCalledAutoCall] = useState(false);
 
   useEffect(() => {
     if (servers.length > selectedIndex) {
-      onSelect(servers[selectedIndex]);
+      onSelect(servers[selectedIndex], initialTool ?? undefined);
     }
   }, [servers]);
+
+  // Auto-call after initial render if requested
+  useEffect(() => {
+    if (autoCall && !hasCalledAutoCall && servers.length > 0) {
+      setHasCalledAutoCall(true);
+      onAutoCall?.();
+    }
+  }, [autoCall, hasCalledAutoCall, servers, onAutoCall]);
 
   if (servers.length === 0) {
     return <select disabled><option>No servers configured</option></select>;
