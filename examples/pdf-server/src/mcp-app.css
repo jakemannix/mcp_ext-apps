@@ -60,6 +60,7 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  min-height: 0; /* Allows flex shrinking in nested flex containers */
 }
 
 /* Toolbar */
@@ -184,6 +185,7 @@
 .canvas-container {
   flex: 1;
   overflow: auto;
+  min-height: 0; /* Allows flex shrinking in nested flex containers */
   display: flex;
   justify-content: center;
   align-items: flex-start;
