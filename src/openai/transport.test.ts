@@ -528,59 +528,101 @@ describe("OpenAITransport", () => {
     });
   });
 
-  describe("ui/notifications/update-model-context notification", () => {
-    test("delegates to window.openai.setWidgetState()", async () => {
-      mockOpenAI.setWidgetState = mock(() => {}) as unknown as OpenAIGlobal["setWidgetState"];
+  describe("ui/update-model-context request", () => {
+    test("delegates to window.openai.setWidgetState() with structuredContent", async () => {
+      mockOpenAI.setWidgetState = mock(
+        () => {},
+      ) as unknown as OpenAIGlobal["setWidgetState"];
 
       const transport = new OpenAITransport();
+      let response: unknown;
+      transport.onmessage = (msg) => {
+        response = msg;
+      };
 
       await transport.send({
         jsonrpc: "2.0",
-        method: "ui/notifications/update-model-context",
+        id: 20,
+        method: "ui/update-model-context",
         params: {
-          modelContent: { selectedItem: "Widget B" },
-          privateContent: { scrollPosition: 100 },
-          imageIds: ["file_456"],
+          structuredContent: { selectedItem: "Widget B", quantity: 5 },
         },
       });
 
-      expect(mockOpenAI.setWidgetState).toHaveBeenCalledWith({
-        modelContent: { selectedItem: "Widget B" },
-        privateContent: { scrollPosition: 100 },
-        imageIds: ["file_456"],
-      });
-    });
-
-    test("uses defaults when params are missing", async () => {
-      mockOpenAI.setWidgetState = mock(() => {}) as unknown as OpenAIGlobal["setWidgetState"];
-
-      const transport = new OpenAITransport();
-
-      await transport.send({
-        jsonrpc: "2.0",
-        method: "ui/notifications/update-model-context",
-        params: {
-          modelContent: "Just text",
-        },
-      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(mockOpenAI.setWidgetState).toHaveBeenCalledWith({
-        modelContent: "Just text",
+        modelContent: { selectedItem: "Widget B", quantity: 5 },
         privateContent: null,
         imageIds: [],
       });
+      expect(response).toMatchObject({
+        jsonrpc: "2.0",
+        id: 20,
+        result: {},
+      });
     });
 
-    test("does nothing when setWidgetState is not available", async () => {
+    test("extracts text from content blocks", async () => {
+      mockOpenAI.setWidgetState = mock(
+        () => {},
+      ) as unknown as OpenAIGlobal["setWidgetState"];
+
+      const transport = new OpenAITransport();
+      let response: unknown;
+      transport.onmessage = (msg) => {
+        response = msg;
+      };
+
+      await transport.send({
+        jsonrpc: "2.0",
+        id: 21,
+        method: "ui/update-model-context",
+        params: {
+          content: [
+            { type: "text", text: "Line one" },
+            { type: "text", text: "Line two" },
+          ],
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(mockOpenAI.setWidgetState).toHaveBeenCalledWith({
+        modelContent: "Line one\nLine two",
+        privateContent: null,
+        imageIds: [],
+      });
+      expect(response).toMatchObject({
+        jsonrpc: "2.0",
+        id: 21,
+        result: {},
+      });
+    });
+
+    test("returns success when setWidgetState is not available", async () => {
       delete mockOpenAI.setWidgetState;
 
       const transport = new OpenAITransport();
+      let response: unknown;
+      transport.onmessage = (msg) => {
+        response = msg;
+      };
 
-      // Should not throw
       await transport.send({
         jsonrpc: "2.0",
-        method: "ui/notifications/update-model-context",
-        params: { modelContent: "test" },
+        id: 22,
+        method: "ui/update-model-context",
+        params: { structuredContent: { test: true } },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Should still return success (no-op if not supported)
+      expect(response).toMatchObject({
+        jsonrpc: "2.0",
+        id: 22,
+        result: {},
       });
     });
   });

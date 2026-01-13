@@ -203,6 +203,15 @@ export class OpenAITransport implements Transport {
         case "ui/get-file-url":
           return await this.handleGetFileUrl(id, params as { fileId: string });
 
+        case "ui/update-model-context":
+          return this.handleUpdateModelContextRequest(
+            id,
+            params as {
+              content?: unknown[];
+              structuredContent?: Record<string, unknown>;
+            },
+          );
+
         case "ping":
           return this.createSuccessResponse(id, {});
 
@@ -550,16 +559,6 @@ export class OpenAITransport implements Transport {
         this.handleSizeChanged(params as { width?: number; height?: number });
         break;
 
-      case "ui/notifications/update-model-context":
-        this.handleUpdateModelContext(
-          params as {
-            modelContent?: string | Record<string, unknown> | null;
-            privateContent?: Record<string, unknown> | null;
-            imageIds?: string[];
-          },
-        );
-        break;
-
       case "ui/notifications/initialized":
         // No-op - OpenAI doesn't need this notification
         break;
@@ -585,21 +584,53 @@ export class OpenAITransport implements Transport {
   }
 
   /**
-   * Handle update model context notification by calling window.openai.setWidgetState().
+   * Handle ui/update-model-context request by calling window.openai.setWidgetState().
+   *
+   * Translates MCP's content/structuredContent format to OpenAI's setWidgetState format.
    */
-  private handleUpdateModelContext(params: {
-    modelContent?: string | Record<string, unknown> | null;
-    privateContent?: Record<string, unknown> | null;
-    imageIds?: string[];
-  }): void {
-    if (this.openai.setWidgetState) {
-      // Construct StructuredWidgetState format
-      this.openai.setWidgetState({
-        modelContent: params.modelContent ?? null,
-        privateContent: params.privateContent ?? null,
-        imageIds: params.imageIds ?? [],
-      });
+  private handleUpdateModelContextRequest(
+    id: RequestId,
+    params: {
+      content?: unknown[];
+      structuredContent?: Record<string, unknown>;
+    },
+  ): JSONRPCSuccessResponse | JSONRPCErrorResponse {
+    if (!this.openai.setWidgetState) {
+      // No-op if setWidgetState is not available, but still return success
+      // since the host may not need to persist state
+      return this.createSuccessResponse(id, {});
     }
+
+    // Translate MCP format to OpenAI's setWidgetState format
+    // content is ContentBlock[], structuredContent is freeform JSON
+    let modelContent: string | Record<string, unknown> | null = null;
+
+    // If structuredContent is provided, use it as modelContent
+    if (params.structuredContent) {
+      modelContent = params.structuredContent;
+    } else if (params.content && params.content.length > 0) {
+      // Extract text from content blocks
+      const textParts = params.content
+        .filter(
+          (c): c is { type: "text"; text: string } =>
+            typeof c === "object" &&
+            c !== null &&
+            (c as { type?: string }).type === "text",
+        )
+        .map((c) => c.text);
+
+      if (textParts.length > 0) {
+        modelContent = textParts.join("\n");
+      }
+    }
+
+    this.openai.setWidgetState({
+      modelContent,
+      privateContent: null,
+      imageIds: [],
+    });
+
+    return this.createSuccessResponse(id, {});
   }
 
   /**

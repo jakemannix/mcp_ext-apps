@@ -46,7 +46,6 @@ import {
   McpUiToolResultNotificationSchema,
   McpUiWidgetStateNotification,
   McpUiWidgetStateNotificationSchema,
-  McpUiUpdateModelContextNotification,
   McpUiUploadFileRequest,
   McpUiUploadFileResultSchema,
   McpUiGetFileUrlRequest,
@@ -1029,51 +1028,6 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   sendSizeChanged(params: McpUiSizeChangedNotification["params"]) {
     return this.notification(<McpUiSizeChangedNotification>{
       method: "ui/notifications/size-changed",
-      params,
-    });
-  }
-
-  /**
-   * Update model context and persist widget state.
-   *
-   * This method allows apps to update what the model sees for follow-up turns
-   * and persist UI state. In OpenAI mode, this calls window.openai.setWidgetState().
-   *
-   * Use the structured format with modelContent/privateContent/imageIds for fine-grained
-   * control over what the model sees vs. what stays private to the UI:
-   * - `modelContent`: Text or JSON visible to the model for follow-up reasoning
-   * - `privateContent`: UI-only state hidden from the model (view mode, selections, etc.)
-   * - `imageIds`: File IDs from uploadFile() for images the model should reason about
-   *
-   * @param params - Model context and widget state to persist
-   *
-   * @example Update model context with selection
-   * ```typescript
-   * app.updateModelContext({
-   *   modelContent: { selectedItem: item.name, quantity: 5 },
-   *   privateContent: { viewMode: "grid", scrollPosition: 150 },
-   * });
-   * ```
-   *
-   * @example Update with uploaded images
-   * ```typescript
-   * const { fileId } = await app.uploadFile(imageFile);
-   * app.updateModelContext({
-   *   modelContent: "User uploaded an image for analysis",
-   *   imageIds: [fileId],
-   * });
-   * ```
-   *
-   * @returns Promise that resolves when the notification is sent
-   *
-   * @see {@link McpUiUpdateModelContextNotification} for notification structure
-   * @see {@link onwidgetstate} for receiving persisted state on reload
-   */
-  updateModelContext(
-    params: McpUiUpdateModelContextNotification["params"],
-  ) {
-    return this.notification(<McpUiUpdateModelContextNotification>{
-      method: "ui/notifications/update-model-context",
       params,
     });
   }
