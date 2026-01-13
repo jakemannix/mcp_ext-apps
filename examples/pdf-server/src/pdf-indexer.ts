@@ -29,9 +29,7 @@ export async function createHttpEntry(url: string): Promise<PdfEntry> {
     sourceType: "http",
     sourcePath: url,
     displayName: filename,
-    relativePath: undefined,
     metadata: { pageCount: 0, fileSizeBytes: 0 },
-    estimatedTextSize: 0,
   };
 }
 
@@ -65,11 +63,10 @@ export async function buildPdfIndex(sources: string[]): Promise<PdfIndex> {
 
     if (stats.isDirectory()) {
       console.error(`[indexer] Scanning directory: ${source}`);
-      const dirEntries = await scanDirectory(source, source);
-      entries.push(...dirEntries);
+      entries.push(...(await scanDirectory(source)));
     } else if (source.toLowerCase().endsWith(".pdf")) {
       console.error(`[indexer] Processing PDF file: ${source}`);
-      const entry = await createLocalEntry(source, path.dirname(source));
+      const entry = await createLocalEntry(source);
       if (entry) {
         entries.push(entry);
       }
@@ -96,10 +93,7 @@ export async function buildPdfIndex(sources: string[]): Promise<PdfIndex> {
 /**
  * Recursively scan a directory for PDF files.
  */
-async function scanDirectory(
-  dirPath: string,
-  rootPath: string,
-): Promise<PdfEntry[]> {
+async function scanDirectory(dirPath: string): Promise<PdfEntry[]> {
   const entries: PdfEntry[] = [];
   const items = await fs.readdir(dirPath, { withFileTypes: true });
 
@@ -109,10 +103,9 @@ async function scanDirectory(
     const fullPath = path.join(dirPath, item.name);
 
     if (item.isDirectory()) {
-      const subEntries = await scanDirectory(fullPath, rootPath);
-      entries.push(...subEntries);
+      entries.push(...(await scanDirectory(fullPath)));
     } else if (item.name.toLowerCase().endsWith(".pdf")) {
-      const entry = await createLocalEntry(fullPath, rootPath);
+      const entry = await createLocalEntry(fullPath);
       if (entry) {
         entries.push(entry);
       }
@@ -125,14 +118,10 @@ async function scanDirectory(
 /**
  * Create a PdfEntry for a local PDF file.
  */
-async function createLocalEntry(
-  filePath: string,
-  rootPath: string,
-): Promise<PdfEntry | null> {
+async function createLocalEntry(filePath: string): Promise<PdfEntry | null> {
   try {
     const stats = await fs.stat(filePath);
     const absolutePath = path.resolve(filePath);
-    const relativePath = path.relative(rootPath, filePath);
 
     const id = createHash("sha256")
       .update(absolutePath)
@@ -144,9 +133,7 @@ async function createLocalEntry(
       sourceType: "local",
       sourcePath: absolutePath,
       displayName: path.basename(filePath, ".pdf"),
-      relativePath,
       metadata: { pageCount: 0, fileSizeBytes: stats.size },
-      estimatedTextSize: 0,
     };
 
     await populatePdfMetadata(entry);
@@ -165,18 +152,6 @@ export function findEntryById(
   id: string,
 ): PdfEntry | undefined {
   return index.entries.find((e) => e.id === id);
-}
-
-/**
- * Filter entries by folder path prefix.
- */
-export function filterEntriesByFolder(
-  index: PdfIndex,
-  folderPrefix: string,
-): PdfEntry[] {
-  return index.entries.filter(
-    (e) => e.relativePath && e.relativePath.startsWith(folderPrefix),
-  );
 }
 
 /**

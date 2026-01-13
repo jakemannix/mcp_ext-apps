@@ -13,10 +13,7 @@ import {
   registerAppTool,
   RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server";
-import {
-  McpServer,
-  ResourceTemplate,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type {
   CallToolResult,
@@ -28,12 +25,10 @@ import { z } from "zod";
 import {
   buildPdfIndex,
   findEntryById,
-  filterEntriesByFolder,
   isHttpUrl,
   createHttpEntry,
 } from "./src/pdf-indexer.js";
 import {
-  loadPdfData,
   loadPdfTextChunk,
   loadPdfBytesChunk,
   populatePdfMetadata,
@@ -41,8 +36,6 @@ import {
 import {
   ReadPdfTextInputSchema,
   ReadPdfBytesInputSchema,
-  ListPdfsInputSchema,
-  ListPdfsOutputSchema,
   PdfTextChunkSchema,
   PdfBytesChunkSchema,
   MAX_TOOL_RESPONSE_BYTES,
@@ -50,7 +43,6 @@ import {
   type PdfIndex,
   type ReadPdfTextInput,
   type ReadPdfBytesInput,
-  type ListPdfsInput,
 } from "./src/types.js";
 import { startServer } from "./server-utils.js";
 
@@ -72,59 +64,18 @@ export function createServer(): McpServer {
     version: "1.0.0",
   });
 
-  // Resource template: PDF metadata
-  server.registerResource(
-    "PDF Metadata",
-    new ResourceTemplate("pdfs://metadata/{pdfId}", { list: undefined }),
-    {
-      mimeType: "application/json",
-      description: "JSON metadata for a specific PDF",
-    },
-    async (uri: URL, variables): Promise<ReadResourceResult> => {
-      if (!pdfIndex) {
-        throw new Error("PDF index not initialized");
-      }
-      const pdfId = Array.isArray(variables.pdfId)
-        ? variables.pdfId[0]
-        : variables.pdfId;
-      const entry = findEntryById(pdfIndex, pdfId as string);
-      if (!entry) {
-        throw new Error(`PDF not found: ${pdfId}`);
-      }
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: "application/json",
-            text: JSON.stringify(entry, null, 2),
-          },
-        ],
-      };
-    },
-  );
-
   // Tool: list_pdfs
   server.tool(
     "list_pdfs",
     "List all indexed PDFs with their metadata",
-    ListPdfsInputSchema.shape,
-    async (args: unknown): Promise<CallToolResult> => {
+    {},
+    async (): Promise<CallToolResult> => {
       if (!pdfIndex) {
         throw new Error("PDF index not initialized");
       }
-      const input = ListPdfsInputSchema.parse(args) as ListPdfsInput;
-      const entries = input.folder
-        ? filterEntriesByFolder(pdfIndex, input.folder)
-        : pdfIndex.entries;
-
-      const output = ListPdfsOutputSchema.parse({
-        entries,
-        totalCount: entries.length,
-      });
-
       return {
-        content: [{ type: "text", text: JSON.stringify(output, null, 2) }],
-        structuredContent: output,
+        content: [{ type: "text", text: JSON.stringify(pdfIndex.entries, null, 2) }],
+        structuredContent: { entries: pdfIndex.entries, totalCount: pdfIndex.entries.length },
       };
     },
   );
@@ -156,22 +107,16 @@ export function createServer(): McpServer {
         input.maxBytes ?? MAX_TOOL_RESPONSE_BYTES,
         MAX_TOOL_RESPONSE_BYTES,
       );
-      const chunk = await loadPdfTextChunk(
-        entry,
-        input.startPage ?? 1,
-        maxBytes,
-      );
-      const output = PdfTextChunkSchema.parse(chunk);
+      const chunk = await loadPdfTextChunk(entry, input.startPage ?? 1, maxBytes);
 
-      // Log chunk info for debugging
       console.error(
-        `[read_pdf_text] Chunk: pages ${output.startPage}-${output.endPage}/${output.totalPages}, ` +
-          `${(output.textSizeBytes / 1024).toFixed(1)}KB, hasMore=${output.hasMore}`,
+        `[read_pdf_text] pages ${chunk.startPage}-${chunk.endPage}/${chunk.totalPages}, ` +
+          `${(chunk.textSizeBytes / 1024).toFixed(1)}KB, hasMore=${chunk.hasMore}`,
       );
 
       return {
-        content: [{ type: "text", text: output.text }],
-        structuredContent: output,
+        content: [{ type: "text", text: chunk.text }],
+        structuredContent: chunk,
       };
     },
   );
@@ -204,58 +149,13 @@ export function createServer(): McpServer {
         input.offset ?? 0,
         input.byteCount ?? DEFAULT_BINARY_CHUNK_SIZE,
       );
-      const output = PdfBytesChunkSchema.parse(chunk);
 
       return {
-        content: [
-          {
-            type: "text",
-            text: `PDF chunk: ${output.byteCount} bytes at offset ${output.offset}/${output.totalBytes}`,
-          },
-        ],
-        structuredContent: output,
+        content: [{ type: "text", text: `${chunk.byteCount} bytes at ${chunk.offset}/${chunk.totalBytes}` }],
+        structuredContent: chunk,
       };
     },
   );
-
-  // Resource template: PDF binary content (for viewer)
-  server.registerResource(
-    "PDF Content",
-    new ResourceTemplate("pdfs://content/{pdfId}", { list: undefined }),
-    {
-      mimeType: "application/pdf",
-      description: "Raw PDF binary content as base64 blob",
-    },
-    async (uri: URL, variables): Promise<ReadResourceResult> => {
-      if (!pdfIndex) {
-        throw new Error("PDF index not initialized");
-      }
-      const rawPdfId = Array.isArray(variables.pdfId)
-        ? variables.pdfId[0]
-        : variables.pdfId;
-      // Decode URL-encoded pdfId (e.g., arxiv%3A2301.00001 -> arxiv:2301.00001)
-      const pdfId = decodeURIComponent(rawPdfId as string);
-      const entry = findEntryById(pdfIndex, pdfId);
-      if (!entry) {
-        throw new Error(`PDF not found: ${pdfId}`);
-      }
-
-      // Load PDF binary data
-      const data = await loadPdfData(entry);
-      const base64 = Buffer.from(data).toString("base64");
-
-      return {
-        contents: [
-          {
-            uri: uri.href,
-            mimeType: "application/pdf",
-            blob: base64,
-          },
-        ],
-      };
-    },
-  );
-
 
   // Tool: view_pdf (with UI)
   registerAppTool(
@@ -413,15 +313,9 @@ async function main() {
   const { sources, stdio } = parseArgs();
 
   // Use default paper if no sources provided
-  const effectiveSources = sources.length > 0 ? sources : [
-    DEFAULT_PDF_URL,
-    "/Users/ochafik/code/tmp/mcp-apps-psr/sample.pdf",
-    "https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf",
-  ];
+  const effectiveSources = sources.length > 0 ? sources : [DEFAULT_PDF_URL];
   if (sources.length === 0) {
-    console.error(
-      `[pdf-server] No sources provided, using default: ${DEFAULT_PDF_URL}`,
-    );
+    console.error(`[pdf-server] No sources provided, using default`);
   }
 
   // Build the PDF index

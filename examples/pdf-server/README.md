@@ -17,13 +17,11 @@ This example showcases several MCP Apps SDK features:
 | Feature                     | Usage                                                               |
 | --------------------------- | ------------------------------------------------------------------- |
 | **App Tool with UI**        | `view_pdf` opens an interactive PDF viewer                          |
-| **App-only Tools**          | `read_pdf_text` is hidden from model, used internally by the viewer |
-| **Resource Templates**      | `pdfs://metadata/{pdfId}` and `pdfs://content/{pdfId}`              |
-| **Binary Resource Content** | PDF files served as base64 blobs                                    |
+| **App-only Tools**          | `read_pdf_text`, `read_pdf_bytes` hidden from model, used by viewer |
 | **structuredContent**       | Tool results include typed data for the UI                          |
 | **sendSizeChanged**         | Viewer requests height changes to fit content                       |
 | **requestDisplayMode**      | Fullscreen toggle support                                           |
-| **Model Context Updates**   | Current page text sent to model context                             |
+| **Model Context Updates**   | Current page text and selection sent to model context               |
 | **Host Style Variables**    | Themed UI using CSS custom properties                               |
 
 ## CLI Usage
@@ -80,10 +78,6 @@ Extracts text from a PDF with chunked pagination. Hidden from the model, used in
 - `startPage` (optional): Page to start from (1-based)
 - `maxBytes` (optional): Maximum bytes per chunk
 
-## Resources
-
-- `pdfs://metadata/{pdfId}` - JSON metadata for a specific PDF
-- `pdfs://content/{pdfId}` - Binary PDF content (base64 blob)
 
 ## Viewer Controls
 

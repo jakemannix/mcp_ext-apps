@@ -271,27 +271,11 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
       const info = pdfMetadata.info as Record<string, unknown> | undefined;
 
       if (info) {
-        // Extract standard PDF metadata fields
         if (typeof info.Title === "string" && info.Title) {
           entry.metadata.title = entry.metadata.title || info.Title;
         }
         if (typeof info.Author === "string" && info.Author) {
           entry.metadata.author = entry.metadata.author || info.Author;
-        }
-        if (typeof info.Subject === "string" && info.Subject) {
-          entry.metadata.subject = entry.metadata.subject || info.Subject;
-        }
-        if (typeof info.Creator === "string") {
-          entry.metadata.creator = info.Creator;
-        }
-        if (typeof info.Producer === "string") {
-          entry.metadata.producer = info.Producer;
-        }
-        if (typeof info.CreationDate === "string") {
-          entry.metadata.creationDate = info.CreationDate;
-        }
-        if (typeof info.ModDate === "string") {
-          entry.metadata.modDate = info.ModDate;
         }
       }
 
@@ -303,9 +287,6 @@ export async function populatePdfMetadata(entry: PdfEntry): Promise<void> {
       ) {
         entry.displayName = entry.metadata.title;
       }
-
-      // Estimate text size (~500 chars per page on average)
-      entry.estimatedTextSize = pdf.numPages * 500;
     } finally {
       await pdf.destroy();
     }

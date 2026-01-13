@@ -29,11 +29,6 @@ export type PdfSourceType = z.infer<typeof PdfSourceTypeSchema>;
 export const PdfMetadataSchema = z.object({
   title: z.string().optional(),
   author: z.string().optional(),
-  subject: z.string().optional(),
-  creator: z.string().optional(),
-  producer: z.string().optional(),
-  creationDate: z.string().optional(),
-  modDate: z.string().optional(),
   pageCount: z.number(),
   fileSizeBytes: z.number(),
 });
@@ -52,12 +47,8 @@ export const PdfEntrySchema = z.object({
   sourcePath: z.string(),
   /** Human-readable display name */
   displayName: z.string(),
-  /** Relative path for hierarchical display (local files only) */
-  relativePath: z.string().optional(),
   /** PDF metadata extracted from the file */
   metadata: PdfMetadataSchema,
-  /** Estimated text size in bytes (for chunking hints) */
-  estimatedTextSize: z.number(),
 });
 export type PdfEntry = z.infer<typeof PdfEntrySchema>;
 
@@ -116,17 +107,6 @@ export const ReadPdfTextInputSchema = z.object({
     .describe("Maximum bytes to return in this chunk"),
 });
 export type ReadPdfTextInput = z.infer<typeof ReadPdfTextInputSchema>;
-
-export const ListPdfsInputSchema = z.object({
-  folder: z.string().optional().describe("Filter by folder path prefix"),
-});
-export type ListPdfsInput = z.infer<typeof ListPdfsInputSchema>;
-
-export const ListPdfsOutputSchema = z.object({
-  entries: z.array(PdfEntrySchema),
-  totalCount: z.number(),
-});
-export type ListPdfsOutput = z.infer<typeof ListPdfsOutputSchema>;
 
 // ============================================================================
 // PDF Binary Chunk (for chunked binary loading)
