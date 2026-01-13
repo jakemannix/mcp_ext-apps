@@ -51,11 +51,40 @@ const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
 const zoomOutBtn = document.getElementById("zoom-out-btn") as HTMLButtonElement;
 const zoomInBtn = document.getElementById("zoom-in-btn") as HTMLButtonElement;
 const zoomLevelEl = document.getElementById("zoom-level")!;
-const downloadBtn = document.getElementById("download-btn") as HTMLButtonElement;
-const fullscreenBtn = document.getElementById("fullscreen-btn") as HTMLButtonElement;
+const downloadBtn = document.getElementById(
+  "download-btn",
+) as HTMLButtonElement;
+const fullscreenBtn = document.getElementById(
+  "fullscreen-btn",
+) as HTMLButtonElement;
 
 // Track current display mode
 let currentDisplayMode: "inline" | "fullscreen" = "inline";
+
+// Layout constants (must match CSS)
+const TOOLBAR_HEIGHT = 48;
+const CANVAS_PADDING = 16; // 1rem on each side
+
+/**
+ * Request the host to resize the app to fit the current PDF page.
+ * Only applies in inline mode - fullscreen mode uses scrolling.
+ */
+function requestFitToContent() {
+  if (currentDisplayMode === "fullscreen") {
+    return; // Fullscreen uses scrolling
+  }
+
+  const canvasHeight = canvasEl.height;
+  if (canvasHeight <= 0) {
+    return; // No content yet
+  }
+
+  // Total height = toolbar + top padding + canvas + bottom padding
+  const totalHeight = TOOLBAR_HEIGHT + CANVAS_PADDING * 2 + canvasHeight;
+
+  log.info("Requesting height:", totalHeight, "(canvas:", canvasHeight, ")");
+  app.sendSizeChanged({ height: totalHeight });
+}
 
 // Create app instance
 // autoResize disabled - app fills its container, doesn't request size changes
@@ -160,6 +189,9 @@ async function renderPage() {
 
     updateControls();
     updatePageContext();
+
+    // Request host to resize app to fit content (inline mode only)
+    requestFitToContent();
   } catch (err) {
     log.error("Error rendering page:", err);
     showError(`Failed to render page ${currentPage}`);
@@ -230,7 +262,8 @@ async function toggleFullscreen() {
 
 function updateFullscreenButton() {
   fullscreenBtn.textContent = currentDisplayMode === "fullscreen" ? "⛶" : "⛶";
-  fullscreenBtn.title = currentDisplayMode === "fullscreen" ? "Exit fullscreen" : "Fullscreen";
+  fullscreenBtn.title =
+    currentDisplayMode === "fullscreen" ? "Exit fullscreen" : "Fullscreen";
 }
 
 // Event listeners
@@ -384,6 +417,7 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
 
   // Handle display mode changes
   if (ctx.displayMode) {
+    const wasFullscreen = currentDisplayMode === "fullscreen";
     currentDisplayMode = ctx.displayMode as "inline" | "fullscreen";
     if (ctx.displayMode === "fullscreen") {
       mainEl.classList.add("fullscreen");
@@ -391,6 +425,10 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
     } else {
       mainEl.classList.remove("fullscreen");
       log.info("Inline mode");
+      // When exiting fullscreen, request resize to fit content
+      if (wasFullscreen && pdfDocument) {
+        requestFitToContent();
+      }
     }
     updateFullscreenButton();
   }
