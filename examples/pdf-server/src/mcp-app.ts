@@ -261,6 +261,12 @@ document.addEventListener("keydown", (e) => {
   if (document.activeElement === pageInputEl) return;
 
   switch (e.key) {
+    case "Escape":
+      if (currentDisplayMode === "fullscreen") {
+        toggleFullscreen();
+        e.preventDefault();
+      }
+      break;
     case "ArrowLeft":
     case "PageUp":
       prevPage();
