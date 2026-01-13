@@ -317,15 +317,20 @@ async function renderPage() {
     const page = await pdfDocument.getPage(pageToRender);
     const viewport = page.getViewport({ scale });
 
-    // Get fresh context and clear canvas
+    // Account for retina displays
+    const dpr = window.devicePixelRatio || 1;
     const ctx = canvasEl.getContext("2d")!;
-    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
 
-    // Set canvas dimensions
-    canvasEl.width = viewport.width;
-    canvasEl.height = viewport.height;
+    // Set canvas size in pixels (scaled for retina)
+    canvasEl.width = viewport.width * dpr;
+    canvasEl.height = viewport.height * dpr;
+
+    // Set display size in CSS pixels
     canvasEl.style.width = `${viewport.width}px`;
     canvasEl.style.height = `${viewport.height}px`;
+
+    // Scale context for retina
+    ctx.scale(dpr, dpr);
 
     // Clear and setup text layer
     textLayerEl.innerHTML = "";
