@@ -52,6 +52,10 @@ const zoomOutBtn = document.getElementById("zoom-out-btn") as HTMLButtonElement;
 const zoomInBtn = document.getElementById("zoom-in-btn") as HTMLButtonElement;
 const zoomLevelEl = document.getElementById("zoom-level")!;
 const downloadBtn = document.getElementById("download-btn") as HTMLButtonElement;
+const fullscreenBtn = document.getElementById("fullscreen-btn") as HTMLButtonElement;
+
+// Track current display mode
+let currentDisplayMode: "inline" | "fullscreen" = "inline";
 
 // Create app instance
 // autoResize will be enabled/disabled based on containerDimensions
@@ -156,6 +160,13 @@ async function renderPage() {
 
     updateControls();
     updatePageContext();
+
+    // Notify host of content size after render
+    // Add toolbar height (~60px) to canvas height
+    const contentHeight = Math.ceil(viewport.height) + 60;
+    const contentWidth = Math.ceil(viewport.width);
+    log.info("Sending size change:", contentWidth, contentHeight);
+    app.sendSizeChanged({ width: contentWidth, height: contentHeight });
   } catch (err) {
     log.error("Error rendering page:", err);
     showError(`Failed to render page ${currentPage}`);
@@ -204,12 +215,38 @@ function downloadPdf() {
   URL.revokeObjectURL(url);
 }
 
+async function toggleFullscreen() {
+  const ctx = app.getHostContext();
+  if (!ctx?.availableDisplayModes?.includes("fullscreen")) {
+    log.info("Fullscreen not available");
+    return;
+  }
+
+  const newMode = currentDisplayMode === "fullscreen" ? "inline" : "fullscreen";
+  log.info("Requesting display mode:", newMode);
+
+  try {
+    const result = await app.requestDisplayMode({ mode: newMode });
+    log.info("Display mode result:", result);
+    currentDisplayMode = result.mode as "inline" | "fullscreen";
+    updateFullscreenButton();
+  } catch (err) {
+    log.error("Failed to change display mode:", err);
+  }
+}
+
+function updateFullscreenButton() {
+  fullscreenBtn.textContent = currentDisplayMode === "fullscreen" ? "⛶" : "⛶";
+  fullscreenBtn.title = currentDisplayMode === "fullscreen" ? "Exit fullscreen" : "Fullscreen";
+}
+
 // Event listeners
 prevBtn.addEventListener("click", prevPage);
 nextBtn.addEventListener("click", nextPage);
 zoomOutBtn.addEventListener("click", zoomOut);
 zoomInBtn.addEventListener("click", zoomIn);
 downloadBtn.addEventListener("click", downloadPdf);
+fullscreenBtn.addEventListener("click", toggleFullscreen);
 
 pageInputEl.addEventListener("change", () => {
   const page = parseInt(pageInputEl.value, 10);
@@ -366,12 +403,16 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
   }
 
   // Handle display mode changes
-  if (ctx.displayMode === "fullscreen") {
-    mainEl.classList.add("fullscreen");
-    log.info("Fullscreen mode enabled");
-  } else {
-    mainEl.classList.remove("fullscreen");
-    log.info("Inline mode");
+  if (ctx.displayMode) {
+    currentDisplayMode = ctx.displayMode as "inline" | "fullscreen";
+    if (ctx.displayMode === "fullscreen") {
+      mainEl.classList.add("fullscreen");
+      log.info("Fullscreen mode enabled");
+    } else {
+      mainEl.classList.remove("fullscreen");
+      log.info("Inline mode");
+    }
+    updateFullscreenButton();
   }
 }
 

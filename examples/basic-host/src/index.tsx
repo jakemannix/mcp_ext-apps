@@ -406,35 +406,13 @@ function AppIFramePanel({ toolCallInfo, isDestroying, onTeardownComplete }: AppI
   };
   const messagesText = messages.map(formatMessage).join("\n\n");
 
-  const toggleFullscreen = () => {
-    const newMode = displayMode === "fullscreen" ? "inline" : "fullscreen";
-    setDisplayMode(newMode);
-    // Notify the app of the display mode change
-    appBridgeRef.current?.sendHostContextChange({
-      displayMode: newMode,
-      // In fullscreen, provide fixed height matching viewport
-      containerDimensions: newMode === "fullscreen"
-        ? { height: window.innerHeight - 100 } // Leave room for header
-        : { maxHeight: 600 },
-    });
-  };
-
   const panelClassName = displayMode === "fullscreen"
     ? `${styles.appIframePanel} ${styles.fullscreen}`
     : styles.appIframePanel;
 
   return (
     <div className={panelClassName}>
-      <div className={styles.appToolbar}>
-        <CollapsiblePanel icon="📥" label="Tool Input" content={inputJson} />
-        <button
-          className={styles.fullscreenButton}
-          onClick={toggleFullscreen}
-          title={displayMode === "fullscreen" ? "Exit fullscreen" : "Fullscreen"}
-        >
-          {displayMode === "fullscreen" ? "⛶" : "⛶"}
-        </button>
-      </div>
+      <CollapsiblePanel icon="📥" label="Tool Input" content={inputJson} />
       <iframe ref={iframeRef} />
       {resultJson && (
         <CollapsiblePanel icon="📤" label="Tool Result" content={resultJson} />
