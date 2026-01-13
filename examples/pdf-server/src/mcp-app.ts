@@ -99,10 +99,12 @@ function requestFitToContent() {
   const paddingBottom = parseFloat(containerStyle.paddingBottom);
 
   // Calculate required height:
-  // toolbar + padding-top + page-wrapper height + padding-bottom
+  // toolbar + padding-top + page-wrapper height + padding-bottom + buffer
   const toolbarHeight = toolbarEl.offsetHeight;
   const pageWrapperHeight = pageWrapperEl.offsetHeight;
-  const totalHeight = toolbarHeight + paddingTop + pageWrapperHeight + paddingBottom;
+  const BUFFER = 2; // Small buffer for sub-pixel rounding
+  const totalHeight =
+    toolbarHeight + paddingTop + pageWrapperHeight + paddingBottom + BUFFER;
 
   log.info("Requesting height:", totalHeight, {
     toolbarHeight,
