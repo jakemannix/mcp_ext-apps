@@ -161,64 +161,69 @@ function updateControls() {
 
 /**
  * Format page text with optional selection, truncating intelligently.
- * - If selection exists, ensures it's visible in the output
+ * - Centers window around selection when truncating
  * - Adds <truncated-content/> markers where text is elided
- * - Wraps selection in <pdf-selection> tags
+ * - If selection itself is too long, truncates inside: <pdf-selection><truncated-content/>...<truncated-content/></pdf-selection>
  */
 function formatPageContent(
   text: string,
   maxLength: number,
   selection?: { start: number; end: number },
 ): string {
-  const SELECTION_TAG = "pdf-selection";
-  const TRUNCATED = "<truncated-content/>";
-  const tagOverhead = `<${SELECTION_TAG}></${SELECTION_TAG}>`.length;
+  const T = "<truncated-content/>";
 
   // No truncation needed
   if (text.length <= maxLength) {
     if (!selection) return text;
     return (
       text.slice(0, selection.start) +
-      `<${SELECTION_TAG}>${text.slice(selection.start, selection.end)}</${SELECTION_TAG}>` +
+      `<pdf-selection>${text.slice(selection.start, selection.end)}</pdf-selection>` +
       text.slice(selection.end)
     );
   }
 
   // Truncation needed, no selection - just truncate end
   if (!selection) {
-    return text.slice(0, maxLength) + "\n" + TRUNCATED;
+    return text.slice(0, maxLength) + "\n" + T;
   }
 
-  // Truncation needed with selection - center window around selection
+  // Calculate budgets
   const selLen = selection.end - selection.start;
-  const contextBudget = maxLength - selLen - tagOverhead - TRUNCATED.length * 2 - 4;
+  const overhead = "<pdf-selection></pdf-selection>".length + T.length * 2 + 4;
+  const contextBudget = maxLength - overhead;
 
-  if (contextBudget <= 0) {
-    // Selection too long - truncate it
-    const truncatedSel = text.slice(selection.start, selection.start + maxLength - tagOverhead - 40);
-    return TRUNCATED + "\n" + `<${SELECTION_TAG}>${truncatedSel}</${SELECTION_TAG}>` + "\n" + TRUNCATED;
+  // Selection too long - truncate inside the selection tags
+  if (selLen > contextBudget) {
+    const keepLen = Math.max(100, contextBudget);
+    const halfKeep = Math.floor(keepLen / 2);
+    const selStart = text.slice(selection.start, selection.start + halfKeep);
+    const selEnd = text.slice(selection.end - halfKeep, selection.end);
+    return (
+      T +
+      `<pdf-selection>${T}${selStart}...${selEnd}${T}</pdf-selection>` +
+      T
+    );
   }
 
-  // Split context budget: more before than after for readability
-  const beforeBudget = Math.floor(contextBudget * 0.6);
-  const afterBudget = contextBudget - beforeBudget;
+  // Selection fits - center it with context
+  const remainingBudget = contextBudget - selLen;
+  const beforeBudget = Math.floor(remainingBudget / 2);
+  const afterBudget = remainingBudget - beforeBudget;
 
   const windowStart = Math.max(0, selection.start - beforeBudget);
   const windowEnd = Math.min(text.length, selection.end + afterBudget);
 
-  // Adjust selection positions to window
   const adjStart = selection.start - windowStart;
   const adjEnd = selection.end - windowStart;
   const windowText = text.slice(windowStart, windowEnd);
 
-  const result =
-    (windowStart > 0 ? TRUNCATED + "\n" : "") +
+  return (
+    (windowStart > 0 ? T + "\n" : "") +
     windowText.slice(0, adjStart) +
-    `<${SELECTION_TAG}>${windowText.slice(adjStart, adjEnd)}</${SELECTION_TAG}>` +
+    `<pdf-selection>${windowText.slice(adjStart, adjEnd)}</pdf-selection>` +
     windowText.slice(adjEnd) +
-    (windowEnd < text.length ? "\n" + TRUNCATED : "");
-
-  return result;
+    (windowEnd < text.length ? "\n" + T : "")
+  );
 }
 
 /**
