@@ -12,12 +12,12 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 
 ## Setup & Connection
 
-| OpenAI                           | MCP Apps                                           | Notes                                                  |
-| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
-| `window.openai` (auto-available) | `const app = new App({name, version}, {})`         | MCP requires explicit instantiation                    |
-| (implicit)                       | `await app.connect()`                              | MCP requires async connection; auto-detects OpenAI env |
+| OpenAI                           | MCP Apps                                           | Notes                                                                                                           |
+| -------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `window.openai` (auto-available) | `const app = new App({name, version}, {})`         | MCP requires explicit instantiation                                                                             |
+| (implicit)                       | `await app.connect()`                              | MCP requires async connection; auto-detects OpenAI env                                                          |
 | —                                | `await app.connect(new OpenAITransport())`         | Force OpenAI mode (not yet available, see [PR #172](https://github.com/modelcontextprotocol/ext-apps/pull/172)) |
-| —                                | `await app.connect(new PostMessageTransport(...))` | Force MCP mode explicitly                              |
+| —                                | `await app.connect(new PostMessageTransport(...))` | Force MCP mode explicitly                                                                                       |
 
 ## Host Context Properties
 
@@ -76,9 +76,9 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 
 ## State Persistence
 
-| OpenAI                                | MCP Apps | Notes                                           |
-| ------------------------------------- | -------- | ----------------------------------------------- |
-| `window.openai.widgetState`           | —        | Not directly available in MCP                   |
+| OpenAI                                | MCP Apps | Notes                                                                |
+| ------------------------------------- | -------- | -------------------------------------------------------------------- |
+| `window.openai.widgetState`           | —        | Not directly available in MCP                                        |
 | `window.openai.setWidgetState(state)` | —        | Use alternative mechanisms (`localStorage`, server-side state, etc.) |
 
 ## File Operations (Not Yet in MCP Apps)
