@@ -30,7 +30,8 @@ import {
   findEntryById,
   filterEntriesByFolder,
 } from "./src/pdf-indexer.js";
-import { loadPdfData, loadPdfTextChunk } from "./src/pdf-loader.js";
+import { loadPdfData, loadPdfTextChunk, populatePdfMetadata } from "./src/pdf-loader.js";
+import { isArxivUrl, createArxivEntry } from "./src/arxiv.js";
 import { generateClaudeMd } from "./src/claude-md.js";
 import {
   ReadPdfTextInputSchema,
@@ -141,11 +142,17 @@ export function createServer(): McpServer {
     },
   );
 
-  // Tool: read_pdf_text (app-only visibility for chunked reading)
-  server.tool(
+  // Tool: read_pdf_text (app-only - used by view_pdf UI for chunked loading)
+  registerAppTool(
+    server,
     "read_pdf_text",
-    "Extract text from a PDF with chunked pagination for large documents",
-    ReadPdfTextInputSchema.shape,
+    {
+      title: "Read PDF Text",
+      description: "Extract text from a PDF with chunked pagination for large documents",
+      inputSchema: ReadPdfTextInputSchema.shape,
+      outputSchema: PdfTextChunkSchema,
+      _meta: { ui: { visibility: ["app"] } },
+    },
     async (args: unknown): Promise<CallToolResult> => {
       if (!pdfIndex) {
         throw new Error("PDF index not initialized");
@@ -213,6 +220,9 @@ export function createServer(): McpServer {
     },
   );
 
+  // Default arxiv paper for demo
+  const DEFAULT_PDF_URL = "https://arxiv.org/pdf/2312.00752.pdf"; // "Practices for Governing Agentic AI Systems"
+
   // Tool: view_pdf (with UI)
   registerAppTool(
     server,
@@ -221,14 +231,23 @@ export function createServer(): McpServer {
       title: "View PDF",
       description: `Open an interactive PDF viewer with navigation controls.
 
-Available PDFs: ${pdfIndex?.totalPdfs ?? 0}
-Use list_pdfs to see available PDF IDs.`,
+Can view PDFs from:
+- Indexed PDFs (use pdfId from list_pdfs)
+- arxiv URLs (e.g., https://arxiv.org/pdf/2312.00752.pdf)
+
+If no parameters provided, opens a default demo PDF.`,
       inputSchema: {
         pdfId: z
           .string()
+          .optional()
           .describe(
             "PDF identifier from the index (e.g., 'local:abc123' or 'arxiv:2301.12345')",
           ),
+        url: z
+          .string()
+          .url()
+          .optional()
+          .describe("arxiv PDF URL to view (e.g., 'https://arxiv.org/pdf/2312.00752.pdf')"),
         page: z
           .number()
           .min(1)
@@ -244,13 +263,44 @@ Use list_pdfs to see available PDF IDs.`,
       }),
       _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
-    async ({ pdfId, page }): Promise<CallToolResult> => {
+    async ({ pdfId, url, page }): Promise<CallToolResult> => {
       if (!pdfIndex) {
         throw new Error("PDF index not initialized");
       }
-      const entry = findEntryById(pdfIndex, pdfId);
-      if (!entry) {
-        throw new Error(`PDF not found: ${pdfId}. Use list_pdfs to see available PDFs.`);
+
+      let entry;
+
+      if (pdfId) {
+        // Look up by ID
+        entry = findEntryById(pdfIndex, pdfId);
+        if (!entry) {
+          throw new Error(`PDF not found: ${pdfId}. Use list_pdfs to see available PDFs.`);
+        }
+      } else {
+        // Use URL (or default)
+        const pdfUrl = url || DEFAULT_PDF_URL;
+
+        if (!isArxivUrl(pdfUrl)) {
+          throw new Error(`Only arxiv URLs are supported. Got: ${pdfUrl}`);
+        }
+
+        // Check if already indexed
+        const existingEntry = pdfIndex.flatEntries.find(e => e.sourcePath === pdfUrl);
+        if (existingEntry) {
+          entry = existingEntry;
+        } else {
+          // Create and index on-the-fly
+          const newEntry = await createArxivEntry(pdfUrl);
+          if (!newEntry) {
+            throw new Error(`Failed to create entry for: ${pdfUrl}`);
+          }
+          await populatePdfMetadata(newEntry);
+          pdfIndex.flatEntries.push(newEntry);
+          pdfIndex.totalPdfs++;
+          pdfIndex.totalPages += newEntry.metadata.pageCount;
+          pdfIndex.totalSizeBytes += newEntry.metadata.fileSizeBytes;
+          entry = newEntry;
+        }
       }
 
       const result = {
