@@ -99,7 +99,8 @@ interface PersistedCameraState {
  */
 function getViewStorageKey(): string {
   const context = app.getHostContext();
-  const toolId = context?.toolInfo?.id || "default";
+  const toolId = context?.toolInfo?.id ?? "default";
+  log.info("Storage key context:", { toolId, toolInfo: context?.toolInfo });
   return `map:${toolId}`;
 }
 
@@ -146,12 +147,7 @@ function persistViewState(cesiumViewer: any): void {
 
   try {
     localStorage.setItem(key, JSON.stringify(state));
-    log.info(
-      "Persisted view state:",
-      key,
-      state.latitude.toFixed(2),
-      state.longitude.toFixed(2),
-    );
+    log.info("Persisted view state to", key, state);
   } catch (e) {
     log.warn("Failed to persist view state:", e);
   }
@@ -162,10 +158,14 @@ function persistViewState(cesiumViewer: any): void {
  */
 function loadPersistedViewState(): PersistedCameraState | null {
   const key = getViewStorageKey();
+  log.info("Attempting to load view state from", key);
 
   try {
     const stored = localStorage.getItem(key);
-    if (!stored) return null;
+    if (!stored) {
+      log.info("No persisted view state found for", key);
+      return null;
+    }
 
     const state = JSON.parse(stored) as PersistedCameraState;
     // Basic validation
@@ -174,10 +174,10 @@ function loadPersistedViewState(): PersistedCameraState | null {
       typeof state.latitude !== "number" ||
       typeof state.height !== "number"
     ) {
-      log.warn("Invalid persisted view state, ignoring");
+      log.warn("Invalid persisted view state, ignoring:", state);
       return null;
     }
-    log.info("Loaded persisted view state from", key);
+    log.info("Loaded persisted view state from", key, state);
     return state;
   } catch (e) {
     log.warn("Failed to load persisted view state:", e);
