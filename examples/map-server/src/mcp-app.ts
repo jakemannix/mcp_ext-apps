@@ -58,6 +58,12 @@ interface BoundingBox {
   north: number;
 }
 
+// Map tile style: 'carto' for smooth retina tiles, 'osm' for classic detailed tiles
+type MapStyle = "carto" | "osm";
+
+// Current map style (set from tool input, defaults to 'carto')
+let currentMapStyle: MapStyle = "carto";
+
 // CesiumJS viewer instance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let viewer: any = null;
@@ -528,50 +534,64 @@ async function initCesium(): Promise<any> {
 
   log.info("Globe configured");
 
-  // Create and add map imagery layer
-  // Use Carto basemaps which provide @2x tiles for high-DPI displays
-  log.info("Creating Carto basemap imagery provider...");
+  // Create and add map imagery layer based on current style
+  log.info(`Creating imagery provider for style: ${currentMapStyle}`);
   try {
-    // Detect high-DPI display and use retina (@2x) tiles for sharper rendering
-    // Carto Voyager style looks similar to OSM and is free to use
-    // Note: @2x tiles are 512x512 pixels but still represent 256x256 geographic area
-    // DO NOT set tileWidth/tileHeight to 512 - that would make tiles cover wrong area
-    const isHighDPI = window.devicePixelRatio >= 1.5;
-    const retinaModifier = isHighDPI ? "@2x" : "";
-    const tileUrl = `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}${retinaModifier}.png`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let imageryProvider: any;
 
-    log.info(
-      `Using ${isHighDPI ? "retina" : "standard"} tiles, devicePixelRatio: ${window.devicePixelRatio}`,
-    );
+    if (currentMapStyle === "osm") {
+      // Classic OpenStreetMap tiles - more detailed but 256px only
+      imageryProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        minimumLevel: 0,
+        maximumLevel: 19,
+        credit: new Cesium.Credit(
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          true,
+        ),
+      });
+      log.info("OSM provider created (256px tiles)");
+    } else {
+      // Carto Voyager tiles - smoother style with @2x retina support
+      const isHighDPI = window.devicePixelRatio >= 1.5;
+      const retinaModifier = isHighDPI ? "@2x" : "";
+      const tileUrl = `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}${retinaModifier}.png`;
 
-    const cartoProvider = new Cesium.UrlTemplateImageryProvider({
-      url: tileUrl,
-      minimumLevel: 0,
-      maximumLevel: 19,
-      // tileWidth/tileHeight stay at default 256 - @2x tiles have more pixels but cover same area
-      credit: new Cesium.Credit(
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attribution">CARTO</a>',
-        true,
-      ),
-    });
-    log.info(`Carto provider created (${isHighDPI ? "@2x" : "standard"} tiles)`);
+      log.info(
+        `Using Carto ${isHighDPI ? "retina" : "standard"} tiles, devicePixelRatio: ${window.devicePixelRatio}`,
+      );
+
+      imageryProvider = new Cesium.UrlTemplateImageryProvider({
+        url: tileUrl,
+        minimumLevel: 0,
+        maximumLevel: 19,
+        credit: new Cesium.Credit(
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attribution">CARTO</a>',
+          true,
+        ),
+      });
+      log.info(
+        `Carto provider created (${isHighDPI ? "@2x" : "standard"} tiles)`,
+      );
+    }
 
     // Log any imagery provider errors
-    cartoProvider.errorEvent.addEventListener((error: any) => {
-      log.error("Carto imagery provider error:", error);
+    imageryProvider.errorEvent.addEventListener((error: any) => {
+      log.error("Imagery provider error:", error);
     });
 
     // Wait for provider to be ready
-    if (cartoProvider.ready !== undefined && !cartoProvider.ready) {
-      log.info("Waiting for Carto provider to be ready...");
-      await cartoProvider.readyPromise;
-      log.info("Carto provider ready");
+    if (imageryProvider.ready !== undefined && !imageryProvider.ready) {
+      log.info("Waiting for imagery provider to be ready...");
+      await imageryProvider.readyPromise;
+      log.info("Imagery provider ready");
     }
 
     // Add the imagery layer to the viewer
-    cesiumViewer.imageryLayers.addImageryProvider(cartoProvider);
+    cesiumViewer.imageryLayers.addImageryProvider(imageryProvider);
     log.info(
-      "Carto imagery layer added, layer count:",
+      "Imagery layer added, layer count:",
       cesiumViewer.imageryLayers.length,
     );
 
@@ -588,7 +608,7 @@ async function initCesium(): Promise<any> {
     cesiumViewer.scene.requestRender();
     log.info("Render requested");
   } catch (error) {
-    log.error("Failed to create Carto provider:", error);
+    log.error("Failed to create imagery provider:", error);
   }
 
   // Fly to default USA view - using Rectangle is most reliable
@@ -623,6 +643,64 @@ async function initCesium(): Promise<any> {
   log.info("Camera move listener registered");
 
   return cesiumViewer;
+}
+
+/**
+ * Switch the map tile style by replacing the imagery layer
+ */
+async function switchMapStyle(
+  cesiumViewer: any,
+  newStyle: MapStyle,
+): Promise<void> {
+  if (newStyle === currentMapStyle) {
+    log.info(`Style already set to ${newStyle}, skipping`);
+    return;
+  }
+
+  log.info(`Switching map style from ${currentMapStyle} to ${newStyle}`);
+  currentMapStyle = newStyle;
+
+  // Remove all existing imagery layers
+  cesiumViewer.imageryLayers.removeAll();
+
+  // Create new imagery provider based on style
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let imageryProvider: any;
+
+  if (newStyle === "osm") {
+    imageryProvider = new Cesium.UrlTemplateImageryProvider({
+      url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      minimumLevel: 0,
+      maximumLevel: 19,
+      credit: new Cesium.Credit(
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        true,
+      ),
+    });
+    log.info("Switched to OSM tiles (256px)");
+  } else {
+    const isHighDPI = window.devicePixelRatio >= 1.5;
+    const retinaModifier = isHighDPI ? "@2x" : "";
+    imageryProvider = new Cesium.UrlTemplateImageryProvider({
+      url: `https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}${retinaModifier}.png`,
+      minimumLevel: 0,
+      maximumLevel: 19,
+      credit: new Cesium.Credit(
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, © <a href="https://carto.com/attribution">CARTO</a>',
+        true,
+      ),
+    });
+    log.info(`Switched to Carto tiles (${isHighDPI ? "@2x" : "standard"})`);
+  }
+
+  // Wait for provider to be ready
+  if (imageryProvider.ready !== undefined && !imageryProvider.ready) {
+    await imageryProvider.readyPromise;
+  }
+
+  // Add the new imagery layer
+  cesiumViewer.imageryLayers.addImageryProvider(imageryProvider);
+  cesiumViewer.scene.requestRender();
 }
 
 /**
@@ -866,10 +944,17 @@ app.ontoolinput = async (params) => {
         east?: number;
         north?: number;
         label?: string;
+        style?: MapStyle;
       }
     | undefined;
 
   if (args && viewer) {
+    // Apply map style if specified (defaults to 'carto')
+    const requestedStyle = args.style || "carto";
+    if (requestedStyle !== currentMapStyle) {
+      await switchMapStyle(viewer, requestedStyle);
+    }
+
     // Handle both nested boundingBox and flat format
     let bbox: BoundingBox | null = null;
 
