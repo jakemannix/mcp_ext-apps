@@ -17,8 +17,34 @@ import {
   Transport,
   TransportSendOptions,
 } from "@modelcontextprotocol/sdk/shared/transport.js";
-import { OpenAIGlobal, getOpenAIGlobal, isOpenAIEnvironment } from "./types.js";
+import {
+  OpenAIGlobal,
+  OpenAISafeArea,
+  OpenAIDisplayMode,
+  OpenAITheme,
+  getOpenAIGlobal,
+  isOpenAIEnvironment,
+} from "./types.js";
 import { LATEST_PROTOCOL_VERSION, McpUiHostContext } from "../spec.types.js";
+
+/**
+ * Event name dispatched by ChatGPT host when window.openai properties change.
+ * @see https://developers.openai.com/apps-sdk/build/chatgpt-ui/
+ */
+const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
+
+/**
+ * Partial update payload from the openai:set_globals event.
+ * Contains only the properties that changed.
+ */
+interface OpenAIGlobalsChangeDetail {
+  theme?: OpenAITheme;
+  displayMode?: OpenAIDisplayMode;
+  maxHeight?: number;
+  safeArea?: OpenAISafeArea;
+  locale?: string;
+  userAgent?: string;
+}
 
 /**
  * JSON-RPC success response message.
@@ -96,6 +122,7 @@ function isNotification(
 export class OpenAITransport implements Transport {
   private openai: OpenAIGlobal;
   private _closed = false;
+  private _globalsChangeHandler?: (event: Event) => void;
 
   /**
    * Create a new OpenAITransport.
@@ -124,11 +151,78 @@ export class OpenAITransport implements Transport {
   /**
    * Begin listening for messages.
    *
-   * In OpenAI mode, there's no event-based message flow to start.
-   * The data is pre-populated in window.openai properties.
+   * Sets up a listener for the `openai:set_globals` event that ChatGPT
+   * dispatches when host context properties change (theme, displayMode,
+   * safeArea, maxHeight, etc.). Changes are forwarded to the app as
+   * `ui/notifications/host-context-changed` notifications.
    */
   async start(): Promise<void> {
-    // Nothing to do - window.openai is already available and populated
+    // Listen for OpenAI global property changes
+    this._globalsChangeHandler = (event: Event) => {
+      if (this._closed) return;
+
+      const detail = (event as CustomEvent<OpenAIGlobalsChangeDetail>).detail;
+      if (!detail) return;
+
+      const changes: Partial<McpUiHostContext> = {};
+      let hasChanges = false;
+
+      // Map OpenAI properties to MCP host context
+      if (detail.safeArea !== undefined) {
+        const sa = detail.safeArea;
+        if (
+          typeof sa.top === "number" &&
+          typeof sa.right === "number" &&
+          typeof sa.bottom === "number" &&
+          typeof sa.left === "number"
+        ) {
+          changes.safeAreaInsets = sa;
+          hasChanges = true;
+        }
+      }
+
+      if (detail.theme !== undefined) {
+        changes.theme = detail.theme;
+        hasChanges = true;
+      }
+
+      if (detail.displayMode !== undefined) {
+        changes.displayMode = detail.displayMode;
+        hasChanges = true;
+      }
+
+      if (detail.maxHeight !== undefined) {
+        changes.containerDimensions = { maxHeight: detail.maxHeight };
+        hasChanges = true;
+      }
+
+      if (detail.locale !== undefined) {
+        changes.locale = detail.locale;
+        hasChanges = true;
+      }
+
+      if (detail.userAgent !== undefined) {
+        changes.userAgent = detail.userAgent;
+        hasChanges = true;
+      }
+
+      // Forward changes as host-context-changed notification
+      if (hasChanges) {
+        queueMicrotask(() => {
+          this.onmessage?.({
+            jsonrpc: "2.0",
+            method: "ui/notifications/host-context-changed",
+            params: changes,
+          } as JSONRPCNotification);
+        });
+      }
+    };
+
+    window.addEventListener(
+      SET_GLOBALS_EVENT_TYPE,
+      this._globalsChangeHandler,
+      { passive: true },
+    );
   }
 
   /**
@@ -406,9 +500,13 @@ export class OpenAITransport implements Transport {
             bytes[i] = binaryString.charCodeAt(i);
           }
           const blob = new Blob([bytes], { type: image.mimeType });
-          const file = new File([blob], `image.${this.getExtension(image.mimeType)}`, {
-            type: image.mimeType,
-          });
+          const file = new File(
+            [blob],
+            `image.${this.getExtension(image.mimeType)}`,
+            {
+              type: image.mimeType,
+            },
+          );
 
           const result = await this.openai.uploadFile(file);
           imageIds.push(result.fileId);
@@ -424,7 +522,7 @@ export class OpenAITransport implements Transport {
         const existingImageIds = Array.isArray(
           (currentState as { imageIds?: unknown }).imageIds,
         )
-          ? ((currentState as { imageIds: string[] }).imageIds)
+          ? (currentState as { imageIds: string[] }).imageIds
           : [];
 
         this.openai.setWidgetState({
@@ -779,6 +877,16 @@ export class OpenAITransport implements Transport {
    */
   async close(): Promise<void> {
     this._closed = true;
+
+    // Clean up the globals change listener
+    if (this._globalsChangeHandler) {
+      window.removeEventListener(
+        SET_GLOBALS_EVENT_TYPE,
+        this._globalsChangeHandler,
+      );
+      this._globalsChangeHandler = undefined;
+    }
+
     this.onclose?.();
   }
 

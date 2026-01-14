@@ -59,6 +59,9 @@ describe("OpenAITransport", () => {
 
     (globalThis as { window?: unknown }).window = {
       openai: mockOpenAI,
+      // Mock event listener methods for start()/close() tests
+      addEventListener: mock(() => {}),
+      removeEventListener: mock(() => {}),
     };
   });
 
@@ -91,6 +94,74 @@ describe("OpenAITransport", () => {
     await transport.close();
 
     expect(onclose).toHaveBeenCalled();
+  });
+
+  test("start() sets up event listener and close() removes it", async () => {
+    const mockWindow = globalThis.window as unknown as {
+      addEventListener: ReturnType<typeof mock>;
+      removeEventListener: ReturnType<typeof mock>;
+    };
+
+    const transport = new OpenAITransport();
+
+    await transport.start();
+    expect(mockWindow.addEventListener).toHaveBeenCalledWith(
+      "openai:set_globals",
+      expect.any(Function),
+      { passive: true },
+    );
+
+    await transport.close();
+    expect(mockWindow.removeEventListener).toHaveBeenCalledWith(
+      "openai:set_globals",
+      expect.any(Function),
+    );
+  });
+
+  test("start() forwards host context changes as notifications", async () => {
+    // Capture the event handler when addEventListener is called
+    let capturedHandler: ((event: Event) => void) | undefined;
+    const mockWindow = globalThis.window as unknown as {
+      addEventListener: ReturnType<typeof mock>;
+    };
+    mockWindow.addEventListener = mock((event: string, handler: (event: Event) => void) => {
+      if (event === "openai:set_globals") {
+        capturedHandler = handler;
+      }
+    });
+
+    const transport = new OpenAITransport();
+    const messages: unknown[] = [];
+    transport.onmessage = (msg) => {
+      messages.push(msg);
+    };
+
+    await transport.start();
+    expect(capturedHandler).toBeDefined();
+
+    // Simulate ChatGPT sending a globals change event
+    const mockEvent = new CustomEvent("openai:set_globals", {
+      detail: {
+        theme: "light",
+        safeArea: { top: 44, right: 0, bottom: 34, left: 0 },
+        displayMode: "fullscreen",
+      },
+    });
+    capturedHandler!(mockEvent);
+
+    // Wait for microtask
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      jsonrpc: "2.0",
+      method: "ui/notifications/host-context-changed",
+      params: {
+        theme: "light",
+        safeAreaInsets: { top: 44, right: 0, bottom: 34, left: 0 },
+        displayMode: "fullscreen",
+      },
+    });
   });
 
   describe("ui/initialize request", () => {
@@ -761,7 +832,9 @@ describe("OpenAITransport", () => {
       mockOpenAI.uploadFile = mock(() =>
         Promise.resolve({ fileId: "file_img123" }),
       ) as unknown as OpenAIGlobal["uploadFile"];
-      mockOpenAI.setWidgetState = mock(() => {}) as unknown as OpenAIGlobal["setWidgetState"];
+      mockOpenAI.setWidgetState = mock(
+        () => {},
+      ) as unknown as OpenAIGlobal["setWidgetState"];
 
       const transport = new OpenAITransport();
       let response: unknown;
@@ -770,7 +843,8 @@ describe("OpenAITransport", () => {
       };
 
       // Base64 encoded minimal PNG (1x1 pixel)
-      const pngData = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngData =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
       await transport.send({
         jsonrpc: "2.0",
@@ -808,12 +882,15 @@ describe("OpenAITransport", () => {
       mockOpenAI.uploadFile = mock(() =>
         Promise.resolve({ fileId: "new_file" }),
       ) as unknown as OpenAIGlobal["uploadFile"];
-      mockOpenAI.setWidgetState = mock(() => {}) as unknown as OpenAIGlobal["setWidgetState"];
+      mockOpenAI.setWidgetState = mock(
+        () => {},
+      ) as unknown as OpenAIGlobal["setWidgetState"];
 
       const transport = new OpenAITransport();
       transport.onmessage = () => {};
 
-      const pngData = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngData =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
       await transport.send({
         jsonrpc: "2.0",
