@@ -64,7 +64,9 @@ const clearLogBtn = document.getElementById("clear-log-btn")!;
 
 // Host info
 const hostContextInfoEl = document.getElementById("host-context-info")!;
-const hostCapabilitiesInfoEl = document.getElementById("host-capabilities-info")!;
+const hostCapabilitiesInfoEl = document.getElementById(
+  "host-capabilities-info",
+)!;
 const hostContainerInfoEl = document.getElementById("host-container-info")!;
 const hostStylesSampleEl = document.getElementById("host-styles-sample")!;
 
@@ -72,7 +74,9 @@ const hostStylesSampleEl = document.getElementById("host-styles-sample")!;
 const callbackTableBodyEl = document.getElementById("callback-table-body")!;
 
 // Action elements
-const messageTextEl = document.getElementById("message-text") as HTMLInputElement;
+const messageTextEl = document.getElementById(
+  "message-text",
+) as HTMLInputElement;
 const sendMessageTextBtn = document.getElementById("send-message-text-btn")!;
 const sendMessageImageBtn = document.getElementById("send-message-image-btn")!;
 
@@ -82,9 +86,15 @@ const logInfoBtn = document.getElementById("log-info-btn")!;
 const logWarningBtn = document.getElementById("log-warning-btn")!;
 const logErrorBtn = document.getElementById("log-error-btn")!;
 
-const contextTextEl = document.getElementById("context-text") as HTMLInputElement;
-const updateContextTextBtn = document.getElementById("update-context-text-btn")!;
-const updateContextStructuredBtn = document.getElementById("update-context-structured-btn")!;
+const contextTextEl = document.getElementById(
+  "context-text",
+) as HTMLInputElement;
+const updateContextTextBtn = document.getElementById(
+  "update-context-text-btn",
+)!;
+const updateContextStructuredBtn = document.getElementById(
+  "update-context-structured-btn",
+)!;
 
 const displayInlineBtn = document.getElementById("display-inline-btn")!;
 const displayFullscreenBtn = document.getElementById("display-fullscreen-btn")!;
@@ -93,19 +103,33 @@ const displayPipBtn = document.getElementById("display-pip-btn")!;
 const linkUrlEl = document.getElementById("link-url") as HTMLInputElement;
 const openLinkBtn = document.getElementById("open-link-btn")!;
 
-const autoResizeToggleEl = document.getElementById("auto-resize-toggle") as HTMLInputElement;
+const autoResizeToggleEl = document.getElementById(
+  "auto-resize-toggle",
+) as HTMLInputElement;
 const resize200x100Btn = document.getElementById("resize-200x100-btn")!;
 const resize400x300Btn = document.getElementById("resize-400x300-btn")!;
 const resize800x600Btn = document.getElementById("resize-800x600-btn")!;
 const currentSizeEl = document.getElementById("current-size")!;
 
 // Tool config elements
-const toolContentTypeEl = document.getElementById("tool-content-type") as HTMLSelectElement;
-const toolMultipleBlocksEl = document.getElementById("tool-multiple-blocks") as HTMLInputElement;
-const toolStructuredContentEl = document.getElementById("tool-structured-content") as HTMLInputElement;
-const toolIncludeMetaEl = document.getElementById("tool-include-meta") as HTMLInputElement;
-const toolSimulateErrorEl = document.getElementById("tool-simulate-error") as HTMLInputElement;
-const toolDelayMsEl = document.getElementById("tool-delay-ms") as HTMLInputElement;
+const toolContentTypeEl = document.getElementById(
+  "tool-content-type",
+) as HTMLSelectElement;
+const toolMultipleBlocksEl = document.getElementById(
+  "tool-multiple-blocks",
+) as HTMLInputElement;
+const toolStructuredContentEl = document.getElementById(
+  "tool-structured-content",
+) as HTMLInputElement;
+const toolIncludeMetaEl = document.getElementById(
+  "tool-include-meta",
+) as HTMLInputElement;
+const toolSimulateErrorEl = document.getElementById(
+  "tool-simulate-error",
+) as HTMLInputElement;
+const toolDelayMsEl = document.getElementById(
+  "tool-delay-ms",
+) as HTMLInputElement;
 const callDebugToolBtn = document.getElementById("call-debug-tool-btn")!;
 const callDebugRefreshBtn = document.getElementById("call-debug-refresh-btn")!;
 
@@ -141,24 +165,29 @@ function truncatePayload(payload: unknown): string {
 // ============================================================================
 
 function renderEventLog(): void {
-  const filtered = state.logFilter === "all"
-    ? state.eventLog
-    : state.eventLog.filter(e => e.type === state.logFilter);
+  const filtered =
+    state.logFilter === "all"
+      ? state.eventLog
+      : state.eventLog.filter((e) => e.type === state.logFilter);
 
-  eventLogEl.innerHTML = filtered.map(entry => `
+  eventLogEl.innerHTML = filtered
+    .map(
+      (entry) => `
     <div class="log-entry">
       <span class="log-time">[${formatTime(entry.time)}]</span>
       <span class="log-type ${entry.type}">${entry.type}:</span>
       <span class="log-payload" title="${truncatePayload(entry.payload).replace(/"/g, "&quot;")}">${truncatePayload(entry.payload)}</span>
     </div>
-  `).join("");
+  `,
+    )
+    .join("");
 
   // Auto-scroll to bottom
   eventLogEl.scrollTop = eventLogEl.scrollHeight;
 }
 
 function renderCallbackStatus(): void {
-  callbackTableBodyEl.innerHTML = CALLBACKS.map(name => {
+  callbackTableBodyEl.innerHTML = CALLBACKS.map((name) => {
     const count = state.callbackCounts.get(name) ?? 0;
     const lastPayload = state.lastPayloads.get(name);
     const registered = name !== "onerror"; // All callbacks are registered
@@ -222,10 +251,12 @@ function renderHostInfo(): void {
   // Styles sample
   if (ctx?.styles) {
     const styleVars = Object.entries(ctx.styles).slice(0, 6);
-    hostStylesSampleEl.innerHTML = styleVars.map(([key, value]) => {
-      const color = String(value);
-      return `<div class="style-swatch" style="background: ${color};" title="${key}: ${color}"></div>`;
-    }).join("");
+    hostStylesSampleEl.innerHTML = styleVars
+      .map(([key, value]) => {
+        const color = String(value);
+        return `<div class="style-swatch" style="background: ${color};" title="${key}: ${color}"></div>`;
+      })
+      .join("");
   } else {
     hostStylesSampleEl.innerHTML = "<span>No styles</span>";
   }
@@ -241,11 +272,32 @@ function updateCurrentSize(): void {
 // Event Logging
 // ============================================================================
 
+/**
+ * Send a log entry to the server's debug-log tool (writes to file)
+ */
+async function sendToServerLog(type: string, payload: unknown): Promise<void> {
+  try {
+    await app.callServerTool({
+      name: "debug-log",
+      arguments: { type, payload },
+    });
+  } catch (e) {
+    // Log to console only - don't call logEvent to avoid infinite loop
+    console.error("[debug-app] Failed to send log to server:", e);
+  }
+}
+
 function logEvent(type: string, payload: unknown): void {
+  const time = Date.now();
+
+  // Log to console
+  console.log(`[debug-app] ${type}:`, payload);
+
+  // Update state
   const count = (state.callbackCounts.get(type) ?? 0) + 1;
   state.callbackCounts.set(type, count);
   state.lastPayloads.set(type, payload);
-  state.eventLog.push({ time: Date.now(), type, payload });
+  state.eventLog.push({ time, type, payload });
 
   // Keep log manageable (max 100 entries)
   if (state.eventLog.length > 100) {
@@ -254,6 +306,12 @@ function logEvent(type: string, payload: unknown): void {
 
   renderEventLog();
   renderCallbackStatus();
+
+  // Send to server log file (async, fire-and-forget)
+  // Skip sending debug-log results to avoid noise
+  if (type !== "server-tool-result" || (payload as { name?: string })?.name !== "debug-log") {
+    sendToServerLog(type, payload);
+  }
 }
 
 // ============================================================================
@@ -331,7 +389,7 @@ app.onerror = (error) => {
 // Section Collapsing
 // ============================================================================
 
-document.querySelectorAll(".section-header[data-toggle]").forEach(header => {
+document.querySelectorAll(".section-header[data-toggle]").forEach((header) => {
   header.addEventListener("click", () => {
     const section = header.closest(".section");
     section?.classList.toggle("collapsed");
@@ -370,7 +428,8 @@ sendMessageTextBtn.addEventListener("click", async () => {
 
 sendMessageImageBtn.addEventListener("click", async () => {
   // 1x1 red PNG for testing
-  const redPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
+  const redPng =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
   try {
     const result = await app.sendMessage({
       role: "user",
@@ -432,7 +491,9 @@ updateContextStructuredBtn.addEventListener("click", async () => {
 // Display Mode Actions
 // ============================================================================
 
-async function requestDisplayMode(mode: "inline" | "fullscreen" | "pip"): Promise<void> {
+async function requestDisplayMode(
+  mode: "inline" | "fullscreen" | "pip",
+): Promise<void> {
   try {
     const result = await app.requestDisplayMode({ mode });
     logEvent("display-mode-result", { mode, result });
@@ -442,7 +503,9 @@ async function requestDisplayMode(mode: "inline" | "fullscreen" | "pip"): Promis
 }
 
 displayInlineBtn.addEventListener("click", () => requestDisplayMode("inline"));
-displayFullscreenBtn.addEventListener("click", () => requestDisplayMode("fullscreen"));
+displayFullscreenBtn.addEventListener("click", () =>
+  requestDisplayMode("fullscreen"),
+);
 displayPipBtn.addEventListener("click", () => requestDisplayMode("pip"));
 
 // ============================================================================
@@ -504,7 +567,10 @@ callDebugToolBtn.addEventListener("click", async () => {
 
   try {
     logEvent("call-server-tool", { name: "debug-tool", arguments: args });
-    const result = await app.callServerTool({ name: "debug-tool", arguments: args });
+    const result = await app.callServerTool({
+      name: "debug-tool",
+      arguments: args,
+    });
     logEvent("server-tool-result", result);
   } catch (e) {
     logEvent("error", e);
@@ -514,7 +580,10 @@ callDebugToolBtn.addEventListener("click", async () => {
 callDebugRefreshBtn.addEventListener("click", async () => {
   try {
     logEvent("call-server-tool", { name: "debug-refresh", arguments: {} });
-    const result = await app.callServerTool({ name: "debug-refresh", arguments: {} });
+    const result = await app.callServerTool({
+      name: "debug-refresh",
+      arguments: {},
+    });
     logEvent("server-tool-result", result);
   } catch (e) {
     logEvent("error", e);
@@ -533,7 +602,11 @@ uploadFileBtn.addEventListener("click", async () => {
   }
 
   try {
-    logEvent("upload-file", { name: file.name, size: file.size, type: file.type });
+    logEvent("upload-file", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
     const result = await app.uploadFile(file);
     state.uploadedFileId = result.fileId;
     lastFileIdEl.textContent = result.fileId;
@@ -551,7 +624,9 @@ getFileUrlBtn.addEventListener("click", async () => {
 
   try {
     logEvent("get-file-url", { fileId: state.uploadedFileId });
-    const result = await app.getFileDownloadUrl({ fileId: state.uploadedFileId });
+    const result = await app.getFileDownloadUrl({
+      fileId: state.uploadedFileId,
+    });
     logEvent("get-file-url-result", result);
   } catch (e) {
     logEvent("error", e);
@@ -566,20 +641,23 @@ getFileUrlBtn.addEventListener("click", async () => {
 renderCallbackStatus();
 
 // Connect to host
-app.connect().then(() => {
-  logEvent("connected", { success: true });
+app
+  .connect()
+  .then(() => {
+    logEvent("connected", { success: true });
 
-  const ctx = app.getHostContext();
-  if (ctx) {
-    handleHostContextChanged(ctx);
-  }
+    const ctx = app.getHostContext();
+    if (ctx) {
+      handleHostContextChanged(ctx);
+    }
 
-  renderHostInfo();
-  updateCurrentSize();
+    renderHostInfo();
+    updateCurrentSize();
 
-  // Auto-resize is enabled by default in App, capture cleanup if we want to toggle
-  // We'll set it up ourselves since we want toggle control
-  state.autoResizeCleanup = app.setupSizeChangedNotifications();
-}).catch(e => {
-  logEvent("error", e);
-});
+    // Auto-resize is enabled by default in App, capture cleanup if we want to toggle
+    // We'll set it up ourselves since we want toggle control
+    state.autoResizeCleanup = app.setupSizeChangedNotifications();
+  })
+  .catch((e) => {
+    logEvent("error", e);
+  });

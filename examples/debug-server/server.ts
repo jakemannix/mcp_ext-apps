@@ -1,8 +1,16 @@
-import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ReadResourceResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
+import { appendFileSync } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { startServer } from "./server-utils.js";
@@ -12,18 +20,50 @@ const DIST_DIR = path.join(import.meta.dirname, "dist");
 // Track call counter across requests (stateful for demo purposes)
 let callCounter = 0;
 
+// Parse --log-file argument or use default
+const DEFAULT_LOG_FILE = "/tmp/mcp-apps-debug-server.log";
+function getLogFilePath(): string {
+  const logFileArg = process.argv.find((arg) => arg.startsWith("--log-file="));
+  if (logFileArg) {
+    return logFileArg.split("=")[1];
+  }
+  return process.env.DEBUG_LOG_FILE ?? DEFAULT_LOG_FILE;
+}
+
+const logFilePath = getLogFilePath();
+
+/**
+ * Append a log entry to the log file
+ */
+function appendToLogFile(entry: {
+  timestamp: string;
+  type: string;
+  payload: unknown;
+}): void {
+  try {
+    const line = JSON.stringify(entry) + "\n";
+    appendFileSync(logFilePath, line, "utf-8");
+  } catch (e) {
+    console.error("[debug-server] Failed to write to log file:", e);
+  }
+}
+
 // Minimal 1x1 blue PNG (base64)
-const BLUE_PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==";
+const BLUE_PNG_1X1 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==";
 
 // Minimal silent WAV (base64) - 44 byte header + 1 sample
-const SILENT_WAV = "UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==";
+const SILENT_WAV =
+  "UklGRiYAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQIAAAAAAA==";
 
 /**
  * Input schema for the debug-tool
  */
 const DebugInputSchema = z.object({
   // Content configuration
-  contentType: z.enum(["text", "image", "audio", "resource", "resourceLink", "mixed"]).default("text"),
+  contentType: z
+    .enum(["text", "image", "audio", "resource", "resourceLink", "mixed"])
+    .default("text"),
   multipleBlocks: z.boolean().default(false),
   includeStructuredContent: z.boolean().default(true),
   includeMeta: z.boolean().default(false),
@@ -63,10 +103,18 @@ function buildContent(args: DebugInput): CallToolResult["content"] {
         content.push({ type: "text", text: `Debug text content${suffix}` });
         break;
       case "image":
-        content.push({ type: "image", data: BLUE_PNG_1X1, mimeType: "image/png" });
+        content.push({
+          type: "image",
+          data: BLUE_PNG_1X1,
+          mimeType: "image/png",
+        });
         break;
       case "audio":
-        content.push({ type: "audio", data: SILENT_WAV, mimeType: "audio/wav" });
+        content.push({
+          type: "audio",
+          data: SILENT_WAV,
+          mimeType: "audio/wav",
+        });
         break;
       case "resource":
         content.push({
@@ -111,11 +159,13 @@ export function createServer(): McpServer {
   const resourceUri = "ui://debug-tool/mcp-app.html";
 
   // Main debug tool - exercises all result variations
-  registerAppTool(server,
+  registerAppTool(
+    server,
     "debug-tool",
     {
       title: "Debug Tool",
-      description: "Comprehensive debug tool for testing MCP Apps SDK. Configure content types, error simulation, delays, and more.",
+      description:
+        "Comprehensive debug tool for testing MCP Apps SDK. Configure content types, error simulation, delays, and more.",
       inputSchema: DebugInputSchema,
       outputSchema: DebugOutputSchema,
       _meta: { ui: { resourceUri } },
@@ -123,7 +173,7 @@ export function createServer(): McpServer {
     async (args): Promise<CallToolResult> => {
       // Apply delay if requested
       if (args.delayMs && args.delayMs > 0) {
-        await new Promise(resolve => setTimeout(resolve, args.delayMs));
+        await new Promise((resolve) => setTimeout(resolve, args.delayMs));
       }
 
       // Build content based on config
@@ -138,7 +188,9 @@ export function createServer(): McpServer {
           config: args,
           timestamp: new Date().toISOString(),
           counter: ++callCounter,
-          ...(args.largeInput ? { largeInputLength: args.largeInput.length } : {}),
+          ...(args.largeInput
+            ? { largeInputLength: args.largeInput.length }
+            : {}),
         };
       }
 
@@ -162,11 +214,13 @@ export function createServer(): McpServer {
   );
 
   // App-only refresh tool (hidden from model)
-  registerAppTool(server,
+  registerAppTool(
+    server,
     "debug-refresh",
     {
       title: "Refresh Debug Info",
-      description: "App-only tool for polling server state. Not visible to the model.",
+      description:
+        "App-only tool for polling server state. Not visible to the model.",
       inputSchema: z.object({}),
       outputSchema: z.object({ timestamp: z.string(), counter: z.number() }),
       _meta: {
@@ -185,13 +239,47 @@ export function createServer(): McpServer {
     },
   );
 
+  // App-only log tool - writes events to log file
+  registerAppTool(
+    server,
+    "debug-log",
+    {
+      title: "Log to File",
+      description:
+        "App-only tool for logging events to the server log file. Not visible to the model.",
+      inputSchema: z.object({
+        type: z.string(),
+        payload: z.unknown(),
+      }),
+      outputSchema: z.object({ logged: z.boolean(), logFile: z.string() }),
+      _meta: {
+        ui: {
+          resourceUri,
+          visibility: ["app"],
+        },
+      },
+    },
+    async (args): Promise<CallToolResult> => {
+      const timestamp = new Date().toISOString();
+      appendToLogFile({ timestamp, type: args.type, payload: args.payload });
+      return {
+        content: [{ type: "text", text: `Logged to ${logFilePath}` }],
+        structuredContent: { logged: true, logFile: logFilePath },
+      };
+    },
+  );
+
   // Register the resource which returns the bundled HTML/JavaScript for the UI
-  registerAppResource(server,
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
     { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
 
       return {
         contents: [
@@ -205,6 +293,13 @@ export function createServer(): McpServer {
 }
 
 async function main() {
+  console.log(`[debug-server] Log file: ${logFilePath}`);
+  appendToLogFile({
+    timestamp: new Date().toISOString(),
+    type: "server-start",
+    payload: { logFilePath, pid: process.pid },
+  });
+
   if (process.argv.includes("--stdio")) {
     await createServer().connect(new StdioServerTransport());
   } else {
