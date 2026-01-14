@@ -356,15 +356,7 @@ Provide clear, spoken-language responses.`;
     server,
     resourceUri,
     resourceUri,
-    {
-      mimeType: RESOURCE_MIME_TYPE,
-      _meta: {
-        ui: {
-          permissions: { microphone: {} }, // Request microphone permission
-          prefersBorder: true,
-        },
-      },
-    },
+    { mimeType: RESOURCE_MIME_TYPE, description: "Voice Assist UI" },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
@@ -372,7 +364,18 @@ Provide clear, spoken-language responses.`;
       );
       return {
         contents: [
-          { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+          {
+            uri: resourceUri,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
+            _meta: {
+              ui: {
+                // Request microphone for Web Speech API
+                permissions: { microphone: {} },
+                prefersBorder: true,
+              },
+            },
+          },
         ],
       };
     },
