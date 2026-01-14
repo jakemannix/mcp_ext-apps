@@ -1,8 +1,166 @@
 # Migrating from OpenAI Apps SDK to MCP Apps SDK
 
-This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the MCP Apps SDK (`@modelcontextprotocol/ext-apps`).
+This guide helps you migrate from the OpenAI Apps SDK to the MCP Apps SDK (`@modelcontextprotocol/ext-apps`).
 
-## Quick Start Comparison
+## Server-Side
+
+### Quick Start Comparison
+
+| OpenAI Apps SDK                                            | MCP Apps SDK                                                   |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Flat metadata keys (`_meta["openai/..."]`)                 | Nested metadata structure (`_meta.ui.*`)                       |
+| Direct `server.registerTool()`/`server.registerResource()` | Helper functions: `registerAppTool()`, `registerAppResource()` |
+| UI Resource MIME type: `text/html+skybridge`               | UI Resource MIME type: `text/html;profile=mcp-app`             |
+
+### Tool Metadata
+
+| OpenAI                                         | MCP Apps                           | Notes                                                       |
+| ---------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `_meta["openai/outputTemplate"]`               | `_meta.ui.resourceUri`             | URI of UI resource                                          |
+| `_meta["openai/toolInvocation/invoking"]`      | —                                  | Not yet implemented                                         |
+| `_meta["openai/toolInvocation/invoked"]`       | —                                  | Not yet implemented                                         |
+| `_meta["openai/widgetAccessible"]` (`boolean`) | `_meta.ui.visibility` (`string[]`) | `true`/`false` → include/exclude `"app"` in array           |
+| `_meta["openai/visibility"]` (`string`)        | `_meta.ui.visibility` (`string[]`) | `"public"`/`"private"` → include/exclude `"model"` in array |
+
+### Resource Metadata
+
+| OpenAI                                | MCP Apps                 | Notes                                                                              |
+| ------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| `_meta["openai/widgetCSP"]`           | `_meta.ui.csp`           | `connect_domains` → `connectDomains`, `resource_domains` → `resourceDomains`, etc. |
+| —                                     | `_meta.ui.permissions`   | MCP adds: permissions for camera, microphone, geolocation, clipboard               |
+| `_meta["openai/widgetDomain"]`        | `_meta.ui.domain`        | Dedicated sandbox origin                                                           |
+| `_meta["openai/widgetPrefersBorder"]` | `_meta.ui.prefersBorder` | Visual boundary preference                                                         |
+| `_meta["openai/widgetDescription"]`   | —                        | Not yet implemented; use `app.updateModelContext()` for dynamic context            |
+
+### Resource MIME Type
+
+| OpenAI                | MCP Apps                    | Notes                                                                            |
+| --------------------- | --------------------------- | -------------------------------------------------------------------------------- |
+| `text/html+skybridge` | `text/html;profile=mcp-app` | Auto-set by `registerAppResource()`; use `RESOURCE_MIME_TYPE` constant if manual |
+
+### Server-Side Migration Example
+
+### Before (OpenAI)
+
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+function createServer() {
+  const server = new McpServer({ name: "shop", version: "1.0.0" });
+
+  // Register tool with OpenAI metadata
+  server.registerTool(
+    "shopping-cart",
+    {
+      title: "Shopping Cart",
+      description: "Display the user's shopping cart",
+      inputSchema: { userId: z.string() },
+      annotations: { readOnlyHint: true },
+      _meta: {
+        "openai/outputTemplate": "ui://widget/cart.html",
+        "openai/toolInvocation/invoking": "Loading cart...",
+        "openai/toolInvocation/invoked": "Cart ready",
+        "openai/widgetAccessible": true,
+      },
+    },
+    async (args) => {
+      const cart = await getCart(args.userId);
+      return {
+        content: [{ type: "text", text: JSON.stringify(cart) }],
+        structuredContent: { cart },
+      };
+    },
+  );
+
+  // Register UI resource
+  server.registerResource(
+    "Cart Widget",
+    "ui://widget/cart.html",
+    { mimeType: "text/html+skybridge" },
+    async () => ({
+      contents: [
+        {
+          uri: "ui://widget/cart.html",
+          mimeType: "text/html+skybridge",
+          text: getCartHtml(),
+        },
+      ],
+    }),
+  );
+
+  return server;
+}
+```
+
+### After (MCP Apps)
+
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  registerAppTool,
+  registerAppResource,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
+import { z } from "zod";
+
+function createServer() {
+  const server = new McpServer({ name: "shop", version: "1.0.0" });
+
+  // Register tool with MCP Apps metadata
+  registerAppTool(
+    server,
+    "shopping-cart",
+    {
+      title: "Shopping Cart",
+      description: "Display the user's shopping cart",
+      inputSchema: { userId: z.string() },
+      annotations: { readOnlyHint: true },
+      _meta: { ui: { resourceUri: "ui://widget/cart.html" } },
+    },
+    async (args) => {
+      const cart = await getCart(args.userId);
+      return {
+        content: [{ type: "text", text: JSON.stringify(cart) }],
+        structuredContent: { cart },
+      };
+    },
+  );
+
+  // Register UI resource
+  registerAppResource(
+    server,
+    "Cart Widget",
+    "ui://widget/cart.html",
+    { description: "Shopping cart UI" },
+    async () => ({
+      contents: [
+        {
+          uri: "ui://widget/cart.html",
+          mimeType: RESOURCE_MIME_TYPE,
+          text: getCartHtml(),
+        },
+      ],
+    }),
+  );
+
+  return server;
+}
+```
+
+### Key Differences Summary
+
+1. **Metadata Structure**: OpenAI uses flat `_meta["openai/..."]` properties; MCP uses nested `_meta.ui.*` structure
+2. **Tool Visibility**: OpenAI uses boolean/string (`true`/`"public"`); MCP uses string arrays (`["app", "model"]`)
+3. **CSP Property Names**: snake_case → camelCase (`connect_domains` → `connectDomains`)
+4. **App Permissions**: MCP adds `_meta.ui.permissions` for camera, microphone, geolocation, clipboard (not in OpenAI)
+5. **Resource MIME Type**: `text/html+skybridge` → `text/html;profile=mcp-app` (use `RESOURCE_MIME_TYPE` constant)
+6. **Helper Functions**: MCP provides `registerAppTool()` and `registerAppResource()` helpers
+7. **Not Yet Implemented**: `_meta["openai/toolInvocation/invoking"]`, `_meta["openai/toolInvocation/invoked"]`, and `_meta["openai/widgetDescription"]` don't have MCP equivalents yet
+
+## Client-side
+
+### Quick Start Comparison
 
 | OpenAI Apps SDK                   | MCP Apps SDK                       |
 | --------------------------------- | ---------------------------------- |
@@ -10,16 +168,16 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 | Properties pre-populated on load  | Async connection + notifications   |
 | Sync property access              | Getters + event handlers           |
 
-## Setup & Connection
+### Setup & Connection
 
 | OpenAI                           | MCP Apps                                           | Notes                                                                                                           |
 | -------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `window.openai` (auto-available) | `const app = new App({name, version}, {})`         | MCP requires explicit instantiation                                                                             |
-| (implicit)                       | `await app.connect()`                              | MCP requires async connection; auto-detects OpenAI env                                                          |
+| (implicit)                       | Vanilla: `await app.connect()` / React: `useApp()` | MCP requires async connection; auto-detects OpenAI env                                                          |
 | —                                | `await app.connect(new OpenAITransport())`         | Force OpenAI mode (not yet available, see [PR #172](https://github.com/modelcontextprotocol/ext-apps/pull/172)) |
 | —                                | `await app.connect(new PostMessageTransport(...))` | Force MCP mode explicitly                                                                                       |
 
-## Host Context Properties
+### Host Context Properties
 
 | OpenAI                      | MCP Apps                                      | Notes                                   |
 | --------------------------- | --------------------------------------------- | --------------------------------------- |
@@ -32,63 +190,63 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 | —                           | `app.getHostContext()?.availableDisplayModes` | MCP adds: which modes host supports     |
 | —                           | `app.getHostContext()?.toolInfo`              | MCP adds: tool metadata during call     |
 
-## Tool Data (Input/Output)
+### Tool Data (Input/Output)
 
-| OpenAI                               | MCP Apps                                             | Notes                               |
-| ------------------------------------ | ---------------------------------------------------- | ----------------------------------- |
-| `window.openai.toolInput`            | `app.ontoolinput = (params) => { params.arguments }` | Tool arguments; MCP uses callback   |
-| `window.openai.toolOutput`           | `app.ontoolresult = (params) => { params.content }`  | Tool result; MCP uses callback      |
-| `window.openai.toolResponseMetadata` | `app.ontoolresult` → `params._meta`                  | Widget-only metadata from server    |
-| —                                    | `app.ontoolinputpartial = (params) => {...}`         | MCP adds: streaming partial args    |
-| —                                    | `app.ontoolcancelled = (params) => {...}`            | MCP adds: cancellation notification |
+| OpenAI                               | MCP Apps                                                      | Notes                               |
+| ------------------------------------ | ------------------------------------------------------------- | ----------------------------------- |
+| `window.openai.toolInput`            | `app.ontoolinput = (params) => { params.arguments }`          | Tool arguments; MCP uses callback   |
+| `window.openai.toolOutput`           | `app.ontoolresult = (params) => { params.structuredContent }` | Tool result; MCP uses callback      |
+| `window.openai.toolResponseMetadata` | `app.ontoolresult` → `params._meta`                           | Widget-only metadata from server    |
+| —                                    | `app.ontoolinputpartial = (params) => {...}`                  | MCP adds: streaming partial args    |
+| —                                    | `app.ontoolcancelled = (params) => {...}`                     | MCP adds: cancellation notification |
 
-## Calling Tools
+### Calling Tools
 
 | OpenAI                                     | MCP Apps                                              | Notes                        |
 | ------------------------------------------ | ----------------------------------------------------- | ---------------------------- |
 | `await window.openai.callTool(name, args)` | `await app.callServerTool({ name, arguments: args })` | Call another MCP server tool |
 
-## Sending Messages
+### Sending Messages
 
 | OpenAI                                                | MCP Apps                                                                             | Notes                             |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
 | `await window.openai.sendFollowUpMessage({ prompt })` | `await app.sendMessage({ role: "user", content: [{ type: "text", text: prompt }] })` | MCP uses structured content array |
 
-## External Links
+### External Links
 
 | OpenAI                                       | MCP Apps                            | Notes                                |
 | -------------------------------------------- | ----------------------------------- | ------------------------------------ |
 | `await window.openai.openExternal({ href })` | `await app.openLink({ url: href })` | Different param name: `href` → `url` |
 
-## Display Mode
+### Display Mode
 
 | OpenAI                                             | MCP Apps                                                  | Notes                               |
 | -------------------------------------------------- | --------------------------------------------------------- | ----------------------------------- |
 | `await window.openai.requestDisplayMode({ mode })` | `await app.requestDisplayMode({ mode })`                  | Same API                            |
 | —                                                  | Check `app.getHostContext()?.availableDisplayModes` first | MCP lets you check what's available |
 
-## Size Reporting
+### Size Reporting
 
-| OpenAI                                        | MCP Apps                                  | Notes                               |
-| --------------------------------------------- | ----------------------------------------- | ----------------------------------- |
-| `window.openai.notifyIntrinsicHeight(height)` | `app.sendSizeChanged({ width, height })`  | MCP includes width                  |
-| Manual only                                   | Auto via `{ autoResize: true }` (default) | MCP auto-reports via ResizeObserver |
+| OpenAI                                        | MCP Apps                                                             | Notes                                 |
+| --------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- |
+| `window.openai.notifyIntrinsicHeight(height)` | `app.sendSizeChanged({ width, height })`                             | MCP includes width                    |
+| Manual only                                   | `new App(appInfo, capabilities, { autoResize: true /* default */ })` | MCP auto-reports via `ResizeObserver` |
 
-## State Persistence
+### State Persistence
 
 | OpenAI                                | MCP Apps | Notes                                                                |
 | ------------------------------------- | -------- | -------------------------------------------------------------------- |
 | `window.openai.widgetState`           | —        | Not directly available in MCP                                        |
 | `window.openai.setWidgetState(state)` | —        | Use alternative mechanisms (`localStorage`, server-side state, etc.) |
 
-## File Operations (Not Yet in MCP Apps)
+### File Operations (Not Yet in MCP Apps)
 
 | OpenAI                                               | MCP Apps | Notes               |
 | ---------------------------------------------------- | -------- | ------------------- |
 | `await window.openai.uploadFile(file)`               | —        | Not yet implemented |
 | `await window.openai.getFileDownloadUrl({ fileId })` | —        | Not yet implemented |
 
-## Other (Not Yet in MCP Apps)
+### Other (Not Yet in MCP Apps)
 
 | OpenAI                                      | MCP Apps | Notes               |
 | ------------------------------------------- | -------- | ------------------- |
@@ -96,7 +254,7 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 | `window.openai.requestClose()`              | —        | Not yet implemented |
 | `window.openai.view`                        | —        | Not yet mapped      |
 
-## Event Handling
+### Event Handling
 
 | OpenAI                         | MCP Apps                                    | Notes                            |
 | ------------------------------ | ------------------------------------------- | -------------------------------- |
@@ -105,28 +263,28 @@ This guide helps you migrate from the OpenAI Apps SDK (`window.openai.*`) to the
 | Poll or re-read properties     | `app.onhostcontextchanged = (ctx) => {...}` | MCP pushes context changes       |
 | —                              | `app.onteardown = async () => {...}`        | MCP adds: cleanup before unmount |
 
-## Logging
+### Logging
 
 | OpenAI             | MCP Apps                                      | Notes                           |
 | ------------------ | --------------------------------------------- | ------------------------------- |
 | `console.log(...)` | `app.sendLog({ level: "info", data: "..." })` | MCP provides structured logging |
 
-## Host Info
+### Host Info
 
 | OpenAI | MCP Apps                    | Notes                                             |
 | ------ | --------------------------- | ------------------------------------------------- |
 | —      | `app.getHostVersion()`      | Returns `{ name, version }` of host               |
 | —      | `app.getHostCapabilities()` | Check `serverTools`, `openLinks`, `logging`, etc. |
 
-## Full Migration Example
+### Full Migration Example
 
-### Before (OpenAI)
+#### Before (OpenAI)
 
 ```typescript
 // OpenAI Apps SDK
-const theme = window.openai.theme;
-const toolArgs = window.openai.toolInput;
-const toolResult = window.openai.toolOutput;
+applyTheme(window.openai.theme);
+console.log("Tool args:", window.openai.toolInput);
+console.log("Tool result:", window.openai.toolOutput);
 
 // Call a tool
 const result = await window.openai.callTool("get_weather", { city: "Tokyo" });
@@ -141,24 +299,20 @@ window.openai.notifyIntrinsicHeight(400);
 await window.openai.openExternal({ href: "https://example.com" });
 ```
 
-### After (MCP Apps)
+#### After (MCP Apps)
 
 ```typescript
 import { App } from "@modelcontextprotocol/ext-apps";
 
-const app = new App(
-  { name: "MyApp", version: "1.0.0" },
-  {},
-  { autoResize: true }, // auto height reporting
-);
+const app = new App({ name: "MyApp", version: "1.0.0" });
 
-// Register handlers BEFORE connect
+// Register handlers BEFORE connect (events may occur immediately after connect)
 app.ontoolinput = (params) => {
   console.log("Tool args:", params.arguments);
 };
 
 app.ontoolresult = (params) => {
-  console.log("Tool result:", params.content);
+  console.log("Tool result:", params.structuredContent);
 };
 
 app.onhostcontextchanged = (ctx) => {
@@ -169,7 +323,7 @@ app.onhostcontextchanged = (ctx) => {
 await app.connect();
 
 // Access context
-const theme = app.getHostContext()?.theme;
+applyTheme(app.getHostContext()?.theme);
 
 // Call a tool
 const result = await app.callServerTool({
@@ -187,7 +341,7 @@ await app.sendMessage({
 await app.openLink({ url: "https://example.com" });
 ```
 
-## Key Differences Summary
+### Key Differences Summary
 
 1. **Initialization**: OpenAI is implicit; MCP requires `new App()` + `await app.connect()`
 2. **Data Flow**: OpenAI pre-populates; MCP uses async notifications (register handlers before `connect()`)
