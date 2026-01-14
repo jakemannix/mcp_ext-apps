@@ -83,8 +83,20 @@ export function createServer(): McpServer {
         byteCount,
       } = ReadPdfBytesInputSchema.parse(args);
       const url = isArxivUrl(rawUrl) ? normalizeArxivUrl(rawUrl) : rawUrl;
-      const entry = findEntryByUrl(pdfIndex, url);
-      if (!entry) throw new Error(`PDF not found: ${url}`);
+      let entry = findEntryByUrl(pdfIndex, url);
+
+      // Dynamically add arxiv URLs (handles server restart between display_pdf and read_pdf_bytes)
+      if (!entry) {
+        if (isFileUrl(url)) {
+          throw new Error("File URLs must be in the initial list");
+        }
+        if (!isArxivUrl(url)) {
+          throw new Error(`PDF not found: ${url}`);
+        }
+        entry = createEntry(url);
+        await populatePdfMetadata(entry);
+        pdfIndex.entries.push(entry);
+      }
 
       const chunk = await loadPdfBytesChunk(entry, offset, byteCount);
       return {
