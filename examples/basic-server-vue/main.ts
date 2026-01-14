@@ -14,7 +14,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import cors from "cors";
 import type { Request, Response } from "express";
-import { createServer } from "./server.js";
+import { createServer } from "./server.ts";
 
 export interface ServerOptions {
   port: number;
