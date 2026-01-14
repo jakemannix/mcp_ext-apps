@@ -2,7 +2,7 @@
  * MCP Apps Protocol Types (spec.types.ts)
  *
  * This file contains pure TypeScript interface definitions for the MCP Apps protocol.
- * These types are the source of truth and are used to generate Zod schemas via ts-to-zod.
+ * These types are the source of truth and are used to generate Zod schemas via `ts-to-zod`.
  *
  * - Use `@description` JSDoc tags to generate `.describe()` calls on schemas
  * - Run `npm run generate:schemas` to regenerate schemas from these types
@@ -144,7 +144,7 @@ export type McpUiStyles = Record<McpUiStyleVariableKey, string | undefined>;
 
 /**
  * @description Request to open an external URL in the host's default browser.
- * @see {@link app.App.sendOpenLink} for the method that sends this request
+ * @see {@link app!App.openLink} for the method that sends this request
  */
 export interface McpUiOpenLinkRequest {
   method: "ui/open-link";
@@ -163,14 +163,14 @@ export interface McpUiOpenLinkResult {
   isError?: boolean;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
-   * Note: The schema intentionally omits this to enforce strict validation.
+   * Note: The generated schema uses passthrough() to allow additional properties.
    */
   [key: string]: unknown;
 }
 
 /**
  * @description Request to send a message to the host's chat interface.
- * @see {@link app.App.sendMessage} for the method that sends this request
+ * @see {@link app!App.sendMessage} for the method that sends this request
  */
 export interface McpUiMessageRequest {
   method: "ui/message";
@@ -191,7 +191,7 @@ export interface McpUiMessageResult {
   isError?: boolean;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
-   * Note: The schema intentionally omits this to enforce strict validation.
+   * Note: The generated schema uses passthrough() to allow additional properties.
    */
   [key: string]: unknown;
 }
@@ -226,8 +226,8 @@ export interface McpUiSandboxResourceReadyNotification {
 }
 
 /**
- * @description Notification of UI size changes (bidirectional: Guest <-> Host).
- * @see {@link app.App.sendSizeChanged} for the method to send this from Guest UI
+ * @description Notification of UI size changes (Guest UI -> Host).
+ * @see {@link app!App.sendSizeChanged} for the method to send this from Guest UI
  */
 export interface McpUiSizeChangedNotification {
   method: "ui/notifications/size-changed";
@@ -287,7 +287,7 @@ export interface McpUiToolCancelledNotification {
  * @description CSS blocks that can be injected by apps.
  */
 export interface McpUiHostCss {
-  /** @description CSS for font loading (@font-face rules or @import statements). Apps must apply using applyHostFonts(). */
+  /** @description CSS for font loading (`@font-face` rules or `@import` statements). Apps must apply using {@link applyHostFonts}. */
   fonts?: string;
 }
 
@@ -408,7 +408,7 @@ export interface McpUiUpdateModelContextRequest {
 
 /**
  * @description Request for graceful shutdown of the Guest UI (Host -> Guest UI).
- * @see {@link app-bridge.AppBridge.teardownResource} for the host method that sends this
+ * @see {@link app-bridge!AppBridge.teardownResource} for the host method that sends this
  */
 export interface McpUiResourceTeardownRequest {
   method: "ui/resource-teardown";
@@ -476,7 +476,7 @@ export interface McpUiHostCapabilities {
 }
 
 /**
- * @description Capabilities provided by the Guest UI (App).
+ * @description Capabilities provided by the Guest UI ({@link app!App}).
  * @see {@link McpUiInitializeRequest} for the initialization request that includes these capabilities
  */
 export interface McpUiAppCapabilities {
@@ -491,7 +491,7 @@ export interface McpUiAppCapabilities {
 
 /**
  * @description Initialization request sent from Guest UI to Host.
- * @see {@link app.App.connect} for the method that sends this request
+ * @see {@link app!App.connect} for the method that sends this request
  */
 export interface McpUiInitializeRequest {
   method: "ui/initialize";
@@ -520,14 +520,14 @@ export interface McpUiInitializeResult {
   hostContext: McpUiHostContext;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
-   * Note: The schema intentionally omits this to enforce strict validation.
+   * Note: The generated schema uses passthrough() to allow additional properties.
    */
   [key: string]: unknown;
 }
 
 /**
  * @description Notification that Guest UI has completed initialization (Guest UI -> Host).
- * @see {@link app.App.connect} for the method that sends this notification
+ * @see {@link app!App.connect} for the method that sends this notification
  */
 export interface McpUiInitializedNotification {
   method: "ui/notifications/initialized";
@@ -582,7 +582,7 @@ export interface McpUiResourceMeta {
  * @description Request to change the display mode of the UI.
  * The host will respond with the actual display mode that was set,
  * which may differ from the requested mode if not supported.
- * @see {@link app.App.requestDisplayMode} for the method that sends this request
+ * @see {@link app!App.requestDisplayMode} for the method that sends this request
  */
 export interface McpUiRequestDisplayModeRequest {
   method: "ui/request-display-mode";
@@ -601,7 +601,7 @@ export interface McpUiRequestDisplayModeResult {
   mode: McpUiDisplayMode;
   /**
    * Index signature required for MCP SDK `Protocol` class compatibility.
-   * Note: The schema intentionally omits this to enforce strict validation.
+   * Note: The generated schema uses passthrough() to allow additional properties.
    */
   [key: string]: unknown;
 }

@@ -13,6 +13,10 @@ import ForceGraph, { type LinkObject, type NodeObject } from "force-graph";
 import "./global.css";
 import "./mcp-app.css";
 
+// =============================================================================
+// Helpers & Types
+// =============================================================================
+
 // Helper to resolve CSS variables for canvas rendering
 function getCSSColor(varName: string): string {
   return (
@@ -49,7 +53,9 @@ type ToolResponse = {
   error: string | null;
 };
 
-// Graph state
+// =============================================================================
+// Graph State & DOM References
+// =============================================================================
 const graphData: GraphData = { nodes: [], links: [] };
 let selectedNodeUrl: string | null = null;
 let initialUrl: string | null = null;
@@ -65,7 +71,9 @@ const zoomInBtn = document.getElementById("zoom-in")!;
 const zoomOutBtn = document.getElementById("zoom-out")!;
 const resetBtn = document.getElementById("reset-graph")!;
 
-// Initialize force-graph
+// =============================================================================
+// Force-Graph Initialization
+// =============================================================================
 const graph = new ForceGraph<NodeData, LinkData>(container)
   .nodeId("url")
   .nodeLabel("title")
@@ -111,7 +119,9 @@ function handleResize() {
 window.addEventListener("resize", handleResize);
 handleResize();
 
-// Node management functions
+// =============================================================================
+// Graph Data Management
+// =============================================================================
 function addNode(
   url: string,
   title: string,
@@ -170,7 +180,9 @@ function updateGraph(): void {
   graph.graphData({ nodes: [...graphData.nodes], links: [...graphData.links] });
 }
 
-// Popup management
+// =============================================================================
+// Popup Management
+// =============================================================================
 function showPopup(node: NodeData, x: number, y: number): void {
   popupTitle.textContent = node.title;
 
@@ -215,7 +227,9 @@ function hidePopup(): void {
   selectedNodeUrl = null;
 }
 
-// Event handlers
+// =============================================================================
+// UI Event Handlers
+// =============================================================================
 function handleNodeClick(node: NodeData, event: MouseEvent): void {
   // Toggle popup if clicking same node
   if (selectedNodeUrl === node.url) {
@@ -245,7 +259,9 @@ zoomOutBtn.addEventListener("click", () => {
   graph.zoom(currentZoom / ZOOM_FACTOR, 200);
 });
 
-// Initialize App SDK
+// =============================================================================
+// MCP Apps SDK Integration
+// =============================================================================
 const app = new App({ name: "Wiki Explorer", version: "1.0.0" });
 
 // Reset button - clears graph and reloads from initial URL

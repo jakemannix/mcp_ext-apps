@@ -1648,7 +1648,7 @@ Hosts MUST enforce Content Security Policies based on resource metadata.
 **CSP Construction from Metadata:**
 
 ```typescript
-const csp = resource._meta?.ui?.csp;
+const csp = resource._meta?.ui?.csp; // `resource` is extracted from the `contents` of the `resources/read` result
 const permissions = resource._meta?.ui?.permissions;
 
 const cspValue = `

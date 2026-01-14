@@ -76,12 +76,12 @@ export function applyDocumentTheme(theme: McpUiTheme): void {
 /**
  * Apply host style variables as CSS custom properties on an element.
  *
- * This function takes the `variables` object from `McpUiHostContext.styles` and sets
+ * This function takes the `variables` object from {@link McpUiHostContext.styles} and sets
  * each CSS variable on the specified root element (defaults to `document.documentElement`).
  * This allows apps to use the host's theming values via CSS variables like
  * `var(--color-background-primary)`.
  *
- * @param styles - The styles object from `McpUiHostContext.styles.variables`
+ * @param styles - The style variables object from `McpUiHostContext.styles.variables`
  * @param root - The element to apply styles to (defaults to `document.documentElement`)
  *
  * @example Apply style variables from host context
@@ -123,10 +123,10 @@ export function applyHostStyleVariables(
  * self-hosted fonts, `@import` statements for Google Fonts or other font services,
  * or a combination of both.
  *
- * The styles are only injected once. Subsequent calls will not create duplicate
- * style tags.
+ * The styles are only injected once. Subsequent calls are no-ops and will not
+ * create duplicate style tags.
  *
- * @param fontCss - CSS string containing @font-face rules and/or @import statements
+ * @param fontCss - CSS string containing `@font-face` rules and/or `@import` statements
  *
  * @example Apply fonts from host context
  * ```typescript

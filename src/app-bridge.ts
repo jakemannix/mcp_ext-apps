@@ -92,7 +92,7 @@ export { PostMessageTransport } from "./message-transport";
  *
  * @param tool - A tool object with optional `_meta` property
  * @returns The UI resource URI if valid, undefined if not present
- * @throws Error if resourceUri is present but invalid (not starting with "ui://")
+ * @throws Error if resourceUri is present but invalid (does not start with "ui://")
  *
  * @example
  * ```typescript
@@ -158,9 +158,12 @@ export function buildAllowAttribute(
 }
 
 /**
- * Options for configuring AppBridge behavior.
+ * Options for configuring {@link AppBridge} behavior.
  *
- * @see ProtocolOptions from @modelcontextprotocol/sdk for available options
+ * @property hostContext - Optional initial host context to provide to the Guest UI
+ *
+ * @see `ProtocolOptions` from @modelcontextprotocol/sdk for available options
+ * @see {@link McpUiHostContext} for the hostContext structure
  */
 export type HostOptions = ProtocolOptions & {
   hostContext?: McpUiHostContext;
@@ -177,7 +180,7 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [LATEST_PROTOCOL_VERSION];
 /**
  * Extra metadata passed to request handlers.
  *
- * This type represents the additional context provided by the Protocol class
+ * This type represents the additional context provided by the `Protocol` class
  * when handling requests, including abort signals and session information.
  * It is extracted from the MCP SDK's request handler signature.
  *
@@ -188,12 +191,13 @@ type RequestHandlerExtra = Parameters<
 >[1];
 
 /**
- * Host-side bridge for communicating with a single Guest UI (App).
+ * Host-side bridge for communicating with a single Guest UI ({@link app!App}).
  *
- * AppBridge extends the MCP SDK's Protocol class and acts as a proxy between
- * the host application and a Guest UI running in an iframe. It automatically
- * forwards MCP server capabilities (tools, resources, prompts) to the Guest UI
- * and handles the initialization handshake.
+ * `AppBridge` extends the MCP SDK's `Protocol` class and acts as a proxy between
+ * the host application and a Guest UI running in an iframe. When an MCP client
+ * is provided to the constructor, it automatically forwards MCP server capabilities
+ * (tools, resources, prompts) to the Guest UI. It also handles the initialization
+ * handshake.
  *
  * ## Architecture
  *
@@ -205,11 +209,11 @@ type RequestHandlerExtra = Parameters<
  *
  * ## Lifecycle
  *
- * 1. **Create**: Instantiate AppBridge with MCP client and capabilities
+ * 1. **Create**: Instantiate `AppBridge` with MCP client and capabilities
  * 2. **Connect**: Call `connect()` with transport to establish communication
  * 3. **Wait for init**: Guest UI sends initialize request, bridge responds
- * 4. **Send data**: Call `sendToolInput()`, `sendToolResult()`, etc.
- * 5. **Teardown**: Call `teardownResource()` before unmounting iframe
+ * 4. **Send data**: Call {@link sendToolInput}, {@link sendToolResult}, etc.
+ * 5. **Teardown**: Call {@link teardownResource} before unmounting iframe
  *
  * @example Basic usage
  * ```typescript
@@ -261,7 +265,7 @@ export class AppBridge extends Protocol<
    * @param _client - MCP client connected to the server, or `null`. When provided,
    *   {@link connect} will automatically set up forwarding of MCP requests/notifications
    *   between the Guest UI and the server. When `null`, you must register handlers
-   *   manually using the `oncalltool`, `onlistresources`, etc. setters.
+   *   manually using the {@link oncalltool}, {@link onlistresources}, etc. setters.
    * @param _hostInfo - Host application identification (name and version)
    * @param _capabilities - Features and capabilities the host supports
    * @param options - Configuration options (inherited from Protocol)
@@ -363,7 +367,7 @@ export class AppBridge extends Protocol<
    * Optional handler for ping requests from the Guest UI.
    *
    * The Guest UI can send standard MCP `ping` requests to verify the connection
-   * is alive. The AppBridge automatically responds with an empty object, but this
+   * is alive. The {@link AppBridge} automatically responds with an empty object, but this
    * handler allows the host to observe or log ping activity.
    *
    * Unlike the other handlers which use setters, this is a direct property
@@ -385,7 +389,7 @@ export class AppBridge extends Protocol<
    * Register a handler for size change notifications from the Guest UI.
    *
    * The Guest UI sends `ui/notifications/size-changed` when its rendered content
-   * size changes, typically via ResizeObserver. Set this callback to dynamically
+   * size changes, typically via `ResizeObserver`. Set this callback to dynamically
    * adjust the iframe container dimensions based on the Guest UI's content.
    *
    * Note: This is for Guest UI → Host communication. To notify the Guest UI of
@@ -404,7 +408,7 @@ export class AppBridge extends Protocol<
    * ```
    *
    * @see {@link McpUiSizeChangedNotification} for the notification type
-   * @see {@link app.App.sendSizeChanged} for Host → Guest UI size notifications
+   * @see {@link app!App.sendSizeChanged} - the Guest UI method that sends these notifications
    */
   set onsizechange(
     callback: (params: McpUiSizeChangedNotification["params"]) => void,
@@ -490,10 +494,10 @@ export class AppBridge extends Protocol<
    * leakage.
    *
    * @param callback - Handler that receives message params and returns a result
-   *   - params.role - Message role (currently only "user" is supported)
-   *   - params.content - Message content blocks (text, image, etc.)
-   *   - extra - Request metadata (abort signal, session info)
-   *   - Returns: Promise<McpUiMessageResult> with optional isError flag
+   *   - `params.role` - Message role (currently only "user" is supported)
+   *   - `params.content` - Message content blocks (text, image, etc.)
+   *   - `extra` - Request metadata (abort signal, session info)
+   *   - Returns: `Promise<McpUiMessageResult>` with optional `isError` flag
    *
    * @example
    * ```typescript
@@ -539,9 +543,9 @@ export class AppBridge extends Protocol<
    * - Reject the request entirely
    *
    * @param callback - Handler that receives URL params and returns a result
-   *   - params.url - URL to open in the host's browser
-   *   - extra - Request metadata (abort signal, session info)
-   *   - Returns: Promise<McpUiOpenLinkResult> with optional isError flag
+   *   - `params.url` - URL to open in the host's browser
+   *   - `extra` - Request metadata (abort signal, session info)
+   *   - Returns: `Promise<McpUiOpenLinkResult>` with optional `isError` flag
    *
    * @example
    * ```typescript
@@ -593,17 +597,22 @@ export class AppBridge extends Protocol<
    * If the requested mode is not available, the handler should return the current
    * display mode instead.
    *
+   * By default, `AppBridge` returns the current `displayMode` from host context (or "inline").
+   * Setting this property replaces that default behavior.
+   *
    * @param callback - Handler that receives the requested mode and returns the actual mode set
-   *   - params.mode - The display mode being requested ("inline" | "fullscreen" | "pip")
-   *   - extra - Request metadata (abort signal, session info)
-   *   - Returns: Promise<McpUiRequestDisplayModeResult> with the actual mode set
+   *   - `params.mode` - The display mode being requested ("inline" | "fullscreen" | "pip")
+   *   - `extra` - Request metadata (abort signal, session info)
+   *   - Returns: `Promise<McpUiRequestDisplayModeResult>` with the actual mode set
    *
    * @example
    * ```typescript
+   * let currentDisplayMode: McpUiDisplayMode = "inline";
+   *
    * bridge.onrequestdisplaymode = async ({ mode }, extra) => {
    *   const availableModes = hostContext.availableDisplayModes ?? ["inline"];
    *   if (availableModes.includes(mode)) {
-   *     setDisplayMode(mode);
+   *     currentDisplayMode = mode;
    *     return { mode };
    *   }
    *   // Return current mode if requested mode not available
@@ -640,9 +649,9 @@ export class AppBridge extends Protocol<
    * message type.
    *
    * @param callback - Handler that receives logging params
-   *   - params.level - Log level: "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency"
-   *   - params.logger - Optional logger name/identifier
-   *   - params.data - Log message and optional structured data
+   *   - `params.level` - Log level: "debug" | "info" | "notice" | "warning" | "error" | "critical" | "alert" | "emergency"
+   *   - `params.logger` - Optional logger name/identifier
+   *   - `params.data` - Log message and optional structured data
    *
    * @example
    * ```typescript
@@ -716,9 +725,9 @@ export class AppBridge extends Protocol<
    * by forwarding them to the MCP server.
    *
    * @param callback - Handler that receives tool call params and returns a
-   *   {@link CallToolResult}
-   * @param callback.params - Tool call parameters (name and arguments)
-   * @param callback.extra - Request metadata (abort signal, session info)
+   *   `CallToolResult`
+   *   - `params` - Tool call parameters (name and arguments)
+   *   - `extra` - Request metadata (abort signal, session info)
    *
    * @example
    * ```typescript
@@ -731,8 +740,8 @@ export class AppBridge extends Protocol<
    * };
    * ```
    *
-   * @see {@link CallToolRequest} for the request type
-   * @see {@link CallToolResult} for the result type
+   * @see `CallToolRequest` from @modelcontextprotocol/sdk for the request type
+   * @see `CallToolResult` from @modelcontextprotocol/sdk for the result type
    */
   set oncalltool(
     callback: (
@@ -762,7 +771,7 @@ export class AppBridge extends Protocol<
    * });
    * ```
    *
-   * @see {@link ToolListChangedNotification} for the notification type
+   * @see `ToolListChangedNotification` from @modelcontextprotocol/sdk for the notification type
    */
   sendToolListChanged(params: ToolListChangedNotification["params"] = {}) {
     return this.notification({
@@ -779,9 +788,9 @@ export class AppBridge extends Protocol<
    * requests, typically by forwarding them to the MCP server.
    *
    * @param callback - Handler that receives list params and returns a
-   *   {@link ListResourcesResult}
-   * @param callback.params - Request params (may include cursor for pagination)
-   * @param callback.extra - Request metadata (abort signal, session info)
+   *   `ListResourcesResult`
+   *   - `params` - Request params (may include cursor for pagination)
+   *   - `extra` - Request metadata (abort signal, session info)
    *
    * @example
    * ```typescript
@@ -794,8 +803,8 @@ export class AppBridge extends Protocol<
    * };
    * ```
    *
-   * @see {@link ListResourcesRequest} for the request type
-   * @see {@link ListResourcesResult} for the result type
+   * @see `ListResourcesRequest` from @modelcontextprotocol/sdk for the request type
+   * @see `ListResourcesResult` from @modelcontextprotocol/sdk for the result type
    */
   set onlistresources(
     callback: (
@@ -819,9 +828,9 @@ export class AppBridge extends Protocol<
    * these requests, typically by forwarding them to the MCP server.
    *
    * @param callback - Handler that receives list params and returns a
-   *   {@link ListResourceTemplatesResult}
-   * @param callback.params - Request params (may include cursor for pagination)
-   * @param callback.extra - Request metadata (abort signal, session info)
+   *   `ListResourceTemplatesResult`
+   *   - `params` - Request params (may include cursor for pagination)
+   *   - `extra` - Request metadata (abort signal, session info)
    *
    * @example
    * ```typescript
@@ -834,8 +843,8 @@ export class AppBridge extends Protocol<
    * };
    * ```
    *
-   * @see {@link ListResourceTemplatesRequest} for the request type
-   * @see {@link ListResourceTemplatesResult} for the result type
+   * @see `ListResourceTemplatesRequest` from @modelcontextprotocol/sdk for the request type
+   * @see `ListResourceTemplatesResult` from @modelcontextprotocol/sdk for the result type
    */
   set onlistresourcetemplates(
     callback: (
@@ -859,9 +868,9 @@ export class AppBridge extends Protocol<
    * requests, typically by forwarding them to the MCP server.
    *
    * @param callback - Handler that receives read params and returns a
-   *   {@link ReadResourceResult}
-   * @param callback.params - Read parameters including the resource URI
-   * @param callback.extra - Request metadata (abort signal, session info)
+   *   `ReadResourceResult`
+   *   - `params` - Read parameters including the resource URI
+   *   - `extra` - Request metadata (abort signal, session info)
    *
    * @example
    * ```typescript
@@ -874,8 +883,8 @@ export class AppBridge extends Protocol<
    * };
    * ```
    *
-   * @see {@link ReadResourceRequest} for the request type
-   * @see {@link ReadResourceResult} for the result type
+   * @see `ReadResourceRequest` from @modelcontextprotocol/sdk for the request type
+   * @see `ReadResourceResult` from @modelcontextprotocol/sdk for the result type
    */
   set onreadresource(
     callback: (
@@ -908,7 +917,7 @@ export class AppBridge extends Protocol<
    * });
    * ```
    *
-   * @see {@link ResourceListChangedNotification} for the notification type
+   * @see `ResourceListChangedNotification` from @modelcontextprotocol/sdk for the notification type
    */
   sendResourceListChanged(
     params: ResourceListChangedNotification["params"] = {},
@@ -927,9 +936,9 @@ export class AppBridge extends Protocol<
    * requests, typically by forwarding them to the MCP server.
    *
    * @param callback - Handler that receives list params and returns a
-   *   {@link ListPromptsResult}
-   * @param callback.params - Request params (may include cursor for pagination)
-   * @param callback.extra - Request metadata (abort signal, session info)
+   *   `ListPromptsResult`
+   *   - `params` - Request params (may include cursor for pagination)
+   *   - `extra` - Request metadata (abort signal, session info)
    *
    * @example
    * ```typescript
@@ -942,8 +951,8 @@ export class AppBridge extends Protocol<
    * };
    * ```
    *
-   * @see {@link ListPromptsRequest} for the request type
-   * @see {@link ListPromptsResult} for the result type
+   * @see `ListPromptsRequest` from @modelcontextprotocol/sdk for the request type
+   * @see `ListPromptsResult` from @modelcontextprotocol/sdk for the result type
    */
   set onlistprompts(
     callback: (
@@ -973,7 +982,7 @@ export class AppBridge extends Protocol<
    * });
    * ```
    *
-   * @see {@link PromptListChangedNotification} for the notification type
+   * @see `PromptListChangedNotification` from @modelcontextprotocol/sdk for the notification type
    */
   sendPromptListChanged(params: PromptListChangedNotification["params"] = {}) {
     return this.notification({
@@ -1062,9 +1071,10 @@ export class AppBridge extends Protocol<
   /**
    * Update the host context and notify the Guest UI of changes.
    *
-   * Compares the new context with the current context and sends a
-   * `ui/notifications/host-context-changed` notification containing only the
-   * fields that have changed. If no fields have changed, no notification is sent.
+   * Compares fields present in the new context with the current context and sends a
+   * `ui/notifications/host-context-changed` notification containing only fields
+   * that have been added or modified. If no fields have changed, no notification is sent.
+   * The new context fully replaces the internal state.
    *
    * Common use cases include notifying the Guest UI when:
    * - Theme changes (light/dark mode toggle)
@@ -1111,8 +1121,13 @@ export class AppBridge extends Protocol<
   }
 
   /**
-   * Send a host context change notification to the app.
-   * Only sends the fields that have changed (partial update).
+   * Low-level method to notify the Guest UI of host context changes.
+   *
+   * Most hosts should use {@link setHostContext} instead, which automatically
+   * detects changes and calls this method with only the modified fields.
+   * Use this directly only when you need fine-grained control over change detection.
+   *
+   * @param params - The context fields that have changed (partial update)
    */
   sendHostContextChange(
     params: McpUiHostContextChangedNotification["params"],
@@ -1225,7 +1240,7 @@ export class AppBridge extends Protocol<
    * any other interruption. This allows the Guest UI to update its state and
    * display appropriate feedback to the user.
    *
-   * @param params - Optional cancellation details:
+   * @param params - Cancellation details object
    *   - `reason`: Human-readable explanation for why the tool was cancelled
    *
    * @example User-initiated cancellation
@@ -1330,13 +1345,13 @@ export class AppBridge extends Protocol<
    * - Prompts (prompts/list, notifications/prompts/list_changed)
    *
    * If no client was passed to the constructor, no automatic forwarding is set up
-   * and you must register handlers manually using the `oncalltool`, `onlistresources`,
+   * and you must register handlers manually using the {@link oncalltool}, {@link onlistresources},
    * etc. setters.
    *
-   * After calling connect, wait for the `oninitialized` callback before sending
+   * After calling connect, wait for the {@link oninitialized} callback before sending
    * tool input and other data to the Guest UI.
    *
-   * @param transport - Transport layer (typically PostMessageTransport)
+   * @param transport - Transport layer (typically {@link PostMessageTransport})
    * @returns Promise resolving when connection is established
    *
    * @throws {Error} If a client was passed but server capabilities are not available.

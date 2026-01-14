@@ -12,7 +12,9 @@ import { createRoot } from "react-dom/client";
 import ThreeJSApp from "./threejs-app.tsx";
 import "./global.css";
 
-const APP_INFO = { name: "Three.js Widget", version: "1.0.0" };
+// =============================================================================
+// Types
+// =============================================================================
 
 /**
  * Props passed to the widget component.
@@ -37,6 +39,10 @@ export interface WidgetProps<TToolInput = Record<string, unknown>> {
   sendLog: App["sendLog"];
 }
 
+// =============================================================================
+// MCP App Wrapper
+// =============================================================================
+
 function McpAppWrapper() {
   const [toolInputs, setToolInputs] = useState<Record<string, unknown> | null>(
     null,
@@ -49,7 +55,7 @@ function McpAppWrapper() {
   const [hostContext, setHostContext] = useState<McpUiHostContext | null>(null);
 
   const { app, error } = useApp({
-    appInfo: APP_INFO,
+    appInfo: { name: "Three.js Widget", version: "1.0.0" },
     capabilities: {},
     onAppCreated: (app) => {
       // Complete tool input (streaming finished)
