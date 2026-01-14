@@ -1,12 +1,12 @@
 /**
  * MCP Apps Protocol Types and Schemas
  *
- * This file re-exports types from spec.types.ts and schemas from generated/schema.ts.
- * Compile-time verification is handled by generated/schema.test.ts.
+ * This file re-exports types from `spec.types.ts` and schemas from `generated/schema.ts`.
+ * Compile-time verification is handled by `generated/schema.test.ts`.
  *
- * @see spec.types.ts for the source of truth TypeScript interfaces
- * @see generated/schema.ts for auto-generated Zod schemas
- * @see generated/schema.test.ts for compile-time verification
+ * @see `spec.types.ts` for the source of truth TypeScript interfaces
+ * @see `generated/schema.ts` for auto-generated Zod schemas
+ * @see `generated/schema.test.ts` for compile-time verification
  */
 
 // Re-export all types from spec.types.ts
@@ -151,7 +151,8 @@ import {
  *
  * Includes:
  * - MCP UI requests (initialize, open-link, message, resource-teardown, request-display-mode)
- * - MCP server requests forwarded from the app (tools/call, resources/*, prompts/list)
+ * - MCP server requests forwarded from the app (tools/call, tools/list, resources/list,
+ *   resources/templates/list, resources/read, prompts/list)
  * - Protocol requests (ping)
  */
 export type AppRequest =

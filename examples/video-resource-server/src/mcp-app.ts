@@ -10,12 +10,10 @@ import { ReadResourceResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import "./global.css";
 import "./mcp-app.css";
 
-const log = {
-  info: console.log.bind(console, "[VIDEO]"),
-  error: console.error.bind(console, "[VIDEO]"),
-};
+// =============================================================================
+// DOM References
+// =============================================================================
 
-// Get element references
 const mainEl = document.querySelector(".main") as HTMLElement;
 const loadingEl = document.getElementById("loading")!;
 const loadingTextEl = document.getElementById("loading-text")!;
@@ -25,7 +23,10 @@ const playerEl = document.getElementById("player")!;
 const videoEl = document.getElementById("video") as HTMLVideoElement;
 const videoInfoEl = document.getElementById("video-info")!;
 
-// Parse tool result to get video URI
+// =============================================================================
+// UI State Helpers
+// =============================================================================
+
 function parseToolResult(
   result: CallToolResult,
 ): { videoUri: string; description: string } | null {
@@ -58,12 +59,16 @@ function showPlayer(dataUri: string, info: string) {
   playerEl.style.display = "block";
 }
 
-// Create app instance
+// =============================================================================
+// MCP Apps SDK Integration
+// =============================================================================
+
 const app = new App({ name: "Video Resource Player", version: "1.0.0" });
 
-// Handle tool result - this is called when the tool execution completes
+// Handle tool result - Requests a resource via resources/read and converts the
+// base64 blob to a data URI for use in the browser.
 app.ontoolresult = async (result) => {
-  log.info("Received tool result:", result);
+  console.info("Received tool result:", result);
 
   const parsed = parseToolResult(result);
   if (!parsed) {
@@ -72,12 +77,12 @@ app.ontoolresult = async (result) => {
   }
 
   const { videoUri, description } = parsed;
-  log.info("Video URI:", videoUri, "Description:", description);
+  console.info("Video URI:", videoUri, "Description:", description);
 
   showLoading("Fetching video from MCP resource...");
 
   try {
-    log.info("Requesting resource:", videoUri);
+    console.info("Requesting resource:", videoUri);
 
     const resourceResult = await app.request(
       { method: "resources/read", params: { uri: videoUri } },
@@ -89,24 +94,24 @@ app.ontoolresult = async (result) => {
       throw new Error("Resource response did not contain blob data");
     }
 
-    log.info("Resource received, blob size:", content.blob.length);
+    console.info("Resource received, blob size:", content.blob.length);
 
     showLoading("Converting to data URI...");
 
     const mimeType = content.mimeType || "video/mp4";
     const dataUri = `data:${mimeType};base64,${content.blob}`;
 
-    log.info("Data URI created, length:", dataUri.length);
+    console.info("Data URI created, length:", dataUri.length);
 
     showPlayer(dataUri, `Loaded via MCP resource (${description})`);
   } catch (err) {
-    log.error("Error fetching resource:", err);
+    console.error("Error fetching resource:", err);
     showError(err instanceof Error ? err.message : String(err));
   }
 };
 
 app.onerror = (err) => {
-  log.error("App error:", err);
+  console.error("App error:", err);
   showError(err instanceof Error ? err.message : String(err));
 };
 
@@ -121,7 +126,6 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
 
 app.onhostcontextchanged = handleHostContextChanged;
 
-// Connect to host
 app.connect().then(() => {
   const ctx = app.getHostContext();
   if (ctx) {

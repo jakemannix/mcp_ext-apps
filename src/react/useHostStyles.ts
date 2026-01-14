@@ -21,14 +21,13 @@ import { McpUiHostContext } from "../types";
  * this hook ensures they work correctly by setting the `color-scheme` property
  * based on the host's theme preference.
  *
- * @param app - The connected App instance, or null during initialization
+ * @param app - The connected {@link App} instance, or null during initialization
  * @param initialContext - Initial host context from the connection (optional).
  *   If provided, styles and theme will be applied immediately on mount.
  *
- * @example Basic usage with useApp
+ * @example
  * ```tsx
- * import { useApp } from '@modelcontextprotocol/ext-apps/react';
- * import { useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
+ * import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
  *
  * function MyApp() {
  *   const { app, isConnected } = useApp({
@@ -36,8 +35,8 @@ import { McpUiHostContext } from "../types";
  *     capabilities: {},
  *   });
  *
- *   // Automatically apply host style variables and theme
- *   useHostStyleVariables(app);
+ *   // Apply host styles - pass initial context to apply styles from connect() immediately
+ *   useHostStyleVariables(app, app?.getHostContext());
  *
  *   return (
  *     <div style={{ background: 'var(--color-background-primary)' }}>
@@ -45,15 +44,6 @@ import { McpUiHostContext } from "../types";
  *     </div>
  *   );
  * }
- * ```
- *
- * @example With initial context
- * ```tsx
- * const [hostContext, setHostContext] = useState<McpUiHostContext | null>(null);
- *
- * // ... get initial context from app.connect() result
- *
- * useHostStyleVariables(app, hostContext);
  * ```
  *
  * @see {@link applyHostStyleVariables} for the underlying styles function
@@ -112,7 +102,7 @@ export function useHostStyleVariables(
  * The hook also applies fonts from the initial host context when
  * the app first connects.
  *
- * @param app - The connected App instance, or null during initialization
+ * @param app - The connected {@link App} instance, or null during initialization
  * @param initialContext - Initial host context from the connection (optional).
  *   If provided, fonts will be applied immediately on mount.
  *
@@ -182,13 +172,24 @@ export function useHostFonts(
 }
 
 /**
- * React hook that applies host styles, fonts, and theme.
+ * Applies all host styling (CSS variables, theme, and fonts) to match the host application.
  *
  * This is a convenience hook that combines {@link useHostStyleVariables} and
  * {@link useHostFonts}. Use the individual hooks if you need more control.
  *
- * @param app - The connected App instance, or null during initialization
+ * @param app - The connected {@link App} instance, or null during initialization
  * @param initialContext - Initial host context from the connection (optional).
+ *   Pass `app?.getHostContext()` to apply styles immediately on mount.
+ *
+ * @example
+ * ```tsx
+ * function MyApp() {
+ *   const { app } = useApp({ appInfo, capabilities: {} });
+ *   useHostStyles(app, app?.getHostContext());
+ *
+ *   return <div style={{ background: 'var(--color-background-primary)' }}>...</div>;
+ * }
+ * ```
  *
  * @see {@link useHostStyleVariables} for style variables and theme only
  * @see {@link useHostFonts} for fonts only

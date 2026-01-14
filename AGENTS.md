@@ -85,3 +85,7 @@ Uses npm workspaces. Examples in `examples/` are separate packages:
 - `basic-server-*` - Starter templates (vanillajs, react, vue, svelte, preact, solid). Use these as the basis for new examples.
 - `basic-host` - Reference host implementation
 - Other examples showcase specific features (charts, 3D, video, etc.)
+
+## Claude Code Plugin
+
+The `plugins/mcp-apps/` directory contains a Claude Code plugin distributed via the plugin marketplace. It provides the "Create MCP App" skill (`plugins/mcp-apps/skills/create-mcp-app/SKILL.md`) that guides users through building MCP Apps with interactive UIs.

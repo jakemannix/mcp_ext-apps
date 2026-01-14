@@ -9,39 +9,38 @@ import {
 } from "@modelcontextprotocol/sdk/shared/transport.js";
 
 /**
- * JSON-RPC transport using window.postMessage for iframe↔parent communication.
+ * JSON-RPC transport using `window.postMessage` for iframe↔parent communication.
  *
  * This transport enables bidirectional communication between MCP Apps running in
- * iframes and their host applications using the browser's postMessage API. It
- * implements the MCP SDK's Transport interface.
+ * iframes and their host applications using the browser's `postMessage` API. It
+ * implements the MCP SDK's `Transport` interface.
  *
  * ## Security
  *
- * The `eventSource` parameter provides origin validation by filtering messages
- * from specific sources. Guest UIs typically don't need to specify this (they only
- * communicate with their parent), but hosts should validate the iframe source for
- * security.
+ * The `eventSource` parameter is required and validates the message source window
+ * by checking `event.source`. For guest UIs, pass `window.parent`.
+ * For hosts, pass `iframe.contentWindow` to validate the iframe source.
  *
  * ## Usage
  *
- * **Guest UI (default)**:
+ * **Guest UI**:
  * ```typescript
- * const transport = new PostMessageTransport(window.parent);
+ * const transport = new PostMessageTransport(window.parent, window.parent);
  * await app.connect(transport);
  * ```
  *
- * **Host (with source validation)**:
+ * **Host**:
  * ```typescript
  * const iframe = document.getElementById('app-iframe') as HTMLIFrameElement;
  * const transport = new PostMessageTransport(
  *   iframe.contentWindow!,
- *   iframe.contentWindow  // Validate messages from this iframe only
+ *   iframe.contentWindow!
  * );
  * await bridge.connect(transport);
  * ```
  *
- * @see {@link app.App.connect} for Guest UI usage
- * @see {@link app-bridge.AppBridge.connect} for Host usage
+ * @see {@link app!App.connect} for Guest UI usage
+ * @see {@link app-bridge!AppBridge.connect} for Host usage
  */
 export class PostMessageTransport implements Transport {
   private messageListener: (
@@ -52,22 +51,21 @@ export class PostMessageTransport implements Transport {
   /**
    * Create a new PostMessageTransport.
    *
-   * @param eventTarget - Target window to send messages to (default: window.parent)
-   * @param eventSource - Optional source validation. If specified, only messages from
-   *   this source will be accepted. Guest UIs typically don't need this (they only
-   *   receive from parent), but hosts should validate the iframe source.
+   * @param eventTarget - Target window to send messages to (default: `window.parent`)
+   * @param eventSource - Source window for message validation. For guests, pass
+   *   `window.parent`. For hosts, pass `iframe.contentWindow`.
    *
    * @example Guest UI connecting to parent
    * ```typescript
-   * const transport = new PostMessageTransport(window.parent);
+   * const transport = new PostMessageTransport(window.parent, window.parent);
    * ```
    *
-   * @example Host connecting to iframe with validation
+   * @example Host connecting to iframe
    * ```typescript
    * const iframe = document.getElementById('app') as HTMLIFrameElement;
    * const transport = new PostMessageTransport(
    *   iframe.contentWindow!,
-   *   iframe.contentWindow  // Only accept messages from this iframe
+   *   iframe.contentWindow!
    * );
    * ```
    */
@@ -108,7 +106,7 @@ export class PostMessageTransport implements Transport {
   /**
    * Send a JSON-RPC message to the target window.
    *
-   * Messages are sent using postMessage with "*" origin, meaning they are visible
+   * Messages are sent using `postMessage` with `"*"` origin, meaning they are visible
    * to all frames. The receiver should validate the message source for security.
    *
    * @param message - JSON-RPC message to send
@@ -161,7 +159,7 @@ export class PostMessageTransport implements Transport {
    * Optional session identifier for this transport connection.
    *
    * Set by the MCP SDK to track the connection session. Not required for
-   * PostMessageTransport functionality.
+   * `PostMessageTransport` functionality.
    */
   sessionId?: string;
 

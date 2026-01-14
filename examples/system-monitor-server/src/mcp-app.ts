@@ -9,12 +9,10 @@ import "./mcp-app.css";
 // Register Chart.js components
 Chart.register(...registerables);
 
-const log = {
-  info: console.log.bind(console, "[APP]"),
-  error: console.error.bind(console, "[APP]"),
-};
+// =============================================================================
+// Types
+// =============================================================================
 
-// Types for system stats response
 interface SystemStats {
   cpu: {
     cores: Array<{ idle: number; total: number }>;
@@ -39,7 +37,20 @@ interface SystemStats {
   timestamp: string;
 }
 
-// DOM element references
+interface PollingState {
+  isPolling: boolean;
+  intervalId: number | null;
+  cpuHistory: number[][]; // [timestamp][coreIndex] = usage%
+  labels: string[];
+  coreCount: number;
+  chart: Chart | null;
+  previousCpuSnapshots: Array<{ idle: number; total: number }> | null;
+}
+
+// =============================================================================
+// DOM References
+// =============================================================================
+
 const mainEl = document.querySelector(".main") as HTMLElement;
 const pollToggleBtn = document.getElementById("poll-toggle-btn")!;
 const statusIndicator = document.getElementById("status-indicator")!;
@@ -54,29 +65,12 @@ const infoHostname = document.getElementById("info-hostname")!;
 const infoPlatform = document.getElementById("info-platform")!;
 const infoUptime = document.getElementById("info-uptime")!;
 
-// Polling state
+// =============================================================================
+// Constants & State
+// =============================================================================
+
 const HISTORY_LENGTH = 30;
 const POLL_INTERVAL = 2000;
-
-interface PollingState {
-  isPolling: boolean;
-  intervalId: number | null;
-  cpuHistory: number[][]; // [timestamp][coreIndex] = usage%
-  labels: string[];
-  coreCount: number;
-  chart: Chart | null;
-  previousCpuSnapshots: Array<{ idle: number; total: number }> | null;
-}
-
-const state: PollingState = {
-  isPolling: false,
-  intervalId: null,
-  cpuHistory: [],
-  labels: [],
-  coreCount: 0,
-  chart: null,
-  previousCpuSnapshots: null,
-};
 
 // Color palette for CPU cores (distinct colors)
 const CORE_COLORS = [
@@ -98,22 +92,19 @@ const CORE_COLORS = [
   "rgba(244, 114, 182, 0.7)", // pink-light
 ];
 
-// Calculate CPU usage percentages from raw timing data
-function calculateCpuUsage(
-  current: Array<{ idle: number; total: number }>,
-  previous: Array<{ idle: number; total: number }> | null,
-): number[] {
-  if (!previous || previous.length !== current.length) {
-    return current.map(() => 0);
-  }
-  return current.map((cur, i) => {
-    const prev = previous[i];
-    const idleDiff = cur.idle - prev.idle;
-    const totalDiff = cur.total - prev.total;
-    if (totalDiff === 0) return 0;
-    return Math.round((1 - idleDiff / totalDiff) * 100);
-  });
-}
+const state: PollingState = {
+  isPolling: false,
+  intervalId: null,
+  cpuHistory: [],
+  labels: [],
+  coreCount: 0,
+  chart: null,
+  previousCpuSnapshots: null,
+};
+
+// =============================================================================
+// Chart.js Setup
+// =============================================================================
 
 function initChart(coreCount: number): Chart {
   const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -222,6 +213,10 @@ function updateChart(cpuHistory: number[][], labels: string[]): void {
   state.chart.update("none");
 }
 
+// =============================================================================
+// UI Updates
+// =============================================================================
+
 function updateMemoryBar(memory: SystemStats["memory"]): void {
   const percent = memory.usedPercent;
 
@@ -255,8 +250,27 @@ function updateStatus(text: string, isPolling = false, isError = false): void {
   }
 }
 
-// Create app instance
+// =============================================================================
+// MCP App & Data Fetching
+// =============================================================================
+
 const app = new App({ name: "System Monitor", version: "1.0.0" });
+
+function calculateCpuUsage(
+  current: Array<{ idle: number; total: number }>,
+  previous: Array<{ idle: number; total: number }> | null,
+): number[] {
+  if (!previous || previous.length !== current.length) {
+    return current.map(() => 0);
+  }
+  return current.map((cur, i) => {
+    const prev = previous[i];
+    const idleDiff = cur.idle - prev.idle;
+    const totalDiff = cur.total - prev.total;
+    if (totalDiff === 0) return 0;
+    return Math.round((1 - idleDiff / totalDiff) * 100);
+  });
+}
 
 async function fetchStats(): Promise<void> {
   try {
@@ -296,10 +310,14 @@ async function fetchStats(): Promise<void> {
     const time = new Date().toLocaleTimeString("en-US", { hour12: false });
     updateStatus(time, true);
   } catch (error) {
-    log.error("Failed to fetch stats:", error);
+    console.error("Failed to fetch stats:", error);
     updateStatus("Error", false, true);
   }
 }
+
+// =============================================================================
+// Polling Control
+// =============================================================================
 
 function startPolling(): void {
   if (state.isPolling) return;
@@ -338,7 +356,10 @@ function togglePolling(): void {
   }
 }
 
-// Event listeners
+// =============================================================================
+// Event Handlers & Initialization
+// =============================================================================
+
 pollToggleBtn.addEventListener("click", togglePolling);
 
 // Handle theme changes
@@ -352,8 +373,7 @@ window
     }
   });
 
-// Register handlers and connect
-app.onerror = log.error;
+app.onerror = console.error;
 
 function handleHostContextChanged(ctx: McpUiHostContext) {
   if (ctx.safeAreaInsets) {

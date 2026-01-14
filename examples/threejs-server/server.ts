@@ -16,6 +16,10 @@ import path from "node:path";
 import { z } from "zod";
 import { startServer } from "./server-utils.js";
 
+// =============================================================================
+// Constants
+// =============================================================================
+
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 
 // Default code example for the Three.js widget
@@ -134,6 +138,10 @@ animate();
 `;
 
 const resourceUri = "ui://threejs/mcp-app.html";
+
+// =============================================================================
+// Server Setup
+// =============================================================================
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
