@@ -71,7 +71,9 @@ async function runRipgrep(pattern: string, directory: string): Promise<string> {
     rg.on("error", (err) => {
       // ripgrep not installed, try grep as fallback
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        const grep = spawn("grep", ["-rn", "--include=*", pattern, "."], { cwd: directory });
+        const grep = spawn("grep", ["-rn", "--include=*", pattern, "."], {
+          cwd: directory,
+        });
         let grepOut = "";
 
         grep.stdout.on("data", (data) => {
@@ -109,8 +111,13 @@ function createInternalTools(): ToolRegistry {
           .describe("Directory to search in (defaults to working directory)"),
       }),
       callback: async (args) => {
-        const { pattern, directory } = args as { pattern: string; directory?: string };
-        const searchDir = directory ? path.resolve(WORKING_DIR, directory) : WORKING_DIR;
+        const { pattern, directory } = args as {
+          pattern: string;
+          directory?: string;
+        };
+        const searchDir = directory
+          ? path.resolve(WORKING_DIR, directory)
+          : WORKING_DIR;
 
         try {
           const result = await runRipgrep(pattern, searchDir);
@@ -119,7 +126,9 @@ function createInternalTools(): ToolRegistry {
           };
         } catch (error) {
           return {
-            content: [{ type: "text", text: `Error: ${(error as Error).message}` }],
+            content: [
+              { type: "text", text: `Error: ${(error as Error).message}` },
+            ],
             isError: true,
           };
         }
@@ -127,14 +136,27 @@ function createInternalTools(): ToolRegistry {
     },
     read: {
       title: "Read File",
-      description: "Read the contents of a file. Can read specific line ranges.",
+      description:
+        "Read the contents of a file. Can read specific line ranges.",
       inputSchema: z.object({
-        path: z.string().describe("Path to the file to read (relative to working directory)"),
-        startLine: z.number().optional().describe("Start reading from this line (1-indexed)"),
-        endLine: z.number().optional().describe("Stop reading at this line (1-indexed, inclusive)"),
+        path: z
+          .string()
+          .describe("Path to the file to read (relative to working directory)"),
+        startLine: z
+          .number()
+          .optional()
+          .describe("Start reading from this line (1-indexed)"),
+        endLine: z
+          .number()
+          .optional()
+          .describe("Stop reading at this line (1-indexed, inclusive)"),
       }),
       callback: async (args) => {
-        const { path: filePath, startLine, endLine } = args as {
+        const {
+          path: filePath,
+          startLine,
+          endLine,
+        } = args as {
           path: string;
           startLine?: number;
           endLine?: number;
@@ -156,7 +178,12 @@ function createInternalTools(): ToolRegistry {
           };
         } catch (error) {
           return {
-            content: [{ type: "text", text: `Error reading file: ${(error as Error).message}` }],
+            content: [
+              {
+                type: "text",
+                text: `Error reading file: ${(error as Error).message}`,
+              },
+            ],
             isError: true,
           };
         }
@@ -178,7 +205,9 @@ export function createServer(): McpServer {
   const internalTools = createInternalTools();
 
   // Create fallback sampling provider (lazily initialized)
-  let fallbackProvider: Awaited<ReturnType<typeof createFallbackSamplingProvider>> | null = null;
+  let fallbackProvider: Awaited<
+    ReturnType<typeof createFallbackSamplingProvider>
+  > | null = null;
 
   /**
    * Get or create the fallback sampling provider
@@ -235,59 +264,6 @@ export function createServer(): McpServer {
   );
 
   // ============================================================
-  // HIDDEN TOOL: _sampling_create (for app to call sampling)
-  // ============================================================
-
-  registerAppTool(
-    server,
-    "_sampling_create",
-    {
-      title: "Sampling Create Message",
-      description:
-        "Create a message using LLM sampling. Hidden from model, callable by app only.",
-      inputSchema: z.object({
-        messages: z.array(
-          z.object({
-            role: z.enum(["user", "assistant"]),
-            content: z.union([
-              z.string(),
-              z.array(z.any()), // Content blocks
-            ]),
-          }),
-        ),
-        systemPrompt: z.string().optional(),
-        maxTokens: z.number().optional(),
-        tools: z.array(z.any()).optional(),
-        toolChoice: z
-          .object({
-            mode: z.enum(["auto", "required", "none"]),
-            disable_parallel_tool_use: z.boolean().optional(),
-          })
-          .optional(),
-      }),
-      _meta: {
-        ui: {
-          visibility: ["app"], // Hidden from model!
-        },
-      },
-    },
-    async (args): Promise<CallToolResult> => {
-      try {
-        const result = await createMessage(args as CreateMessageRequest["params"]);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }],
-          structuredContent: result,
-        };
-      } catch (error) {
-        return {
-          content: [{ type: "text", text: `Sampling error: ${(error as Error).message}` }],
-          isError: true,
-        };
-      }
-    },
-  );
-
-  // ============================================================
   // HIDDEN TOOL: _run_tool_loop (for app to run full tool loop)
   // ============================================================
 
@@ -300,8 +276,14 @@ export function createServer(): McpServer {
         "Run a complete tool loop with the given user message. Uses internal tools (ripgrep, read) automatically.",
       inputSchema: z.object({
         userMessage: z.string().describe("The user's message/question"),
-        systemPrompt: z.string().optional().describe("Optional custom system prompt"),
-        maxIterations: z.number().optional().describe("Maximum tool loop iterations (default: 10)"),
+        systemPrompt: z
+          .string()
+          .optional()
+          .describe("Optional custom system prompt"),
+        maxIterations: z
+          .number()
+          .optional()
+          .describe("Maximum tool loop iterations (default: 10)"),
       }),
       _meta: {
         ui: {
@@ -348,7 +330,12 @@ Provide clear, spoken-language responses.`;
         };
       } catch (error) {
         return {
-          content: [{ type: "text", text: `Tool loop error: ${(error as Error).message}` }],
+          content: [
+            {
+              type: "text",
+              text: `Tool loop error: ${(error as Error).message}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -379,9 +366,14 @@ Provide clear, spoken-language responses.`;
       },
     },
     async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(path.join(DIST_DIR, "mcp-app.html"), "utf-8");
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
       return {
-        contents: [{ uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html }],
+        contents: [
+          { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html },
+        ],
       };
     },
   );

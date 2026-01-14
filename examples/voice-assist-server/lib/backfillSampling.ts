@@ -50,9 +50,15 @@ function toolChoiceToClaudeFormat(
   const tc = toolChoice as any;
   switch (tc.mode) {
     case "auto":
-      return { type: "auto", disable_parallel_tool_use: tc.disable_parallel_tool_use };
+      return {
+        type: "auto",
+        disable_parallel_tool_use: tc.disable_parallel_tool_use,
+      };
     case "required":
-      return { type: "any", disable_parallel_tool_use: tc.disable_parallel_tool_use };
+      return {
+        type: "any",
+        disable_parallel_tool_use: tc.disable_parallel_tool_use,
+      };
     case "none":
       return { type: "none" };
     default:
@@ -76,14 +82,18 @@ function contentToMcp(content: ContentBlock): any {
         input: content.input,
       };
     default:
-      throw new Error(`[contentToMcp] Unsupported content type: ${(content as { type: string }).type}`);
+      throw new Error(
+        `[contentToMcp] Unsupported content type: ${(content as { type: string }).type}`,
+      );
   }
 }
 
 /**
  * Converts Claude API stop reason to MCP format
  */
-function stopReasonToMcp(reason: string | null): CreateMessageResult["stopReason"] {
+function stopReasonToMcp(
+  reason: string | null,
+): CreateMessageResult["stopReason"] {
   switch (reason) {
     case "max_tokens":
       return "maxTokens";
@@ -118,49 +128,86 @@ function contentBlockFromMcp(content: any): ContentBlockParam {
         },
       } as ImageBlockParam;
     case "tool_result": {
-      const makeImageBlock = (data: string, media_type: string): ImageBlockParam => ({
+      const makeImageBlock = (
+        data: string,
+        media_type: string,
+      ): ImageBlockParam => ({
         type: "image",
         source: {
           type: "base64",
           data: data,
-          media_type: media_type as "image/png" | "image/jpeg" | "image/gif" | "image/webp",
+          media_type: media_type as
+            | "image/png"
+            | "image/jpeg"
+            | "image/gif"
+            | "image/webp",
         },
       });
 
       const resultContent = content.structuredContent
-        ? [{ type: "text", text: JSON.stringify(content.structuredContent) } as TextBlockParam]
-        : content.content.map((c: { type: string; text?: string; data?: string; mimeType?: string; resource?: { mimeType?: string; text?: string; blob?: string }; uri?: string }) => {
-            if (c.type === "text") {
-              return { type: "text", text: c.text } as TextBlockParam;
-            } else if (c.type === "image") {
-              return makeImageBlock(c.data!, c.mimeType!);
-            } else if (c.type === "resource") {
-              if (c.resource?.mimeType === "text/plain" && c.resource.text) {
-                return { type: "text", text: c.resource.text } as TextBlockParam;
-              } else if (c.resource?.mimeType?.startsWith("image/") && c.resource.blob) {
-                return makeImageBlock(c.resource.blob, c.resource.mimeType);
-              } else if (c.resource?.mimeType === "application/pdf" && c.resource.blob) {
+        ? [
+            {
+              type: "text",
+              text: JSON.stringify(content.structuredContent),
+            } as TextBlockParam,
+          ]
+        : content.content.map(
+            (c: {
+              type: string;
+              text?: string;
+              data?: string;
+              mimeType?: string;
+              resource?: { mimeType?: string; text?: string; blob?: string };
+              uri?: string;
+            }) => {
+              if (c.type === "text") {
+                return { type: "text", text: c.text } as TextBlockParam;
+              } else if (c.type === "image") {
+                return makeImageBlock(c.data!, c.mimeType!);
+              } else if (c.type === "resource") {
+                if (c.resource?.mimeType === "text/plain" && c.resource.text) {
+                  return {
+                    type: "text",
+                    text: c.resource.text,
+                  } as TextBlockParam;
+                } else if (
+                  c.resource?.mimeType?.startsWith("image/") &&
+                  c.resource.blob
+                ) {
+                  return makeImageBlock(c.resource.blob, c.resource.mimeType);
+                } else if (
+                  c.resource?.mimeType === "application/pdf" &&
+                  c.resource.blob
+                ) {
+                  return {
+                    type: "document",
+                    source: {
+                      type: "base64",
+                      data: c.resource.blob,
+                      media_type: "application/pdf",
+                    },
+                  } as DocumentBlockParam;
+                }
+                throw new Error(
+                  `[contentBlockFromMcp] Unsupported resource mimeType: ${c.resource?.mimeType}`,
+                );
+              } else if (
+                c.type === "resource_link" &&
+                c.mimeType === "application/pdf"
+              ) {
                 return {
                   type: "document",
                   source: {
-                    type: "base64",
-                    data: c.resource.blob,
-                    media_type: "application/pdf",
+                    type: "url",
+                    url: c.uri,
                   },
                 } as DocumentBlockParam;
               }
-              throw new Error(`[contentBlockFromMcp] Unsupported resource mimeType: ${c.resource?.mimeType}`);
-            } else if (c.type === "resource_link" && c.mimeType === "application/pdf") {
-              return {
-                type: "document",
-                source: {
-                  type: "url",
-                  url: c.uri,
-                },
-              } as DocumentBlockParam;
-            }
-            throw new Error(`[contentBlockFromMcp] Unsupported content type in tool_result: ${c.type}`);
-          });
+              throw new Error(
+                `[contentBlockFromMcp] Unsupported content type in tool_result: ${c.type}`,
+              );
+            },
+          );
 
       return {
         type: "tool_result",
@@ -177,7 +224,9 @@ function contentBlockFromMcp(content: any): ContentBlockParam {
         input: content.input,
       } as ToolUseBlockParam;
     default:
-      throw new Error(`[contentBlockFromMcp] Unsupported content type: ${content.type}`);
+      throw new Error(
+        `[contentBlockFromMcp] Unsupported content type: ${content.type}`,
+      );
   }
 }
 
@@ -197,27 +246,11 @@ async function messagesFromMcp(
   );
 }
 
-/**
- * Picks a model based on model preferences.
- */
-function pickModel(
-  preferences: CreateMessageRequest["params"]["modelPreferences"],
-  availableModels: Set<string>,
-  defaultModel: string,
-): string {
-  if (preferences?.hints) {
-    for (const hint of Object.values(preferences.hints)) {
-      const h = hint as { name?: string };
-      if (h.name !== undefined && availableModels.has(h.name)) {
-        return h.name;
-      }
-    }
-  }
-  return defaultModel;
-}
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 
 export interface FallbackSamplingProviderOptions {
   apiKey?: string;
+  model?: string;
 }
 
 /**
@@ -226,32 +259,20 @@ export interface FallbackSamplingProviderOptions {
 export async function createFallbackSamplingProvider(
   options: FallbackSamplingProviderOptions = {},
 ): Promise<{
-  createMessage: (params: CreateMessageRequest["params"]) => Promise<CreateMessageResult>;
-  availableModels: string[];
+  createMessage: (
+    params: CreateMessageRequest["params"],
+  ) => Promise<CreateMessageResult>;
   defaultModel: string;
 }> {
   const apiKey = options.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is required for fallback sampling");
+    throw new Error(
+      "ANTHROPIC_API_KEY environment variable is required for fallback sampling",
+    );
   }
 
   const api = new Anthropic({ apiKey });
-
-  // Fetch available models
-  const models = new Set<string>();
-  let defaultModel: string | undefined;
-  for await (const info of api.models.list()) {
-    models.add(info.id);
-    if (info.id.indexOf("sonnet") >= 0 && defaultModel === undefined) {
-      defaultModel = info.id;
-    }
-  }
-  if (defaultModel === undefined) {
-    if (models.size === 0) {
-      throw new Error("No models available from the API");
-    }
-    defaultModel = models.values().next().value as string;
-  }
+  const defaultModel = options.model ?? DEFAULT_MODEL;
 
   const createMessage = async (
     params: CreateMessageRequest["params"],
@@ -263,7 +284,7 @@ export async function createFallbackSamplingProvider(
     const tool_choice = toolChoiceToClaudeFormat(params.toolChoice);
 
     const msg = await api.messages.create({
-      model: pickModel(params.modelPreferences, models, defaultModel),
+      model: defaultModel,
       system:
         params.systemPrompt === undefined
           ? undefined
@@ -287,7 +308,9 @@ export async function createFallbackSamplingProvider(
       stopReason: stopReasonToMcp(msg.stop_reason),
       role: "assistant",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      content: (Array.isArray(msg.content) ? msg.content : [msg.content]).map(contentToMcp) as any,
+      content: (Array.isArray(msg.content) ? msg.content : [msg.content]).map(
+        contentToMcp,
+      ) as any,
       _meta: {
         usage: msg.usage,
       },
@@ -296,7 +319,6 @@ export async function createFallbackSamplingProvider(
 
   return {
     createMessage,
-    availableModels: Array.from(models),
     defaultModel,
   };
 }
