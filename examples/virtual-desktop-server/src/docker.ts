@@ -431,12 +431,52 @@ export async function createDesktop(
   const { stdout } = await execAsync(dockerCmd);
   const containerId = stdout.trim();
 
-  return {
-    containerId,
-    name: containerName,
-    port,
-    url: `http://localhost:${port}`,
-  };
+  // Wait for container to be running (with timeout)
+  const startTime = Date.now();
+  const timeout = 30000; // 30 seconds
+  const pollInterval = 500; // 500ms
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const { stdout: stateOut } = await execAsync(
+        `docker inspect --format "{{.State.Status}}" ${containerId}`,
+      );
+      const state = stateOut.trim().toLowerCase();
+
+      if (state === "running") {
+        return {
+          containerId,
+          name: containerName,
+          port,
+          url: `http://localhost:${port}`,
+        };
+      }
+
+      if (state === "exited" || state === "dead") {
+        // Container failed to start - get logs for error message
+        const { stdout: logs } = await execAsync(
+          `docker logs --tail 20 ${containerId} 2>&1`,
+        ).catch(() => ({ stdout: "" }));
+        throw new Error(
+          `Container exited immediately. Logs:\n${logs || "(no logs available)"}`,
+        );
+      }
+
+      // Still starting, wait and poll again
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Container exited")) {
+        throw error;
+      }
+      // Inspection failed, container might not exist yet - keep polling
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+  }
+
+  // Timeout - container didn't reach running state
+  throw new Error(
+    `Container failed to start within ${timeout / 1000} seconds. Check Docker logs with: docker logs ${containerName}`,
+  );
 }
 
 /**
