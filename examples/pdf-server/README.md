@@ -2,7 +2,7 @@
 
 ![Screenshot](screenshot.png)
 
-A didactic MCP server example demonstrating key MCP Apps SDK patterns.
+A simple interactive PDF viewer that uses [PDF.js](https://mozilla.github.io/pdf.js/). Launch it w/ a few PDF files and/or URLs as CLI args (+ support loading any additional pdf from arxiv.org).
 
 ## What This Example Demonstrates
 
