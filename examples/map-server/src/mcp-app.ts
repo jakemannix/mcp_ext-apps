@@ -411,13 +411,8 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
 
     const { widthKm, heightKm } = getScaleDimensions(extent);
 
-    // Get camera altitude
-    const cameraHeight = cesiumViewer.camera.positionCartographic?.height;
-    const altitudeKm = cameraHeight ? cameraHeight / 1000 : null;
-
     log.info(
-      `Extent: ${widthKm.toFixed(1)}km × ${heightKm.toFixed(1)}km, ` +
-        `altitude: ${altitudeKm?.toFixed(1) ?? "?"}km`,
+      `Extent: ${widthKm.toFixed(1)}km × ${heightKm.toFixed(1)}km`
     );
 
     // Get places visible in the extent (samples multiple points for large areas)
@@ -433,7 +428,6 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
         : null,
       `extent: [${extent.west.toFixed(4)}, ${extent.south.toFixed(4)}, ${extent.east.toFixed(4)}, ${extent.north.toFixed(4)}]`,
       `extent-size: ${widthKm.toFixed(1)}km × ${heightKm.toFixed(1)}km`,
-      altitudeKm ? `altitude: ${altitudeKm.toFixed(1)}km` : null,
       places.length > 0 ? `visible-places: [${places.join(", ")}]` : null,
       "---",
     ]
