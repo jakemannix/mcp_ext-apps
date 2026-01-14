@@ -1278,6 +1278,113 @@ export function createVirtualDesktopServer(): McpServer {
     },
   );
 
+  // ==================== ResizeDesktop ====================
+  const ResizeDesktopInputSchema = z.object({
+    name: z.string().describe("Name of the desktop"),
+    width: z.number().min(640).max(3840).describe("New width in pixels"),
+    height: z.number().min(480).max(2160).describe("New height in pixels"),
+  });
+
+  registerAppTool(
+    server,
+    "resize-desktop",
+    {
+      title: "Resize Desktop",
+      description:
+        "Resize the virtual desktop to exact dimensions by restarting VNC. This will briefly disconnect the viewer.",
+      inputSchema: ResizeDesktopInputSchema.shape,
+      _meta: {
+        ui: {
+          visibility: ["apps"],
+        },
+      },
+    },
+    async (args: {
+      name: string;
+      width: number;
+      height: number;
+    }): Promise<CallToolResult> => {
+      const dockerAvailable = await checkDocker();
+      if (!dockerAvailable) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Docker is not available. Please ensure Docker is installed and running.",
+            },
+          ],
+        };
+      }
+
+      const desktop = await getDesktop(args.name);
+
+      if (!desktop) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Desktop "${args.name}" not found. Use list-desktops to see available desktops.`,
+            },
+          ],
+        };
+      }
+
+      if (desktop.status !== "running") {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Desktop "${args.name}" is not running (status: ${desktop.status}).`,
+            },
+          ],
+        };
+      }
+
+      try {
+        const { exec } = await import("node:child_process");
+        const { promisify } = await import("node:util");
+        const execAsync = promisify(exec);
+
+        const containerName = desktop.name;
+        const resolution = `${args.width}x${args.height}`;
+
+        // Restart VNC with new geometry
+        // This kills the current VNC session and starts a new one with the specified resolution
+        const cmd = `vncserver -kill :1 2>/dev/null; sleep 1; vncserver :1 -depth 24 -geometry ${resolution}`;
+
+        await execAsync(
+          `docker exec ${containerName} bash -c "${cmd}"`,
+          { timeout: 30000 },
+        );
+
+        // Wait for VNC to be ready
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Desktop "${desktop.name}" resized to ${resolution}. The viewer will reconnect automatically.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Failed to resize desktop: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
   return server;
 }
 
