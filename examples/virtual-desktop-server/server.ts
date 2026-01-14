@@ -1351,17 +1351,23 @@ export function createVirtualDesktopServer(): McpServer {
         const containerName = desktop.name;
         const resolution = `${args.width}x${args.height}`;
 
-        // Restart VNC with new geometry
-        // This kills the current VNC session and starts a new one with the specified resolution
-        const cmd = `vncserver -kill :1 2>/dev/null; sleep 1; vncserver :1 -depth 24 -geometry ${resolution}`;
+        // Restart VNC with new geometry and restart the window manager
+        // The consol/ubuntu-xfce-vnc image uses wm_startup.sh to start XFCE
+        const cmd = [
+          "vncserver -kill :1 2>/dev/null",
+          "sleep 1",
+          `vncserver :1 -depth 24 -geometry ${resolution}`,
+          "sleep 2",
+          // Restart the window manager (XFCE) - the script handles this
+          "DISPLAY=:1 /headless/wm_startup.sh &",
+        ].join("; ");
 
-        await execAsync(
-          `docker exec ${containerName} bash -c "${cmd}"`,
-          { timeout: 30000 },
-        );
+        await execAsync(`docker exec ${containerName} bash -c "${cmd}"`, {
+          timeout: 30000,
+        });
 
-        // Wait for VNC to be ready
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // Wait for desktop environment to be ready
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         return {
           content: [

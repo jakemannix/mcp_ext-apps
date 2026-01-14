@@ -432,8 +432,7 @@ function ViewDesktopInner({
     { width: 640, height: 480 },
   ];
 
-  // Find the best mode that fits within the container
-  // Returns { mode, isExactFit } where isExactFit is true if mode fills > 90% of container
+  // Find the best predefined mode that fits within the container
   const findBestMode = useCallback(
     (containerWidth: number, containerHeight: number) => {
       // Find modes that fit within container (with small margin for borders)
@@ -446,23 +445,13 @@ function ViewDesktopInner({
 
       if (fittingModes.length > 0) {
         // Return the largest fitting mode (maximizes desktop real estate)
-        const best = fittingModes.reduce((best, mode) =>
+        return fittingModes.reduce((best, mode) =>
           mode.width * mode.height > best.width * best.height ? mode : best,
         );
-
-        // Check if this mode fills at least 85% of the container area
-        const containerArea = containerWidth * containerHeight;
-        const modeArea = best.width * best.height;
-        const fillRatio = modeArea / containerArea;
-
-        return { mode: best, isGoodFit: fillRatio >= 0.85 };
       }
 
       // No mode fits - return smallest mode (will be scaled down by noVNC)
-      return {
-        mode: AVAILABLE_MODES[AVAILABLE_MODES.length - 1],
-        isGoodFit: false,
-      };
+      return AVAILABLE_MODES[AVAILABLE_MODES.length - 1];
     },
     [],
   );
@@ -497,7 +486,7 @@ function ViewDesktopInner({
       log.info(`Container size: ${width}x${height}`);
 
       // Find the best predefined mode for this container size
-      const { mode: bestMode, isGoodFit } = findBestMode(width, height);
+      const bestMode = findBestMode(width, height);
 
       // Skip if mode hasn't changed
       if (
@@ -512,38 +501,23 @@ function ViewDesktopInner({
       resizeTimeout = setTimeout(async () => {
         lastMode = bestMode;
         log.info(
-          `Resizing desktop to ${bestMode.width}x${bestMode.height} (container: ${width}x${height}, goodFit: ${isGoodFit})`,
+          `Resizing desktop to ${bestMode.width}x${bestMode.height} (container: ${width}x${height})`,
         );
         try {
-          if (isGoodFit) {
-            // Use xrandr to switch to the predefined mode (no reconnect needed)
-            const cmd = `xrandr --output VNC-0 --mode ${bestMode.width}x${bestMode.height}`;
-            log.info("Executing xrandr resize:", cmd);
-            await app.callServerTool({
-              name: "exec",
-              arguments: {
-                name: extractedInfo.name,
-                command: cmd,
-                background: false,
-                timeout: 10000,
-              },
-            });
-          } else {
-            // Use resize-desktop tool to restart VNC with exact dimensions
-            // This provides a better fit but requires reconnection
-            log.info(
-              `Using resize-desktop for exact fit: ${width}x${height}`,
-            );
-            await app.callServerTool({
-              name: "resize-desktop",
-              arguments: {
-                name: extractedInfo.name,
-                width,
-                height,
-              },
-            });
-            // The VNC connection will be lost and noVNC should auto-reconnect
-          }
+          // Use xrandr to switch to the best predefined mode
+          // Note: resize-desktop tool exists for exact sizing but requires VNC restart
+          // which breaks the desktop environment in Docker, so we only use xrandr here
+          const cmd = `xrandr --output VNC-0 --mode ${bestMode.width}x${bestMode.height}`;
+          log.info("Executing xrandr resize:", cmd);
+          await app.callServerTool({
+            name: "exec",
+            arguments: {
+              name: extractedInfo.name,
+              command: cmd,
+              background: false,
+              timeout: 10000,
+            },
+          });
         } catch (e) {
           log.warn("Failed to resize desktop:", e);
         }
