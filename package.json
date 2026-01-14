@@ -55,7 +55,7 @@
     "test:e2e:update": "playwright test --update-snapshots",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:docker": "docker run --rm -v $(pwd):/work -w /work -it mcr.microsoft.com/playwright:v1.57.0-noble sh -c 'npm i -g bun && npm ci && npx playwright test'",
-    "test:e2e:docker:update": "docker run --rm -v $(pwd):/work -w /work -it mcr.microsoft.com/playwright:v1.57.0-noble sh -c 'npm i -g bun && npm ci && npx playwright test --update-snapshots'",
+    "test:e2e:docker:update": "npm run build:all && docker run --rm -v $(pwd):/work -w /work -it mcr.microsoft.com/playwright:v1.57.0-noble sh -c 'npm i -g bun && npm ci && npx playwright test --update-snapshots'",
     "preexamples:build": "npm run build",
     "examples:build": "bun examples/run-all.ts build",
     "examples:start": "NODE_ENV=development npm run build && bun examples/run-all.ts start",
@@ -64,7 +64,7 @@
     "prepare": "node scripts/setup-bun.mjs && npm run build && husky",
     "docs": "typedoc",
     "docs:watch": "typedoc --watch",
-    "generate:screenshots": "docker run --rm -v $(pwd):/work -w /work mcr.microsoft.com/playwright:v1.57.0-noble sh -c 'npm i -g bun && npm ci && npx playwright test tests/e2e/generate-grid-screenshots.spec.ts'",
+    "generate:screenshots": "npm run build:all && docker run --rm -v $(pwd):/work -w /work mcr.microsoft.com/playwright:v1.57.0-noble sh -c 'npm i -g bun && npm ci && npx playwright test tests/e2e/generate-grid-screenshots.spec.ts'",
     "prettier": "prettier -u \"**/*.{js,jsx,ts,tsx,mjs,json,md,yml,yaml}\" --check",
     "prettier:fix": "prettier -u \"**/*.{js,jsx,ts,tsx,mjs,json,md,yml,yaml}\" --write",
     "check:versions": "node scripts/check-versions.mjs"

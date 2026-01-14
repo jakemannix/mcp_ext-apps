@@ -22,6 +22,7 @@ const DEFAULT_WAIT_MS = 5000;
 // Extra wait time for slow-loading servers (tiles, etc.)
 const EXTRA_WAIT_MS: Record<string, number> = {
   "map-server": 45000, // CesiumJS needs time for map tiles
+  "pdf-server": 45000, // Chunked loading of file
 };
 
 // Servers to skip (screenshots maintained manually)
@@ -52,6 +53,7 @@ const SERVERS = [
     dir: "customer-segmentation-server",
   },
   { key: "map-server", name: "CesiumJS Map Server", dir: "map-server" },
+  { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
   {
     key: "scenario-modeler",
     name: "SaaS Scenario Modeler",

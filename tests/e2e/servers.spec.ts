@@ -48,6 +48,7 @@ const SERVERS = [
   { key: "cohort-heatmap", name: "Cohort Heatmap Server" },
   { key: "customer-segmentation", name: "Customer Segmentation Server" },
   { key: "map-server", name: "CesiumJS Map Server" },
+  { key: "pdf-server", name: "PDF Server" },
   { key: "scenario-modeler", name: "SaaS Scenario Modeler" },
   { key: "shadertoy", name: "ShaderToy Server" },
   { key: "sheet-music", name: "Sheet Music Server" },
