@@ -63,15 +63,18 @@ export function useToolLoop(options: UseToolLoopOptions): UseToolLoopReturn {
 
         if (result.isError) {
           const errorText =
-            result.content?.find((c) => c.type === "text")?.text || "Unknown error";
+            result.content?.find((c) => c.type === "text")?.text ||
+            "Unknown error";
           throw new Error(errorText);
         }
 
         // Extract structured content if available
-        const structuredContent = result.structuredContent as {
-          answer: string;
-          usage?: ToolLoopResult["usage"];
-        } | undefined;
+        const structuredContent = result.structuredContent as
+          | {
+              answer: string;
+              usage?: ToolLoopResult["usage"];
+            }
+          | undefined;
 
         const answer =
           structuredContent?.answer ||

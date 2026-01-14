@@ -42,9 +42,13 @@ export class ToolRegistry {
           title: tool.title,
           description: tool.description,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          inputSchema: tool.inputSchema ? zodToJsonSchema(tool.inputSchema as any) : undefined,
+          inputSchema: tool.inputSchema
+            ? zodToJsonSchema(tool.inputSchema as any)
+            : undefined,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          outputSchema: tool.outputSchema ? zodToJsonSchema(tool.outputSchema as any) : undefined,
+          outputSchema: tool.outputSchema
+            ? zodToJsonSchema(tool.outputSchema as any)
+            : undefined,
           annotations: tool.annotations,
           _meta: tool._meta,
         }) as Tool,

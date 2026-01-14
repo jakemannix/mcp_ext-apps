@@ -38,7 +38,9 @@ function findWordBoundary(text: string, charIndex: number): number {
 
 export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [availableVoices, setAvailableVoices] = useState<
+    SpeechSynthesisVoice[]
+  >([]);
   const [volume, setVolume] = useState(1);
   const [isMuted, setMuted] = useState(false);
 
@@ -125,7 +127,8 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
 
     utterance.onboundary = (event) => {
       if (event.name === "word") {
-        const absoluteIndex = speakFrom + event.charIndex + (event.charLength || 0);
+        const absoluteIndex =
+          speakFrom + event.charIndex + (event.charLength || 0);
         lastCharIndexRef.current = absoluteIndex;
         options?.onBoundary?.(absoluteIndex);
       }

@@ -19,7 +19,9 @@ const IMPLEMENTATION = { name: "Voice Assist App", version: "1.0.0" };
 type AppState = "idle" | "listening" | "thinking" | "speaking";
 
 function VoiceAssistApp() {
-  const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>();
+  const [hostContext, setHostContext] = useState<
+    McpUiHostContext | undefined
+  >();
   const { app, error } = useApp({
     appInfo: IMPLEMENTATION,
     capabilities: {},
@@ -206,11 +208,15 @@ function VoiceAssistInner({ app, hostContext }: VoiceAssistInnerProps) {
         )}
 
         {/* Transcript display */}
-        {(transcript || voiceIO.interimTranscript || voiceIO.finalTranscript) && (
+        {(transcript ||
+          voiceIO.interimTranscript ||
+          voiceIO.finalTranscript) && (
           <div className={styles.transcriptBox}>
             <div className={styles.label}>You said:</div>
             <div className={styles.transcript}>
-              {transcript || voiceIO.finalTranscript || voiceIO.interimTranscript}
+              {transcript ||
+                voiceIO.finalTranscript ||
+                voiceIO.interimTranscript}
             </div>
           </div>
         )}
@@ -220,15 +226,21 @@ function VoiceAssistInner({ app, hostContext }: VoiceAssistInnerProps) {
           <div className={styles.responseBox}>
             <div className={styles.label}>Assistant:</div>
             <div className={styles.response}>
-              <span className={styles.spoken}>{response.slice(0, spokenIndex)}</span>
-              <span className={styles.unspoken}>{response.slice(spokenIndex)}</span>
+              <span className={styles.spoken}>
+                {response.slice(0, spokenIndex)}
+              </span>
+              <span className={styles.unspoken}>
+                {response.slice(spokenIndex)}
+              </span>
             </div>
           </div>
         )}
 
         {/* Error display */}
         {(voiceIO.error || toolLoop.error) && (
-          <div className={styles.errorBox}>{voiceIO.error || toolLoop.error}</div>
+          <div className={styles.errorBox}>
+            {voiceIO.error || toolLoop.error}
+          </div>
         )}
 
         {/* Status */}

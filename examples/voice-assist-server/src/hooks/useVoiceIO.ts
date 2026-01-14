@@ -58,7 +58,8 @@ type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
 const SpeechRecognition: SpeechRecognitionConstructor | null =
   typeof window !== "undefined"
     ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition
     : null;
 
 export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
@@ -123,7 +124,8 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
     const analyser = analyserRef.current;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(dataArray);
-    const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
+    const average =
+      dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
 
     setMicLevel(isMicMutedRef.current ? 0 : Math.min(1, average * 3));
 
@@ -144,7 +146,8 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
     const analyser = analyserRef.current;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(dataArray);
-    const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
+    const average =
+      dataArray.reduce((a, b) => a + b, 0) / dataArray.length / 255;
 
     const CALIBRATION_SAMPLES = 15;
     const THRESHOLD_MULTIPLIER = 1.8;
@@ -159,7 +162,10 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
           (average - baselineLevelRef.current) / calibrationCountRef.current;
       }
     } else if (!hasTriggeredBargeInRef.current) {
-      const threshold = Math.max(0.15, baselineLevelRef.current * THRESHOLD_MULTIPLIER);
+      const threshold = Math.max(
+        0.15,
+        baselineLevelRef.current * THRESHOLD_MULTIPLIER,
+      );
 
       if (average > threshold) {
         if (!voiceStartTimeRef.current) {
@@ -171,7 +177,8 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
       } else {
         voiceStartTimeRef.current = null;
         baselineLevelRef.current =
-          baselineLevelRef.current * (1 - ADAPTIVE_ALPHA) + average * ADAPTIVE_ALPHA;
+          baselineLevelRef.current * (1 - ADAPTIVE_ALPHA) +
+          average * ADAPTIVE_ALPHA;
       }
     }
 
@@ -188,7 +195,9 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
     voiceStartTimeRef.current = null;
 
     if (!analyserRef.current) {
-      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+      const source = audioContextRef.current.createMediaStreamSource(
+        streamRef.current,
+      );
       const analyser = audioContextRef.current.createAnalyser();
       analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.5;
@@ -236,7 +245,11 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
 
       if (shouldBeActiveRef.current && modeRef.current === "listening") {
         setTimeout(() => {
-          if (shouldBeActiveRef.current && modeRef.current === "listening" && recognitionRef.current) {
+          if (
+            shouldBeActiveRef.current &&
+            modeRef.current === "listening" &&
+            recognitionRef.current
+          ) {
             try {
               recognitionRef.current.start();
             } catch {
@@ -348,7 +361,11 @@ export function useVoiceIO(options: UseVoiceIOOptions): UseVoiceIOReturn {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
       streamRef.current = stream;
 

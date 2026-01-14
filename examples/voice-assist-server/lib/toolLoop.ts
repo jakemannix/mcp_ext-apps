@@ -44,7 +44,9 @@ export interface RunToolLoopOptions {
   systemPrompt?: string;
   defaultToolChoice?: CreateMessageRequest["params"]["toolChoice"];
   /** Optional custom createMessage function (for fallback sampling) */
-  createMessage?: (params: CreateMessageRequest["params"]) => Promise<CreateMessageResult>;
+  createMessage?: (
+    params: CreateMessageRequest["params"],
+  ) => Promise<CreateMessageResult>;
 }
 
 /**
@@ -54,7 +56,11 @@ export interface RunToolLoopOptions {
 export async function runToolLoop(
   options: RunToolLoopOptions,
   extra: RequestHandlerExtra<ServerRequest, ServerNotification>,
-): Promise<{ answer: string; transcript: SamplingMessage[]; usage: AggregatedUsage }> {
+): Promise<{
+  answer: string;
+  transcript: SamplingMessage[];
+  usage: AggregatedUsage;
+}> {
   const messages: SamplingMessage[] = [...options.initialMessages];
 
   // Initialize usage tracking
@@ -72,7 +78,8 @@ export async function runToolLoop(
 
   // Use custom createMessage or server's default
   const createMessage =
-    options.createMessage ?? ((params) => options.server.server.createMessage(params));
+    options.createMessage ??
+    ((params) => options.server.server.createMessage(params));
 
   let request: CreateMessageRequest["params"] | undefined;
   let response: CreateMessageResult | undefined;
@@ -88,7 +95,8 @@ export async function runToolLoop(
         maxTokens: 4000,
         tools: iteration < maxIterations ? options.registry.tools : undefined,
         // Don't allow tool calls at the last iteration: finish with an answer no matter what!
-        toolChoice: iteration < maxIterations ? defaultToolChoice : { mode: "none" },
+        toolChoice:
+          iteration < maxIterations ? defaultToolChoice : { mode: "none" },
       }),
     );
 
@@ -97,8 +105,10 @@ export async function runToolLoop(
       const responseUsage = response._meta.usage as Record<string, number>;
       usage.input_tokens += responseUsage.input_tokens || 0;
       usage.output_tokens += responseUsage.output_tokens || 0;
-      usage.cache_creation_input_tokens += responseUsage.cache_creation_input_tokens || 0;
-      usage.cache_read_input_tokens += responseUsage.cache_read_input_tokens || 0;
+      usage.cache_creation_input_tokens +=
+        responseUsage.cache_creation_input_tokens || 0;
+      usage.cache_read_input_tokens +=
+        responseUsage.cache_read_input_tokens || 0;
       usage.api_calls += 1;
     }
 
@@ -109,7 +119,9 @@ export async function runToolLoop(
     });
 
     if (response.stopReason === "toolUse") {
-      const contentArray = Array.isArray(response.content) ? response.content : [response.content];
+      const contentArray = Array.isArray(response.content)
+        ? response.content
+        : [response.content];
       const toolCalls = contentArray.filter(
         (content): content is ToolUseContent => content.type === "tool_use",
       );
@@ -144,8 +156,12 @@ export async function runToolLoop(
               ],
       });
     } else if (response.stopReason === "endTurn") {
-      const contentArray = Array.isArray(response.content) ? response.content : [response.content];
-      const unexpectedBlocks = contentArray.filter((content) => content.type !== "text");
+      const contentArray = Array.isArray(response.content)
+        ? response.content
+        : [response.content];
+      const unexpectedBlocks = contentArray.filter(
+        (content) => content.type !== "text",
+      );
       if (unexpectedBlocks.length > 0) {
         throw new Error(
           `Expected text content in final answer, but got: ${unexpectedBlocks.map((b) => b.type).join(", ")}`,
@@ -158,7 +174,9 @@ export async function runToolLoop(
       });
 
       return {
-        answer: contentArray.map((block) => (block.type === "text" ? block.text : "")).join("\n\n"),
+        answer: contentArray
+          .map((block) => (block.type === "text" ? block.text : ""))
+          .join("\n\n"),
         transcript: messages,
         usage,
       };
