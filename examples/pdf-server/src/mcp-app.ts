@@ -101,9 +101,19 @@ function requestFitToContent() {
   // toolbar + padding-top + page-wrapper height + padding-bottom + buffer
   const toolbarHeight = toolbarEl.offsetHeight;
   const pageWrapperHeight = pageWrapperEl.offsetHeight;
-  const BUFFER = 10; // Buffer for sub-pixel rounding and browser quirks
+  const mainEl = document.querySelector(".main") as HTMLElement;
+  const mainStyle = getComputedStyle(mainEl);
+  const mainBorderTop = parseFloat(mainStyle.borderTopWidth);
+  const mainBorderBottom = parseFloat(mainStyle.borderBottomWidth);
+  const BUFFER = 2; // Minimal buffer for sub-pixel rounding
   const totalHeight =
-    toolbarHeight + paddingTop + pageWrapperHeight + paddingBottom + BUFFER;
+    toolbarHeight + paddingTop + pageWrapperHeight + paddingBottom +
+    mainBorderTop + mainBorderBottom + BUFFER;
+
+  log.info("[SIZE] toolbar:", toolbarHeight, "paddingTop:", paddingTop,
+    "pageWrapper:", pageWrapperHeight, "paddingBottom:", paddingBottom,
+    "mainBorder:", mainBorderTop + mainBorderBottom, "buffer:", BUFFER,
+    "=> total:", totalHeight);
 
   app.sendSizeChanged({ height: totalHeight });
 }
@@ -740,7 +750,14 @@ app.ontoolresult = async (result) => {
     pdfDocument = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
     totalPages = pdfDocument.numPages;
 
-    log.info("PDF loaded, pages:", totalPages);
+    // Re-validate currentPage now that we know the real page count
+    // (server metadata may have failed, giving us pageCount: 0)
+    if (currentPage < 1 || currentPage > totalPages) {
+      const savedPage = loadSavedPage();
+      currentPage = savedPage && savedPage <= totalPages ? savedPage : 1;
+    }
+
+    log.info("PDF loaded, pages:", totalPages, "starting:", currentPage);
 
     showViewer();
     renderPage();
