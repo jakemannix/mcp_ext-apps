@@ -21,6 +21,7 @@ import {
   RESOURCE_URI_META_KEY,
 } from "@modelcontextprotocol/ext-apps/server";
 import { startServer } from "./server-utils.js";
+import { randomUUID } from "crypto";
 
 const DIST_DIR = path.join(import.meta.dirname, "dist");
 const RESOURCE_URI = "ui://cesium-map/mcp-app.html";
@@ -182,6 +183,9 @@ export function createServer(): McpServer {
           text: `Displaying globe at: W:${west.toFixed(4)}, S:${south.toFixed(4)}, E:${east.toFixed(4)}, N:${north.toFixed(4)}${label ? ` (${label})` : ""}`,
         },
       ],
+      _meta: {
+        widgetUUID: randomUUID(),
+      },
     }),
   );
 

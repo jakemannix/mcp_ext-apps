@@ -21,6 +21,7 @@ import type {
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { randomUUID } from "crypto";
 
 import {
   buildPdfIndex,
@@ -175,6 +176,9 @@ The viewer supports zoom, navigation, text selection, and fullscreen mode.`,
           },
         ],
         structuredContent: result,
+        _meta: {
+          widgetUUID: randomUUID(),
+        },
       };
     },
   );
