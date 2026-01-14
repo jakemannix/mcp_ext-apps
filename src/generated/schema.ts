@@ -135,7 +135,7 @@ export const McpUiStylesSchema = z
 
 /**
  * @description Request to open an external URL in the host's default browser.
- * @see {@link app.App.sendOpenLink} for the method that sends this request
+ * @see {@link app!App.openLink} for the method that sends this request
  */
 export const McpUiOpenLinkRequestSchema = z.object({
   method: z.literal("ui/open-link"),
@@ -246,8 +246,8 @@ export const McpUiResourcePermissionsSchema = z.object({
 });
 
 /**
- * @description Notification of UI size changes (bidirectional: Guest <-> Host).
- * @see {@link app.App.sendSizeChanged} for the method to send this from Guest UI
+ * @description Notification of UI size changes (Guest UI -> Host).
+ * @see {@link app!App.sendSizeChanged} for the method to send this from Guest UI
  */
 export const McpUiSizeChangedNotificationSchema = z.object({
   method: z.literal("ui/notifications/size-changed"),
@@ -319,11 +319,8 @@ export const McpUiToolCancelledNotificationSchema = z.object({
  * @description CSS blocks that can be injected by apps.
  */
 export const McpUiHostCssSchema = z.object({
-  /** @description CSS for font loading (@font-face rules or @import statements). Apps must apply using applyHostFonts(). */
-  fonts: z
-    .string()
-    .optional()
-    .describe("CSS for font loading (@font-face rules or"),
+  /** @description CSS for font loading (`@font-face` rules or `@import` statements). Apps must apply using {@link applyHostFonts}. */
+  fonts: z.string().optional(),
 });
 
 /**
@@ -342,7 +339,7 @@ export const McpUiHostStylesSchema = z.object({
 
 /**
  * @description Request for graceful shutdown of the Guest UI (Host -> Guest UI).
- * @see {@link app-bridge.AppBridge.teardownResource} for the host method that sends this
+ * @see {@link app-bridge!AppBridge.teardownResource} for the host method that sends this
  */
 export const McpUiResourceTeardownRequestSchema = z.object({
   method: z.literal("ui/resource-teardown"),
@@ -453,7 +450,7 @@ export const McpUiHostCapabilitiesSchema = z.object({
 });
 
 /**
- * @description Capabilities provided by the Guest UI (App).
+ * @description Capabilities provided by the Guest UI ({@link app!App}).
  * @see {@link McpUiInitializeRequest} for the initialization request that includes these capabilities
  */
 export const McpUiAppCapabilitiesSchema = z.object({
@@ -477,7 +474,7 @@ export const McpUiAppCapabilitiesSchema = z.object({
 
 /**
  * @description Notification that Guest UI has completed initialization (Guest UI -> Host).
- * @see {@link app.App.connect} for the method that sends this notification
+ * @see {@link app!App.connect} for the method that sends this notification
  */
 export const McpUiInitializedNotificationSchema = z.object({
   method: z.literal("ui/notifications/initialized"),
@@ -514,7 +511,7 @@ export const McpUiResourceMetaSchema = z.object({
  * @description Request to change the display mode of the UI.
  * The host will respond with the actual display mode that was set,
  * which may differ from the requested mode if not supported.
- * @see {@link app.App.requestDisplayMode} for the method that sends this request
+ * @see {@link app!App.requestDisplayMode} for the method that sends this request
  */
 export const McpUiRequestDisplayModeRequestSchema = z.object({
   method: z.literal("ui/request-display-mode"),
@@ -570,7 +567,7 @@ export const McpUiToolMetaSchema = z.object({
 
 /**
  * @description Request to send a message to the host's chat interface.
- * @see {@link app.App.sendMessage} for the method that sends this request
+ * @see {@link app!App.sendMessage} for the method that sends this request
  */
 export const McpUiMessageRequestSchema = z.object({
   method: z.literal("ui/message"),
@@ -788,7 +785,7 @@ export const McpUiUpdateModelContextRequestSchema = z.object({
 
 /**
  * @description Initialization request sent from Guest UI to Host.
- * @see {@link app.App.connect} for the method that sends this request
+ * @see {@link app!App.connect} for the method that sends this request
  */
 export const McpUiInitializeRequestSchema = z.object({
   method: z.literal("ui/initialize"),

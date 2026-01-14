@@ -7,12 +7,10 @@ import "abcjs/abcjs-audio.css";
 import "./global.css";
 import "./mcp-app.css";
 
-const log = {
-  info: console.log.bind(console, "[APP]"),
-  error: console.error.bind(console, "[APP]"),
-};
+// =============================================================================
+// State
+// =============================================================================
 
-// State management
 interface AppState {
   visualObj: ABCJS.TuneObject[] | null;
   synthControl: ABCJS.SynthObjectController | null;
@@ -23,11 +21,18 @@ const state: AppState = {
   synthControl: null,
 };
 
-// DOM element references
+// =============================================================================
+// DOM References
+// =============================================================================
+
 const mainEl = document.querySelector(".main") as HTMLElement;
 const statusEl = document.getElementById("status")!;
 const sheetMusicEl = document.getElementById("sheet-music")!;
 const audioControlsEl = document.getElementById("audio-controls")!;
+
+// =============================================================================
+// ABC Rendering
+// =============================================================================
 
 /**
  * Updates the status display.
@@ -77,18 +82,21 @@ async function renderAbc(abcNotation: string): Promise<void> {
 
     setStatus("Ready to play!");
   } catch (error) {
-    log.error("Render error:", error);
+    console.error("Render error:", error);
     setStatus(`Error: ${(error as Error).message}`, true);
     audioControlsEl.innerHTML = "";
   }
 }
 
-// Create app instance
+// =============================================================================
+// MCP Apps SDK Integration
+// =============================================================================
+
 const app = new App({ name: "Sheet Music App", version: "1.0.0" });
 
 // Handle tool input - receives ABC notation from the host
 app.ontoolinput = (params) => {
-  log.info("Received tool input:", params);
+  console.info("Received tool input:", params);
 
   const abcNotation = params.arguments?.abcNotation as string | undefined;
 
@@ -99,8 +107,7 @@ app.ontoolinput = (params) => {
   }
 };
 
-// Error handler
-app.onerror = log.error;
+app.onerror = console.error;
 
 app.onhostcontextchanged = (params) => {
   if (params.safeAreaInsets) {
@@ -111,7 +118,6 @@ app.onhostcontextchanged = (params) => {
   }
 };
 
-// Connect to host
 app.connect().then(() => {
   const ctx = app.getHostContext();
   if (ctx) {

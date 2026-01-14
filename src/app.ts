@@ -64,7 +64,7 @@ export {
  *
  * MCP servers include this key in tool call result metadata to indicate which
  * UI resource should be displayed for the tool. When hosts receive a tool result
- * containing this metadata, they resolve and render the corresponding App.
+ * containing this metadata, they resolve and render the corresponding {@link App}.
  *
  * **Note**: This constant is provided for reference. MCP servers set this metadata
  * in their tool handlers; App developers typically don't need to use it directly.
@@ -93,21 +93,25 @@ export const RESOURCE_URI_META_KEY = "ui/resourceUri";
 
 /**
  * MIME type for MCP UI resources.
+ *
+ * Identifies HTML content as an MCP App UI resource.
+ *
+ * Used by {@link server-helpers!registerAppResource} as the default MIME type for app resources.
  */
 export const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 
 /**
- * Options for configuring App behavior.
+ * Options for configuring {@link App} behavior.
  *
- * Extends ProtocolOptions from the MCP SDK with App-specific configuration.
+ * Extends `ProtocolOptions` from the MCP SDK with `App`-specific configuration.
  *
- * @see ProtocolOptions from @modelcontextprotocol/sdk for inherited options
+ * @see `ProtocolOptions` from @modelcontextprotocol/sdk for inherited options
  */
 type AppOptions = ProtocolOptions & {
   /**
-   * Automatically report size changes to the host using ResizeObserver.
+   * Automatically report size changes to the host using `ResizeObserver`.
    *
-   * When enabled, the App monitors `document.body` and `document.documentElement`
+   * When enabled, the {@link App} monitors `document.body` and `document.documentElement`
    * for size changes and automatically sends `ui/notifications/size-changed`
    * notifications to the host.
    *
@@ -123,8 +127,8 @@ type RequestHandlerExtra = Parameters<
 /**
  * Main class for MCP Apps to communicate with their host.
  *
- * The App class provides a framework-agnostic way to build interactive MCP Apps
- * that run inside host applications. It extends the MCP SDK's Protocol class and
+ * The `App` class provides a framework-agnostic way to build interactive MCP Apps
+ * that run inside host applications. It extends the MCP SDK's `Protocol` class and
  * handles the connection lifecycle, initialization handshake, and bidirectional
  * communication with the host.
  *
@@ -143,19 +147,20 @@ type RequestHandlerExtra = Parameters<
  *
  * ## Inherited Methods
  *
- * As a subclass of Protocol, App inherits key methods for handling communication:
+ * As a subclass of `Protocol`, `App` inherits key methods for handling communication:
  * - `setRequestHandler()` - Register handlers for requests from host
  * - `setNotificationHandler()` - Register handlers for notifications from host
  *
- * @see Protocol from @modelcontextprotocol/sdk for all inherited methods
+ * @see `Protocol` from @modelcontextprotocol/sdk for all inherited methods
  *
  * ## Notification Setters
  *
- * For common notifications, the App class provides convenient setter properties
+ * For common notifications, the `App` class provides convenient setter properties
  * that simplify handler registration:
  * - `ontoolinput` - Complete tool arguments from host
  * - `ontoolinputpartial` - Streaming partial tool arguments
  * - `ontoolresult` - Tool execution results
+ * - `ontoolcancelled` - Tool execution was cancelled by user or host
  * - `onhostcontextchanged` - Host context changes (theme, locale, etc.)
  *
  * These setters are convenience wrappers around `setNotificationHandler()`.
@@ -187,7 +192,7 @@ type RequestHandlerExtra = Parameters<
  *   }
  * );
  *
- * await app.connect(new PostMessageTransport(window.parent));
+ * await app.connect(new PostMessageTransport(window.parent, window.parent));
  * ```
  *
  * @example Sending a message to the host's chat
@@ -208,7 +213,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * @param _appInfo - App identification (name and version)
    * @param _capabilities - Features and capabilities this app provides
-   * @param options - Configuration options including autoResize behavior
+   * @param options - Configuration options including `autoResize` behavior
    *
    * @example
    * ```typescript
@@ -339,7 +344,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * Register handlers before calling {@link connect} to avoid missing notifications.
    *
-   * @param callback - Function called with the tool input params
+   * @param callback - Function called with the tool input params ({@link McpUiToolInputNotification.params})
    *
    * @example Using the setter (simpler)
    * ```typescript
@@ -384,7 +389,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * Register handlers before calling {@link connect} to avoid missing notifications.
    *
-   * @param callback - Function called with each partial tool input update
+   * @param callback - Function called with each partial tool input update ({@link McpUiToolInputPartialNotification.params})
    *
    * @example Progressive rendering of tool arguments
    * ```typescript
@@ -418,7 +423,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * Register handlers before calling {@link connect} to avoid missing notifications.
    *
-   * @param callback - Function called with the tool result
+   * @param callback - Function called with the tool result ({@link McpUiToolResultNotification.params})
    *
    * @example Display tool execution results
    * ```typescript
@@ -457,7 +462,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * Register handlers before calling {@link connect} to avoid missing notifications.
    *
-   * @param callback - Function called when tool execution is cancelled
+   * @param callback - Function called when tool execution is cancelled. Receives optional cancellation reason — see {@link McpUiToolCancelledNotification.params}.
    *
    * @example Handle tool cancellation
    * ```typescript
@@ -489,6 +494,10 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * This setter is a convenience wrapper around `setNotificationHandler()` that
    * automatically handles the notification schema and extracts the params for you.
+   *
+   * Notification params are automatically merged into the internal host context
+   * before the callback is invoked. This means {@link getHostContext} will
+   * return the updated values even before your callback runs.
    *
    * Register handlers before calling {@link connect} to avoid missing notifications.
    *
@@ -538,7 +547,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * Register handlers before calling {@link connect} to avoid missing requests.
    *
    * @param callback - Function called when teardown is requested.
-   *   Can return void or a Promise that resolves when cleanup is complete.
+   *   Must return `McpUiResourceTeardownResult` (can be an empty object `{}`) or a Promise resolving to it.
    *
    * @example Perform cleanup before teardown
    * ```typescript
@@ -546,6 +555,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *   await saveState();
    *   closeConnections();
    *   console.log("App ready for teardown");
+   *   return {};
    * };
    * ```
    *
@@ -620,9 +630,9 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * Register handlers before calling {@link connect} to avoid missing requests.
    *
-   * @param callback - Async function that returns the list of available tools.
-   *   The callback will only be invoked if the app declared tool capabilities
-   *   in the constructor.
+   * @param callback - Async function that returns tool names as strings (simplified
+   *   from full `ListToolsResult` with `Tool` objects). Registration is always
+   *   allowed; capability validation occurs when handlers are invoked.
    *
    * @example Return available tools
    * ```typescript
@@ -1050,7 +1060,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * If initialization fails, the connection is automatically closed and an error
    * is thrown.
    *
-   * @param transport - Transport layer (typically PostMessageTransport)
+   * @param transport - Transport layer (typically {@link PostMessageTransport})
    * @param options - Request options for the initialize request
    *
    * @throws {Error} If initialization fails or connection is lost
@@ -1063,7 +1073,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * );
    *
    * try {
-   *   await app.connect(new PostMessageTransport(window.parent));
+   *   await app.connect(new PostMessageTransport(window.parent, window.parent));
    *   console.log("Connected successfully!");
    * } catch (error) {
    *   console.error("Failed to connect:", error);

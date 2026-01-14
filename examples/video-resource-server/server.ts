@@ -59,8 +59,11 @@ export function createServer(): McpServer {
     version: "1.0.0",
   });
 
-  // Register video resource template
-  // This fetches video from CDN and returns as base64 blob
+  // ===========================================================================
+  // Binary Blob Resource - Binary content is fetched and returned as a
+  // base64-encoded blob.
+  // ===========================================================================
+
   server.registerResource(
     "video",
     new ResourceTemplate("videos://{id}", { list: undefined }),
@@ -106,7 +109,10 @@ export function createServer(): McpServer {
     },
   );
 
-  // Register the video player tool
+  // ===========================================================================
+  // Tool Registration
+  // ===========================================================================
+
   registerAppTool(
     server,
     "play_video",
@@ -144,7 +150,10 @@ ${Object.entries(VIDEO_LIBRARY)
     },
   );
 
-  // Register the MCP App resource (the UI)
+  // ===========================================================================
+  // UI Resource Registration
+  // ===========================================================================
+
   registerAppResource(
     server,
     RESOURCE_URI,

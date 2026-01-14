@@ -12,10 +12,20 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import type { WidgetProps } from "./mcp-app-wrapper.tsx";
 
+// =============================================================================
+// Types
+// =============================================================================
+
 interface ThreeJSToolInput {
   code?: string;
   height?: number;
 }
+
+type ThreeJSAppProps = WidgetProps<ThreeJSToolInput>;
+
+// =============================================================================
+// Constants
+// =============================================================================
 
 // Default demo code shown when no code is provided
 const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
@@ -28,10 +38,19 @@ const cube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
   new THREE.MeshStandardMaterial({ color: 0x00ff88 })
 );
+// Start with an isometric-ish rotation to show 3 faces
+cube.rotation.x = 0.5;
+cube.rotation.y = 0.7;
 scene.add(cube);
 
-scene.add(new THREE.DirectionalLight(0xffffff, 1));
-scene.add(new THREE.AmbientLight(0x404040));
+// Better lighting: key light + fill light + ambient
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+keyLight.position.set(1, 1, 2);
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.4);
+fillLight.position.set(-1, 0, -1);
+scene.add(fillLight);
+scene.add(new THREE.AmbientLight(0x404040, 0.5));
 
 camera.position.z = 3;
 
@@ -43,7 +62,9 @@ function animate() {
 }
 animate();`;
 
-type ThreeJSAppProps = WidgetProps<ThreeJSToolInput>;
+// =============================================================================
+// Streaming Preview
+// =============================================================================
 
 const SHIMMER_STYLE = `
   @keyframes shimmer {
@@ -110,7 +131,10 @@ function LoadingShimmer({ height, code }: { height: number; code?: string }) {
   );
 }
 
-// Context object passed to user code
+// =============================================================================
+// Three.js Execution
+// =============================================================================
+
 const threeContext = {
   THREE,
   OrbitControls,
@@ -135,6 +159,10 @@ async function executeThreeCode(
   );
   await fn(threeContext, canvas, width, height);
 }
+
+// =============================================================================
+// Main Component
+// =============================================================================
 
 export default function ThreeJSApp({
   toolInputs,
