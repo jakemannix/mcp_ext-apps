@@ -15,11 +15,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import cors from "cors";
 import type { Request, Response } from "express";
 import { createServer, initializePdfIndex } from "./server.js";
-import {
-  isArxivUrl,
-  toFileUrl,
-  normalizeArxivUrl,
-} from "./src/pdf-indexer.js";
+import { isArxivUrl, toFileUrl, normalizeArxivUrl } from "./src/pdf-indexer.js";
 
 export interface ServerOptions {
   port: number;
