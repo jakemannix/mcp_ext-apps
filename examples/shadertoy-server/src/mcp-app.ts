@@ -53,11 +53,13 @@ window.addEventListener("resize", resizeCanvas);
 function handleHostContextChanged(ctx: McpUiHostContext) {
   // Note: We ignore safeAreaInsets to maximize shader display area
 
-  // Show fullscreen button if available
-  if (ctx.availableDisplayModes?.includes("fullscreen")) {
-    fullscreenBtn.classList.add("available");
-  } else {
-    fullscreenBtn.classList.remove("available");
+  // Show fullscreen button if available (only update if field is present)
+  if (ctx.availableDisplayModes !== undefined) {
+    if (ctx.availableDisplayModes.includes("fullscreen")) {
+      fullscreenBtn.classList.add("available");
+    } else {
+      fullscreenBtn.classList.remove("available");
+    }
   }
 
   // Update display mode state and UI
@@ -70,6 +72,13 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
     }
   }
 }
+
+// Handle Escape key to exit fullscreen
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && currentDisplayMode === "fullscreen") {
+    toggleFullscreen();
+  }
+});
 
 // Toggle fullscreen mode
 async function toggleFullscreen() {
