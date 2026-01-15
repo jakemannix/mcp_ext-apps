@@ -110,11 +110,6 @@ function requestFitToContent() {
     toolbarHeight + paddingTop + pageWrapperHeight + paddingBottom +
     mainBorderTop + mainBorderBottom + BUFFER;
 
-  log.info("[SIZE] toolbar:", toolbarHeight, "paddingTop:", paddingTop,
-    "pageWrapper:", pageWrapperHeight, "paddingBottom:", paddingBottom,
-    "mainBorder:", mainBorderTop + mainBorderBottom, "buffer:", BUFFER,
-    "=> total:", totalHeight);
-
   app.sendSizeChanged({ height: totalHeight });
 }
 
