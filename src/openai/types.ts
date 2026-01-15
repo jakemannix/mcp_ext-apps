@@ -29,36 +29,6 @@ export interface OpenAISafeArea {
 }
 
 /**
- * Structured widget state for OpenAI Apps SDK.
- *
- * This type allows separating model-visible context from private UI state.
- * When using setWidgetState with this shape, the host will:
- * - Expose `modelContent` and `imageIds` to the model for context awareness
- * - Keep `privateContent` isolated from the conversation model
- *
- * @see https://developers.openai.com/apps-sdk/build/state-management/
- */
-export interface StructuredWidgetState {
-  /**
-   * Text or JSON the model should see for follow-up reasoning.
-   * Keep focused and under 4k tokens.
-   */
-  modelContent: string | Record<string, unknown> | null;
-
-  /**
-   * UI-only state the model should NOT see.
-   * Use for ephemeral UI details like current view, filters, selections.
-   */
-  privateContent: Record<string, unknown> | null;
-
-  /**
-   * File IDs uploaded by the widget (via uploadFile) or received as file params.
-   * The model can reason about these images in follow-up turns.
-   */
-  imageIds: string[];
-}
-
-/**
  * Result of a tool call via window.openai.callTool().
  *
  * Note: The exact return type isn't fully documented by OpenAI.
@@ -104,11 +74,8 @@ export interface OpenAIGlobal {
   /**
    * Persisted UI state snapshot between renders.
    * Set via setWidgetState(), rehydrated on subsequent renders.
-   *
-   * Can be either a simple object or a StructuredWidgetState with
-   * modelContent/privateContent/imageIds separation.
    */
-  widgetState?: StructuredWidgetState | Record<string, unknown>;
+  widgetState?: unknown;
 
   /**
    * Current theme setting.
@@ -153,14 +120,9 @@ export interface OpenAIGlobal {
    * Persist UI state synchronously after interactions.
    * State is scoped to this widget instance and rehydrated on re-renders.
    *
-   * When using StructuredWidgetState shape:
-   * - `modelContent` is exposed to the model for follow-up reasoning
-   * - `privateContent` stays private to the UI
-   * - `imageIds` allows the model to reason about uploaded images
-   *
-   * @param state - State object to persist (simple or StructuredWidgetState)
+   * @param state - State object to persist
    */
-  setWidgetState?(state: StructuredWidgetState | Record<string, unknown>): void;
+  setWidgetState?(state: unknown): void;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Tool & Chat Integration Methods

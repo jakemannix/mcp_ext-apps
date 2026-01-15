@@ -17,34 +17,8 @@ import {
   Transport,
   TransportSendOptions,
 } from "@modelcontextprotocol/sdk/shared/transport.js";
-import {
-  OpenAIGlobal,
-  OpenAISafeArea,
-  OpenAIDisplayMode,
-  OpenAITheme,
-  getOpenAIGlobal,
-  isOpenAIEnvironment,
-} from "./types.js";
+import { OpenAIGlobal, getOpenAIGlobal, isOpenAIEnvironment } from "./types.js";
 import { LATEST_PROTOCOL_VERSION, McpUiHostContext } from "../spec.types.js";
-
-/**
- * Event name dispatched by ChatGPT host when window.openai properties change.
- * @see https://developers.openai.com/apps-sdk/build/chatgpt-ui/
- */
-const SET_GLOBALS_EVENT_TYPE = "openai:set_globals";
-
-/**
- * Partial update payload from the openai:set_globals event.
- * Contains only the properties that changed.
- */
-interface OpenAIGlobalsChangeDetail {
-  theme?: OpenAITheme;
-  displayMode?: OpenAIDisplayMode;
-  maxHeight?: number;
-  safeArea?: OpenAISafeArea;
-  locale?: string;
-  userAgent?: string;
-}
 
 /**
  * JSON-RPC success response message.
@@ -122,7 +96,6 @@ function isNotification(
 export class OpenAITransport implements Transport {
   private openai: OpenAIGlobal;
   private _closed = false;
-  private _globalsChangeHandler?: (event: Event) => void;
 
   /**
    * Create a new OpenAITransport.
@@ -151,78 +124,11 @@ export class OpenAITransport implements Transport {
   /**
    * Begin listening for messages.
    *
-   * Sets up a listener for the `openai:set_globals` event that ChatGPT
-   * dispatches when host context properties change (theme, displayMode,
-   * safeArea, maxHeight, etc.). Changes are forwarded to the app as
-   * `ui/notifications/host-context-changed` notifications.
+   * In OpenAI mode, there's no event-based message flow to start.
+   * The data is pre-populated in window.openai properties.
    */
   async start(): Promise<void> {
-    // Listen for OpenAI global property changes
-    this._globalsChangeHandler = (event: Event) => {
-      if (this._closed) return;
-
-      const detail = (event as CustomEvent<OpenAIGlobalsChangeDetail>).detail;
-      if (!detail) return;
-
-      const changes: Partial<McpUiHostContext> = {};
-      let hasChanges = false;
-
-      // Map OpenAI properties to MCP host context
-      if (detail.safeArea !== undefined) {
-        const sa = detail.safeArea;
-        if (
-          typeof sa.top === "number" &&
-          typeof sa.right === "number" &&
-          typeof sa.bottom === "number" &&
-          typeof sa.left === "number"
-        ) {
-          changes.safeAreaInsets = sa;
-          hasChanges = true;
-        }
-      }
-
-      if (detail.theme !== undefined) {
-        changes.theme = detail.theme;
-        hasChanges = true;
-      }
-
-      if (detail.displayMode !== undefined) {
-        changes.displayMode = detail.displayMode;
-        hasChanges = true;
-      }
-
-      if (detail.maxHeight !== undefined) {
-        changes.containerDimensions = { maxHeight: detail.maxHeight };
-        hasChanges = true;
-      }
-
-      if (detail.locale !== undefined) {
-        changes.locale = detail.locale;
-        hasChanges = true;
-      }
-
-      if (detail.userAgent !== undefined) {
-        changes.userAgent = detail.userAgent;
-        hasChanges = true;
-      }
-
-      // Forward changes as host-context-changed notification
-      if (hasChanges) {
-        queueMicrotask(() => {
-          this.onmessage?.({
-            jsonrpc: "2.0",
-            method: "ui/notifications/host-context-changed",
-            params: changes,
-          } as JSONRPCNotification);
-        });
-      }
-    };
-
-    window.addEventListener(
-      SET_GLOBALS_EVENT_TYPE,
-      this._globalsChangeHandler,
-      { passive: true },
-    );
+    // Nothing to do - window.openai is already available and populated
   }
 
   /**
@@ -286,24 +192,6 @@ export class OpenAITransport implements Transport {
           return await this.handleRequestDisplayMode(
             id,
             params as { mode: string },
-          );
-
-        case "ui/upload-file":
-          return await this.handleUploadFile(
-            id,
-            params as { name: string; mimeType: string; data: string },
-          );
-
-        case "ui/get-file-url":
-          return await this.handleGetFileUrl(id, params as { fileId: string });
-
-        case "ui/update-model-context":
-          return this.handleUpdateModelContextRequest(
-            id,
-            params as {
-              content?: unknown[];
-              structuredContent?: Record<string, unknown>;
-            },
           );
 
         case "ping":
@@ -453,9 +341,6 @@ export class OpenAITransport implements Transport {
 
   /**
    * Handle ui/message request by delegating to window.openai.sendFollowUpMessage().
-   *
-   * For image content, images are uploaded via uploadFile and added to model context
-   * via setWidgetState, since sendFollowUpMessage only accepts text.
    */
   private async handleMessage(
     id: RequestId,
@@ -480,78 +365,9 @@ export class OpenAITransport implements Transport {
       .map((c) => c.text)
       .join("\n");
 
-    // Extract image content blocks
-    const imageContent = params.content.filter(
-      (c): c is { type: "image"; data: string; mimeType: string } =>
-        typeof c === "object" &&
-        c !== null &&
-        (c as { type?: string }).type === "image",
-    );
-
-    // Upload images if present and uploadFile is available
-    const imageIds: string[] = [];
-    if (imageContent.length > 0 && this.openai.uploadFile) {
-      for (const image of imageContent) {
-        try {
-          // Convert base64 data to File object
-          const binaryString = atob(image.data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: image.mimeType });
-          const file = new File(
-            [blob],
-            `image.${this.getExtension(image.mimeType)}`,
-            {
-              type: image.mimeType,
-            },
-          );
-
-          const result = await this.openai.uploadFile(file);
-          imageIds.push(result.fileId);
-        } catch (error) {
-          console.warn("[MCP App] Failed to upload image:", error);
-        }
-      }
-
-      // Add uploaded images to model context via setWidgetState
-      if (imageIds.length > 0 && this.openai.setWidgetState) {
-        // Get current state and merge with new imageIds
-        const currentState = this.openai.widgetState ?? {};
-        const existingImageIds = Array.isArray(
-          (currentState as { imageIds?: unknown }).imageIds,
-        )
-          ? (currentState as { imageIds: string[] }).imageIds
-          : [];
-
-        this.openai.setWidgetState({
-          ...currentState,
-          imageIds: [...existingImageIds, ...imageIds],
-        });
-      }
-    }
-
-    // Send text message (or empty if only images were sent)
-    if (textContent || imageIds.length === 0) {
-      await this.openai.sendFollowUpMessage({ prompt: textContent });
-    }
+    await this.openai.sendFollowUpMessage({ prompt: textContent });
 
     return this.createSuccessResponse(id, {});
-  }
-
-  /**
-   * Get file extension from MIME type.
-   */
-  private getExtension(mimeType: string): string {
-    const mimeToExt: Record<string, string> = {
-      "image/png": "png",
-      "image/jpeg": "jpg",
-      "image/gif": "gif",
-      "image/webp": "webp",
-      "image/svg+xml": "svg",
-    };
-    return mimeToExt[mimeType] ?? "bin";
   }
 
   /**
@@ -596,57 +412,6 @@ export class OpenAITransport implements Transport {
   }
 
   /**
-   * Handle ui/upload-file by delegating to window.openai.uploadFile().
-   */
-  private async handleUploadFile(
-    id: RequestId,
-    params: { name: string; mimeType: string; data: string },
-  ): Promise<JSONRPCSuccessResponse | JSONRPCErrorResponse> {
-    if (!this.openai.uploadFile) {
-      return this.createErrorResponse(
-        id,
-        -32601,
-        "File upload is not supported in this OpenAI environment",
-      );
-    }
-
-    // Convert base64 data back to File object
-    const binaryString = atob(params.data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: params.mimeType });
-    const file = new File([blob], params.name, { type: params.mimeType });
-
-    const result = await this.openai.uploadFile(file);
-
-    return this.createSuccessResponse(id, { fileId: result.fileId });
-  }
-
-  /**
-   * Handle ui/get-file-url by delegating to window.openai.getFileDownloadUrl().
-   */
-  private async handleGetFileUrl(
-    id: RequestId,
-    params: { fileId: string },
-  ): Promise<JSONRPCSuccessResponse | JSONRPCErrorResponse> {
-    if (!this.openai.getFileDownloadUrl) {
-      return this.createErrorResponse(
-        id,
-        -32601,
-        "File URL retrieval is not supported in this OpenAI environment",
-      );
-    }
-
-    const result = await this.openai.getFileDownloadUrl({
-      fileId: params.fileId,
-    });
-
-    return this.createSuccessResponse(id, { url: result.url });
-  }
-
-  /**
    * Handle an outgoing notification.
    */
   private handleNotification(notification: JSONRPCNotification): void {
@@ -682,56 +447,6 @@ export class OpenAITransport implements Transport {
   }
 
   /**
-   * Handle ui/update-model-context request by calling window.openai.setWidgetState().
-   *
-   * Translates MCP's content/structuredContent format to OpenAI's setWidgetState format.
-   */
-  private handleUpdateModelContextRequest(
-    id: RequestId,
-    params: {
-      content?: unknown[];
-      structuredContent?: Record<string, unknown>;
-    },
-  ): JSONRPCSuccessResponse | JSONRPCErrorResponse {
-    if (!this.openai.setWidgetState) {
-      // No-op if setWidgetState is not available, but still return success
-      // since the host may not need to persist state
-      return this.createSuccessResponse(id, {});
-    }
-
-    // Translate MCP format to OpenAI's setWidgetState format
-    // content is ContentBlock[], structuredContent is freeform JSON
-    let modelContent: string | Record<string, unknown> | null = null;
-
-    // If structuredContent is provided, use it as modelContent
-    if (params.structuredContent) {
-      modelContent = params.structuredContent;
-    } else if (params.content && params.content.length > 0) {
-      // Extract text from content blocks
-      const textParts = params.content
-        .filter(
-          (c): c is { type: "text"; text: string } =>
-            typeof c === "object" &&
-            c !== null &&
-            (c as { type?: string }).type === "text",
-        )
-        .map((c) => c.text);
-
-      if (textParts.length > 0) {
-        modelContent = textParts.join("\n");
-      }
-    }
-
-    this.openai.setWidgetState({
-      modelContent,
-      privateContent: null,
-      imageIds: [],
-    });
-
-    return this.createSuccessResponse(id, {});
-  }
-
-  /**
    * Create a success JSON-RPC response.
    */
   private createSuccessResponse(
@@ -761,7 +476,7 @@ export class OpenAITransport implements Transport {
   }
 
   /**
-   * Deliver initial tool input, result, and widget state notifications.
+   * Deliver initial tool input and result notifications.
    *
    * Called by App after connection to deliver pre-populated data from
    * window.openai as notifications that the app's handlers expect.
@@ -776,17 +491,6 @@ export class OpenAITransport implements Transport {
           jsonrpc: "2.0",
           method: "ui/notifications/tool-input",
           params: { arguments: this.openai.toolInput },
-        } as JSONRPCNotification);
-      });
-    }
-
-    // Deliver widget state if available (for state hydration)
-    if (this.openai.widgetState !== undefined) {
-      queueMicrotask(() => {
-        this.onmessage?.({
-          jsonrpc: "2.0",
-          method: "ui/notifications/widget-state",
-          params: { state: this.openai.widgetState },
         } as JSONRPCNotification);
       });
     }
@@ -877,16 +581,6 @@ export class OpenAITransport implements Transport {
    */
   async close(): Promise<void> {
     this._closed = true;
-
-    // Clean up the globals change listener
-    if (this._globalsChangeHandler) {
-      window.removeEventListener(
-        SET_GLOBALS_EVENT_TYPE,
-        this._globalsChangeHandler,
-      );
-      this._globalsChangeHandler = undefined;
-    }
-
     this.onclose?.();
   }
 

@@ -15,6 +15,16 @@
  * | Tool metadata | `_meta.ui.resourceUri` | `_meta["openai/outputTemplate"]` |
  * | Resource MIME | `text/html;profile=mcp-app` | `text/html+skybridge` |
  *
+ * These utilities register tools and resources that work with both
+ * MCP-compatible hosts and OpenAI's ChatGPT Apps SDK.
+ *
+ * ## Cross-Platform Support
+ *
+ * | Feature | MCP Apps | OpenAI Apps SDK |
+ * |---------|----------|-----------------|
+ * | Tool metadata | `_meta.ui.resourceUri` | `_meta["openai/outputTemplate"]` |
+ * | Resource MIME | `text/html;profile=mcp-app` | `text/html+skybridge` |
+ *
  * @module server-helpers
  *
  * @example
