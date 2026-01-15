@@ -2,13 +2,20 @@
   box-sizing: border-box;
 }
 
-html, body {
+html {
+  height: 100%;
+}
+
+body {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 1rem;
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   width: 100%;
-  /* Match .main background to hide any gap at the bottom */
+  /* Use flexbox to ensure .main fills the entire body */
+  display: flex;
+  flex-direction: column;
+  /* Match .main background to hide any gap */
   background: var(--bg100, #f5f5f5);
 }

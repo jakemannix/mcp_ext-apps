@@ -5,7 +5,7 @@ body {
 .main {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  flex: 1; /* Grow to fill parent (body is now a flex container) */
   width: 100%;
   background: var(--bg100, #f5f5f5);
   color: var(--text000, #1a1a1a);
