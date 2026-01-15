@@ -10,7 +10,7 @@
  * integration-server is excluded (it's for E2E testing, same UI as basic-server-react).
  */
 
-import { test, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import sharp from "sharp";
@@ -95,12 +95,9 @@ async function waitForAppLoad(page: Page) {
  */
 async function loadServer(page: Page, serverName: string) {
   await page.goto("/");
-  await page
-    .locator("select")
-    .nth(0)
-    .waitFor({ state: "visible", timeout: 30000 });
-  await page.waitForTimeout(500);
-  await page.locator("select").nth(0).selectOption({ label: serverName });
+  // Wait for servers to connect (select becomes enabled when servers are ready)
+  await expect(page.locator("select").first()).toBeEnabled({ timeout: 30000 });
+  await page.locator("select").first().selectOption({ label: serverName });
   await page.click('button:has-text("Call Tool")');
   await waitForAppLoad(page);
 }
