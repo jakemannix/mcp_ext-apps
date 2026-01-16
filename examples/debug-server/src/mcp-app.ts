@@ -355,9 +355,10 @@ app.ontoolcancelled = (params) => {
   logEvent("tool-cancelled", params);
 };
 
-app.onwidgetstate = (params) => {
-  logEvent("widget-state", params);
-};
+// TODO: Enable when onwidgetstate is available in the SDK
+// app.onwidgetstate = (params) => {
+//   logEvent("widget-state", params);
+// };
 
 app.onhostcontextchanged = (ctx) => {
   logEvent("host-context-changed", ctx);
@@ -593,45 +594,46 @@ callDebugRefreshBtn.addEventListener("click", async () => {
 // ============================================================================
 // File Operations
 // ============================================================================
+// TODO: Enable when uploadFile/getFileDownloadUrl are available in the SDK
 
-uploadFileBtn.addEventListener("click", async () => {
-  const file = fileInputEl.files?.[0];
-  if (!file) {
-    logEvent("error", { message: "No file selected" });
-    return;
-  }
-
-  try {
-    logEvent("upload-file", {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
-    const result = await app.uploadFile(file);
-    state.uploadedFileId = result.fileId;
-    lastFileIdEl.textContent = result.fileId;
-    logEvent("upload-file-result", result);
-  } catch (e) {
-    logEvent("error", e);
-  }
-});
-
-getFileUrlBtn.addEventListener("click", async () => {
-  if (!state.uploadedFileId) {
-    logEvent("error", { message: "No file uploaded yet" });
-    return;
-  }
-
-  try {
-    logEvent("get-file-url", { fileId: state.uploadedFileId });
-    const result = await app.getFileDownloadUrl({
-      fileId: state.uploadedFileId,
-    });
-    logEvent("get-file-url-result", result);
-  } catch (e) {
-    logEvent("error", e);
-  }
-});
+// uploadFileBtn.addEventListener("click", async () => {
+//   const file = fileInputEl.files?.[0];
+//   if (!file) {
+//     logEvent("error", { message: "No file selected" });
+//     return;
+//   }
+//
+//   try {
+//     logEvent("upload-file", {
+//       name: file.name,
+//       size: file.size,
+//       type: file.type,
+//     });
+//     const result = await app.uploadFile(file);
+//     state.uploadedFileId = result.fileId;
+//     lastFileIdEl.textContent = result.fileId;
+//     logEvent("upload-file-result", result);
+//   } catch (e) {
+//     logEvent("error", e);
+//   }
+// });
+//
+// getFileUrlBtn.addEventListener("click", async () => {
+//   if (!state.uploadedFileId) {
+//     logEvent("error", { message: "No file uploaded yet" });
+//     return;
+//   }
+//
+//   try {
+//     logEvent("get-file-url", { fileId: state.uploadedFileId });
+//     const result = await app.getFileDownloadUrl({
+//       fileId: state.uploadedFileId,
+//     });
+//     logEvent("get-file-url-result", result);
+//   } catch (e) {
+//     logEvent("error", e);
+//   }
+// });
 
 // ============================================================================
 // Initialization
