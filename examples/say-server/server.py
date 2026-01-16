@@ -606,8 +606,9 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity 0.2s;
     }
     .playOverlayVisible { opacity: 1; pointer-events: auto; }
-    .playOverlayVisible.playing { opacity: 0.3; }
-    .playOverlayVisible.playing:hover { opacity: 1; }
+    /* When playing: hidden by default, visible on hover */
+    .playOverlay.playing { pointer-events: auto; }
+    .playOverlay.playing:hover { opacity: 1; }
     .playBtn {
       width: 64px; height: 64px; border-radius: 50%;
       background: rgba(255, 255, 255, 0.95); border: none; cursor: pointer;
@@ -672,8 +673,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const audioOperationInProgressRef = useRef(false);
       const pendingModelContextUpdateRef = useRef(null);
 
-      // Always show overlay when there's text (for play/pause control)
-      const showOverlay = displayText.length > 0;
+      // Show overlay when not playing (pause only visible on hover)
+      const showOverlay = displayText.length > 0 && status !== "playing";
 
       const roundToWordEnd = useCallback((pos) => {
         const text = lastTextRef.current;
