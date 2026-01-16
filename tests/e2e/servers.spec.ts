@@ -16,7 +16,6 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   "basic-vue": ["#server-time"], // Server time display
   "cohort-heatmap": ['[class*="heatmapWrapper"]'], // Heatmap grid (random data)
   "customer-segmentation": [".chart-container"], // Scatter plot (random data)
-  "say-server": [".playBtn"], // Play button state changes
   shadertoy: ["#canvas"], // WebGL shader canvas (animated)
   "system-monitor": [
     ".chart-container", // CPU chart (highly dynamic)
@@ -33,9 +32,13 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
 // Servers that need extra stabilization time (e.g., for tile loading, WebGL init)
 const SLOW_SERVERS: Record<string, number> = {
   "map-server": 5000, // CesiumJS needs time for tiles to load
-  "say-server": 3000, // TTS model loading + initial audio setup
   threejs: 2000, // Three.js WebGL initialization
 };
+
+// Servers to skip in CI (require special resources like GPU, large ML models)
+const SKIP_SERVERS = new Set([
+  "say-server", // Requires Pocket TTS model (~500MB), GPU recommended
+]);
 
 // Server configurations (key is used for screenshot filenames, name is the MCP server name)
 const SERVERS = [
@@ -132,12 +135,23 @@ test.describe("Host UI", () => {
 
 // Define tests for each server using forEach to avoid for-loop issues
 SERVERS.forEach((server) => {
+  // Skip servers that require special resources (GPU, large ML models)
+  const shouldSkip = SKIP_SERVERS.has(server.key);
+
   test.describe(server.name, () => {
     test("loads app UI", async ({ page }) => {
+      if (shouldSkip) {
+        test.skip();
+        return;
+      }
       await loadServer(page, server.name);
     });
 
     test("screenshot matches golden", async ({ page }) => {
+      if (shouldSkip) {
+        test.skip();
+        return;
+      }
       await loadServer(page, server.name);
 
       // Some servers (WebGL, tile-based) need extra stabilization time
