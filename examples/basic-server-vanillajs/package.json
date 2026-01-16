@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-basic-vanillajs",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "Basic MCP App Server example using vanilla JavaScript",
   "repository": {
@@ -22,11 +22,11 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.4.0",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
-    "zod": "^4.1.13",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

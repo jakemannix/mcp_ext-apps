@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-basic-react",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "Basic MCP App Server example using React",
   "repository": {
@@ -32,7 +32,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.4.0",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

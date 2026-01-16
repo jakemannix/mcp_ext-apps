@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-system-monitor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "System monitor MCP App Server with real-time stats",
   "repository": {
@@ -26,13 +26,13 @@
     "serve": "bun --watch main.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.4.0",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "chart.js": "^4.4.0",
-    "systeminformation": "^5.27.11",
-    "zod": "^4.1.13",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "systeminformation": "^5.27.11",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -1,7 +1,7 @@
 {
   "homepage": "https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host",
   "name": "@modelcontextprotocol/ext-apps-basic-host",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && concurrently \"cross-env INPUT=index.html vite build\" \"cross-env INPUT=sandbox.html vite build\"",
@@ -11,7 +11,7 @@
     "dev": "cross-env NODE_ENV=development concurrently \"npm run watch\" \"npm run serve\""
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "../..",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -27,9 +27,9 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
     "vite": "^6.0.0",
     "vite-plugin-singlefile": "^2.3.0",
-    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }

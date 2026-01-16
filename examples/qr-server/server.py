@@ -1,3 +1,13 @@
+#!/usr/bin/env uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "mcp>=1.9.0",
+#     "qrcode[pil]>=8.0",
+#     "uvicorn>=0.34.0",
+#     "starlette>=0.46.0",
+# ]
+# ///
 """
 QR Code MCP Server - Generates QR codes from text
 """
@@ -17,12 +27,12 @@ WIDGET_URI = "ui://qr-server/widget.html"
 HOST = os.environ.get("HOST", "0.0.0.0")  # 0.0.0.0 for Docker compatibility
 PORT = int(os.environ.get("PORT", "3108"))
 
-mcp = FastMCP("QR Server", port=PORT, stateless_http=True)
+mcp = FastMCP("QR Code Server", port=PORT, stateless_http=True)
 
 
 @mcp.tool(meta={"ui/resourceUri": WIDGET_URI})
 def generate_qr(
-    text: str,
+    text: str = "https://modelcontextprotocol.io",
     box_size: int = 10,
     border: int = 4,
     error_correction: str = "M",
@@ -122,5 +132,5 @@ if __name__ == "__main__":
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        print(f"QR Server listening on http://{HOST}:{PORT}/mcp")
+        print(f"QR Code Server listening on http://{HOST}:{PORT}/mcp")
         uvicorn.run(app, host=HOST, port=PORT)

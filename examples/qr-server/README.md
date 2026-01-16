@@ -11,19 +11,20 @@ A minimal Python MCP server that generates customizable QR codes with an interac
 - Interactive widget that displays in MCP-UI enabled clients
 - Supports both HTTP (for web clients) and stdio (for Claude Desktop)
 
+## Prerequisites
+
+This server uses [uv](https://docs.astral.sh/uv/) for dependency management. Install it first:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ## Quick Start
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run server (HTTP mode)
-python server.py
-# → QR Server listening on http://localhost:3108/mcp
+# Run server (HTTP mode) - uv handles dependencies automatically
+uv run server.py
+# → QR Code Server listening on http://localhost:3108/mcp
 ```
 
 ## Usage
@@ -31,7 +32,7 @@ python server.py
 ### HTTP Mode (for basic-host / web clients)
 
 ```bash
-python server.py
+uv run server.py
 ```
 
 Connect from basic-host:
@@ -43,7 +44,7 @@ SERVERS='["http://localhost:3108/mcp"]' bun serve.ts
 ### Stdio Mode (for Claude Desktop)
 
 ```bash
-python server.py --stdio
+uv run server.py --stdio
 ```
 
 Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
@@ -52,8 +53,8 @@ Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_deskt
 {
   "mcpServers": {
     "qr": {
-      "command": "/path/to/qr-server/.venv/bin/python",
-      "args": ["/path/to/qr-server/server.py", "--stdio"]
+      "command": "uv",
+      "args": ["run", "/path/to/qr-server/server.py", "--stdio"]
     }
   }
 }
@@ -135,9 +136,8 @@ Generate a QR code with optional customization.
 
 ```
 qr-server/
-├── server.py      # MCP server (FastMCP + uvicorn)
+├── server.py      # MCP server (FastMCP + uvicorn, deps inline via PEP 723)
 ├── widget.html    # Interactive UI widget
-├── requirements.txt
 └── README.md
 ```
 
@@ -153,10 +153,12 @@ The widget uses MCP Apps SDK protocol:
 
 ## Dependencies
 
-- `mcp[cli]` - MCP Python SDK with FastMCP
+Dependencies are declared inline in `server.py` using [PEP 723](https://peps.python.org/pep-0723/) and managed by [uv](https://docs.astral.sh/uv/):
+
+- `mcp` - MCP Python SDK with FastMCP
 - `qrcode[pil]` - QR code generation with Pillow
-- `uvicorn` - ASGI server (included with mcp)
-- `starlette` - CORS middleware (included with mcp)
+- `uvicorn` - ASGI server
+- `starlette` - CORS middleware
 
 ## License
 

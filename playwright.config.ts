@@ -32,7 +32,8 @@ export default defineConfig({
     url: "http://localhost:8080",
     // Always start fresh servers to avoid stale state issues
     reuseExistingServer: false,
-    timeout: 120000,
+    // 3 minutes to allow uv to download Python dependencies on first run
+    timeout: 180000,
   },
   // Snapshot configuration
   expect: {

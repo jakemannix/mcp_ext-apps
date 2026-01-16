@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-customer-segmentation",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "description": "Customer segmentation MCP App Server with filtering",
   "repository": {
@@ -26,12 +26,12 @@
     "serve": "bun --watch main.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.4.0",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "chart.js": "^4.4.0",
-    "zod": "^4.1.13",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
