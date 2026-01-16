@@ -55,7 +55,7 @@ WIDGET_URI = "ui://say-demo/widget.html"
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "3109"))
 
-mcp = FastMCP("Say Demo", port=PORT, stateless_http=True)
+mcp = FastMCP("Say Demo")
 
 # Global TTS model (loaded on startup)
 tts_model: TTSModel | None = None
@@ -1146,7 +1146,7 @@ def load_tts_model():
 def create_app():
     """Create the ASGI app (for uvicorn reload mode)."""
     load_tts_model()
-    app = mcp.streamable_http_app()
+    app = mcp.streamable_http_app(stateless_http=True)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
