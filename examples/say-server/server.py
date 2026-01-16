@@ -588,11 +588,15 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; }
-    .container { padding: 16px; min-height: 100px; }
+    .container { padding: 16px; min-height: 100px; position: relative; }
     .textWrapper { position: relative; }
     .textDisplay {
-      font-size: 16px; line-height: 1.6; max-height: 200px;
-      overflow-y: auto; padding: 8px; border-radius: 6px;
+      font-size: 16px; line-height: 1.6; padding: 8px; border-radius: 6px;
+    }
+    /* Fullscreen mode: enable scrolling */
+    .container.fullscreen .textDisplay {
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
     }
     .spoken { color: #333; }
     .pending { color: #999; }
@@ -612,6 +616,21 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
     }
     .playBtn:hover { transform: scale(1.08); }
     .playBtn:active { transform: scale(0.96); }
+    /* Fullscreen button */
+    .fullscreenBtn {
+      position: absolute; bottom: 8px; right: 8px;
+      width: 32px; height: 32px; border: none; border-radius: 6px;
+      background: rgba(0, 0, 0, 0.5); color: white; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.2s, background 0.2s; z-index: 10;
+    }
+    .fullscreenBtn.available { display: flex; }
+    .container:hover .fullscreenBtn.available { opacity: 0.7; }
+    .fullscreenBtn:hover { opacity: 1; background: rgba(0, 0, 0, 0.8); }
+    .fullscreenBtn svg { width: 16px; height: 16px; }
+    .fullscreenBtn .collapseIcon { display: none; }
+    .container.fullscreen .fullscreenBtn .expandIcon { display: none; }
+    .container.fullscreen .fullscreenBtn .collapseIcon { display: block; }
     @media (prefers-color-scheme: dark) {
       .spoken { color: #eee; }
       .pending { color: #666; }
@@ -631,6 +650,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const [charPosition, setCharPosition] = useState(0);
       const [status, setStatus] = useState("idle"); // idle | playing | paused | finished
       const [hasPendingChunks, setHasPendingChunks] = useState(false);
+      const [displayMode, setDisplayMode] = useState("inline");
+      const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
 
       const queueIdRef = useRef(null);
       const audioContextRef = useRef(null);
@@ -872,9 +893,27 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         } catch (err) {}
       }, [status, restartPlayback, ensureAudioContextResumed]);
 
+      const toggleFullscreen = useCallback(async () => {
+        const app = appRef.current;
+        if (!app) return;
+        const newMode = displayMode === "fullscreen" ? "inline" : "fullscreen";
+        try {
+          const result = await app.requestDisplayMode({ mode: newMode });
+          setDisplayMode(result.mode);
+        } catch (err) {}
+      }, [displayMode]);
+
       const { app, error } = useApp({
         appInfo: { name: "Say Widget", version: "1.0.0" },
         capabilities: {},
+        onHostContextChanged: (ctx) => {
+          if (ctx.availableDisplayModes?.includes("fullscreen")) {
+            setFullscreenAvailable(true);
+          }
+          if (ctx.displayMode) {
+            setDisplayMode(ctx.displayMode);
+          }
+        },
         onAppCreated: (app) => {
           appRef.current = app;
           app.ontoolinputpartial = async (params) => {
@@ -942,7 +981,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const pendingText = displayText.slice(charPosition);
 
       return (
-        <main className="container" style={{
+        <main className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)} style={{
           paddingTop: hostContext?.safeAreaInsets?.top,
           paddingRight: hostContext?.safeAreaInsets?.right,
           paddingBottom: hostContext?.safeAreaInsets?.bottom,
@@ -962,6 +1001,14 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
               </button>
             </div>
           </div>
+          <button className={`fullscreenBtn` + (fullscreenAvailable ? ` available` : ``)} onClick={toggleFullscreen} title="Toggle fullscreen">
+            <svg className="expandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+            <svg className="collapseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+          </button>
         </main>
       );
     }
