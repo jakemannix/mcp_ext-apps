@@ -127,7 +127,7 @@ def say(text: str = DEFAULT_TEXT) -> list[types.TextContent]:
     # 1. Trigger the widget to load
     # 2. Provide the resourceUri metadata
     # 3. Show the final text in the tool result
-    return [types.TextContent(type="text", text=f"Spoke: {text[:100]}{'...' if len(text) > 100 else ''}")]
+    return [types.TextContent(type="text", text="Displayed a widget that does TTS of the provided text. User can play / pause w/ click, and restart w/ double click. A big play button is initially displayed as the content cannot be autoplayed.")]
 
 
 # ------------------------------------------------------
@@ -575,14 +575,13 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Say Widget</title>
-  <script src="https://esm.sh/@babel/standalone@7.26.10"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.10/babel.min.js"></script>
   <script type="importmap">
   {
     "imports": {
-      "react": "https://esm.sh/react@19.1.0",
-      "react-dom/client": "https://esm.sh/react-dom@19.1.0/client",
-      "@modelcontextprotocol/ext-apps": "https://esm.sh/@modelcontextprotocol/ext-apps@0.4.1",
-      "@modelcontextprotocol/ext-apps/react": "https://esm.sh/@modelcontextprotocol/ext-apps@0.4.1/react"
+      "react": "https://esm.sh/react@19.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@19.2.0/client",
+      "@modelcontextprotocol/ext-apps/react": "https://esm.sh/@modelcontextprotocol/ext-apps@0.4.1/react?deps=zod@3.25.1&external=react,react-dom"
     }
   }
   </script>
@@ -622,7 +621,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
 <body>
   <div id="root"></div>
   <script type="text/babel" data-type="module">
-    import { useState, useCallback, useEffect, useRef, StrictMode } from 'react';
+    import React, { useState, useCallback, useEffect, useRef, StrictMode } from 'react';
     import { createRoot } from 'react-dom/client';
     import { useApp } from '@modelcontextprotocol/ext-apps/react';
 
@@ -984,61 +983,16 @@ def get_widget_html() -> str:
     return EMBEDDED_WIDGET_HTML
 
 
-@mcp.resource(WIDGET_URI, mime_type="text/html;profile=mcp-app")
-def widget() -> types.ReadResourceResult:
-    return types.ReadResourceResult(
-        contents=[
-            types.TextResourceContents(
-                uri=WIDGET_URI,
-                mimeType="text/html;profile=mcp-app",
-                text=get_widget_html(),
-            )
-        ],
-        _meta={
-            "ui": {
-                "csp": {
-                    "connectDomains": ["https://esm.sh"],
-                    "resourceDomains": ["https://esm.sh"],
-                }
-            }
-        },
-    )
-
-
-# Override read_resource to inject CSP metadata
-_low_level_server = mcp._mcp_server
-
-
-async def _read_resource_with_meta(req: types.ReadResourceRequest):
-    """Custom handler that injects CSP metadata for the widget resource."""
-    uri = str(req.params.uri)
-
-    if uri == WIDGET_URI:
-        html = get_widget_html()
-        content = types.TextResourceContents.model_validate({
-            "uri": WIDGET_URI,
-            "mimeType": "text/html;profile=mcp-app",
-            "text": html,
-        })
-        return types.ServerResult(types.ReadResourceResult(contents=[content], _meta={
-            "ui": {
-                "csp": {
-                    "connectDomains": ["https://esm.sh"],
-                    "resourceDomains": ["https://esm.sh"],
-                }
-            }
-        }))
-
-    return types.ServerResult(
-        types.ReadResourceResult(
-            contents=[
-                types.TextResourceContents(uri=uri, mimeType="text/plain", text="Resource not found")
-            ]
-        )
-    )
-
-
-_low_level_server.request_handlers[types.ReadResourceRequest] = _read_resource_with_meta
+# IMPORTANT: all the external domains used by app must be listed
+# in the meta.ui.csp.resourceDomains - otherwise they will be blocked by CSP policy
+@mcp.resource(
+    WIDGET_URI,
+    mime_type="text/html;profile=mcp-app",
+    meta={"ui": {"csp": {"resourceDomains": ["https://esm.sh", "https://unpkg.com"]}}},
+)
+def widget() -> str:
+    """Widget HTML resource with CSP metadata for external dependencies."""
+    return get_widget_html()
 
 
 # ------------------------------------------------------
