@@ -661,6 +661,24 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
     }
     .spoken { color: var(--color-text-primary); }
     .pending { color: var(--color-text-secondary); }
+    /* Word-level states for click-to-jump */
+    .word { cursor: pointer; transition: color 0.15s, opacity 0.15s, background 0.15s; }
+    .word-spoken { color: var(--color-text-primary); }
+    .word-current { color: var(--color-text-primary); font-weight: 600; }
+    .word-pending { color: var(--color-text-secondary); }
+    .word-unavailable { color: var(--color-text-secondary); opacity: 0.5; }
+    .word-target { background: rgba(255, 200, 0, 0.3); border-radius: 2px; }
+    /* Shimmer animation for loading region */
+    @keyframes shimmer-pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.9; }
+    }
+    .word-loading { animation: shimmer-pulse 1s ease-in-out infinite; }
+    .word-loading.phase-0 { animation-delay: 0s; }
+    .word-loading.phase-1 { animation-delay: 0.1s; }
+    .word-loading.phase-2 { animation-delay: 0.15s; }
+    .word-loading.phase-3 { animation-delay: 0.2s; }
+    .word-loading.phase-4 { animation-delay: 0.25s; }
     /* Toolbar - top right, visible on hover */
     .toolbar {
       position: absolute;
@@ -730,7 +748,84 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const audioOperationInProgressRef = useRef(false);
       const initQueuePromiseRef = useRef(null);
       const pendingModelContextUpdateRef = useRef(null);
+      // Click-to-jump: audio accumulation and seek state
+      const accumulatedSamplesRef = useRef([]);  // Array of Float32Array chunks
+      const totalSamplesRef = useRef(0);
+      const audioAvailableUpToCharRef = useRef(0);
+      const activeSourcesRef = useRef([]);  // Track scheduled sources for cancellation
+      const seekSourceRef = useRef(null);  // Source for seek playback
+      const seekStartTimeRef = useRef(0);  // AudioContext time when seek playback started
+      const seekAudioOffsetRef = useRef(0);  // Audio time offset for seek
+      const [pendingJumpTarget, setPendingJumpTarget] = useState(null);  // Character position waiting for audio
 
+      // Split text into words with character positions
+      const splitIntoWords = useCallback((text) => {
+        const words = [];
+        let charPos = 0;
+        for (const match of text.matchAll(/(\\S+)(\\s*)/g)) {
+          words.push({
+            word: match[1],
+            whitespace: match[2],
+            charStart: charPos,
+            charEnd: charPos + match[1].length,
+          });
+          charPos += match[0].length;
+        }
+        return words;
+      }, []);
+
+      // Determine CSS class for a word based on playback state
+      const getWordClass = useCallback((wordInfo, currentCharPos, audioAvailableUpTo, jumpTarget) => {
+        const { charStart, charEnd } = wordInfo;
+        const classes = ["word"];
+
+        // Target word (where user clicked)
+        if (jumpTarget !== null && charStart <= jumpTarget && charEnd > jumpTarget) {
+          classes.push("word-target");
+        }
+
+        // Determine state based on position
+        if (charEnd <= currentCharPos) {
+          classes.push("word-spoken");
+        } else if (charStart <= currentCharPos && charEnd > currentCharPos) {
+          classes.push("word-current");
+        } else if (charEnd <= audioAvailableUpTo) {
+          classes.push("word-pending");
+        } else {
+          classes.push("word-unavailable");
+          // Show shimmer for words between current and jump target
+          if (jumpTarget !== null && charStart < jumpTarget && charEnd > currentCharPos) {
+            const wordIndex = Math.floor(charStart / 10);  // Approximate word index
+            classes.push("word-loading", `phase-${wordIndex % 5}`);
+          }
+        }
+        return classes.join(" ");
+      }, []);
+
+      // Inverse lookup: character position -> audio time
+      const charToAudioTime = useCallback((charPos) => {
+        const timings = chunkTimingsRef.current;
+        for (const chunk of timings) {
+          if (charPos >= chunk.charStart && charPos < chunk.charEnd) {
+            const progress = (charPos - chunk.charStart) / (chunk.charEnd - chunk.charStart);
+            // Return time relative to playbackStartTimeRef
+            return (chunk.audioStartTime - playbackStartTimeRef.current) +
+                   progress * (chunk.audioEndTime - chunk.audioStartTime);
+          }
+        }
+        // If before first chunk
+        if (timings.length > 0 && charPos < timings[0].charStart) {
+          return 0;
+        }
+        // If after last chunk
+        if (timings.length > 0) {
+          const last = timings[timings.length - 1];
+          if (charPos >= last.charEnd) {
+            return last.audioEndTime - playbackStartTimeRef.current;
+          }
+        }
+        return null;  // No audio data yet
+      }, []);
 
       const roundToWordEnd = useCallback((pos) => {
         const text = lastTextRef.current;
@@ -745,25 +840,40 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const getCharacterPosition = useCallback((currentTime) => {
         const timings = chunkTimingsRef.current;
         let rawPos = 0;
-        if (timings.length === 0) {
-          rawPos = Math.floor((currentTime - playbackStartTimeRef.current) * 12);
+
+        // If we're playing from a seek position, adjust the time calculation
+        let effectiveAudioTime;
+        if (seekStartTimeRef.current > 0 && seekAudioOffsetRef.current > 0) {
+          // Calculate effective audio time based on seek offset
+          effectiveAudioTime = seekAudioOffsetRef.current + (currentTime - seekStartTimeRef.current);
         } else {
+          effectiveAudioTime = currentTime - playbackStartTimeRef.current;
+        }
+
+        if (timings.length === 0) {
+          rawPos = Math.floor(effectiveAudioTime * 12);
+        } else {
+          // Find character position based on effective audio time
           for (const chunk of timings) {
-            if (currentTime >= chunk.audioStartTime && currentTime < chunk.audioEndTime) {
-              const duration = chunk.audioEndTime - chunk.audioStartTime;
+            const chunkStartRelative = chunk.audioStartTime - playbackStartTimeRef.current;
+            const chunkEndRelative = chunk.audioEndTime - playbackStartTimeRef.current;
+            if (effectiveAudioTime >= chunkStartRelative && effectiveAudioTime < chunkEndRelative) {
+              const duration = chunkEndRelative - chunkStartRelative;
               if (duration <= 0) { rawPos = chunk.charStart; }
               else {
-                const progress = (currentTime - chunk.audioStartTime) / duration;
+                const progress = (effectiveAudioTime - chunkStartRelative) / duration;
                 rawPos = Math.floor(chunk.charStart + progress * (chunk.charEnd - chunk.charStart));
               }
               break;
             }
           }
           if (rawPos === 0 && timings.length > 0) {
-            if (currentTime < timings[0].audioStartTime) rawPos = 0;
+            const firstChunkStart = timings[0].audioStartTime - playbackStartTimeRef.current;
+            if (effectiveAudioTime < firstChunkStart) rawPos = 0;
             else {
               const last = timings[timings.length - 1];
-              if (currentTime >= last.audioEndTime) rawPos = last.charEnd;
+              const lastChunkEnd = last.audioEndTime - playbackStartTimeRef.current;
+              if (effectiveAudioTime >= lastChunkEnd) rawPos = last.charEnd;
             }
           }
         }
@@ -800,6 +910,12 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         const int16Array = new Int16Array(bytes.buffer);
         const float32Array = new Float32Array(int16Array.length);
         for (let i = 0; i < int16Array.length; i++) float32Array[i] = int16Array[i] / 32768;
+
+        // Accumulate audio for seek functionality
+        accumulatedSamplesRef.current.push(float32Array.slice());
+        totalSamplesRef.current += float32Array.length;
+        audioAvailableUpToCharRef.current = chunk.char_end;
+
         const audioBuffer = ctx.createBuffer(1, float32Array.length, sampleRateRef.current);
         audioBuffer.getChannelData(0).set(float32Array);
         const source = ctx.createBufferSource();
@@ -818,6 +934,12 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           charStart: chunk.char_start, charEnd: chunk.char_end,
           audioStartTime: startTime, audioEndTime: nextPlayTimeRef.current,
         });
+
+        // Track source for potential cancellation during seek
+        activeSourcesRef.current.push({ source, endTime: nextPlayTimeRef.current });
+        // Clean up old sources that have finished
+        activeSourcesRef.current = activeSourcesRef.current.filter(s => s.endTime > ctx.currentTime);
+
         const thisBufferEndTime = nextPlayTimeRef.current;
         source.onended = () => {
           if (!audioContextRef.current) return;
@@ -840,7 +962,72 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           return;
         }
         await scheduleAudioChunkInternal(chunk);
+
+        // Check if we have a pending jump target that's now available
+        // Note: pendingJumpTarget is accessed via closure, need to use ref for real-time check
+        // Actually React state is not accessible in useCallback without dependency, so we'll handle this in useEffect
       }, [scheduleAudioChunkInternal]);
+
+      // Stop all scheduled audio sources (for seek)
+      const stopAllScheduledSources = useCallback(() => {
+        for (const { source } of activeSourcesRef.current) {
+          try { source.stop(); } catch {}
+        }
+        activeSourcesRef.current = [];
+        if (seekSourceRef.current) {
+          try { seekSourceRef.current.stop(); } catch {}
+          seekSourceRef.current = null;
+        }
+      }, []);
+
+      // Seek to a character position (creates new source from accumulated audio)
+      const seekToCharPosition = useCallback(async (charPos) => {
+        const ctx = audioContextRef.current;
+        if (!ctx) return false;
+
+        // Find audio time for character position
+        const targetTime = charToAudioTime(charPos);
+        if (targetTime === null) return false;  // No audio for this position
+
+        // Calculate sample offset
+        const sampleOffset = Math.floor(targetTime * sampleRateRef.current);
+        if (sampleOffset < 0 || sampleOffset >= totalSamplesRef.current) return false;
+
+        // Stop all currently scheduled sources
+        stopAllScheduledSources();
+
+        // Combine accumulated samples into single buffer
+        const totalLength = totalSamplesRef.current;
+        const combined = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of accumulatedSamplesRef.current) {
+          combined.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        // Create new buffer starting at offset
+        const remainingLength = totalLength - sampleOffset;
+        if (remainingLength <= 0) return false;
+
+        const buffer = ctx.createBuffer(1, remainingLength, sampleRateRef.current);
+        buffer.getChannelData(0).set(combined.subarray(sampleOffset));
+
+        // Create source but don't start yet (will start on resume)
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+
+        seekSourceRef.current = source;
+        seekAudioOffsetRef.current = targetTime;
+
+        // Update character position and pause
+        setCharPosition(charPos);
+        setPendingJumpTarget(null);
+        setStatus("paused");
+        await ctx.suspend();
+
+        return true;
+      }, [charToAudioTime, stopAllScheduledSources]);
 
       const startPolling = useCallback(async () => {
         const app = appRef.current;
@@ -894,6 +1081,15 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
             chunkTimingsRef.current = [];
             pendingChunksRef.current = [];
             allAudioReceivedRef.current = false;
+            // Reset click-to-jump state
+            accumulatedSamplesRef.current = [];
+            totalSamplesRef.current = 0;
+            audioAvailableUpToCharRef.current = 0;
+            activeSourcesRef.current = [];
+            seekSourceRef.current = null;
+            seekStartTimeRef.current = 0;
+            seekAudioOffsetRef.current = 0;
+            setPendingJumpTarget(null);
             setCharPosition(0);
             setStatus("idle");
             // Create new queue
@@ -956,6 +1152,11 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           nextPlayTimeRef.current = 0; playbackStartTimeRef.current = 0;
           setStatus("idle"); chunkTimingsRef.current = []; allAudioReceivedRef.current = false;
           setCharPosition(0); pendingChunksRef.current = []; setHasPendingChunks(false);
+          // Reset click-to-jump state
+          accumulatedSamplesRef.current = []; totalSamplesRef.current = 0;
+          audioAvailableUpToCharRef.current = 0; activeSourcesRef.current = [];
+          seekSourceRef.current = null; seekStartTimeRef.current = 0; seekAudioOffsetRef.current = 0;
+          setPendingJumpTarget(null);
           setDisplayText(textToReplay);
           const app = appRef.current;
           if (!app) return;
@@ -994,12 +1195,68 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           }
           if (ctx.state === "suspended" || pendingChunksRef.current.length > 0) {
             console.log('[TTS] resuming via ensureAudioContextResumed');
+            // If we have a seek source ready, start it now
+            if (seekSourceRef.current) {
+              await ctx.resume();
+              const source = seekSourceRef.current;
+              seekSourceRef.current = null;
+              seekStartTimeRef.current = ctx.currentTime;
+              source.start(ctx.currentTime);
+              // Update nextPlayTimeRef for progress tracking
+              const remainingDuration = source.buffer.duration;
+              nextPlayTimeRef.current = ctx.currentTime + remainingDuration;
+              // Handle end of seek playback
+              source.onended = () => {
+                if (!audioContextRef.current) return;
+                // Clear seek refs and mark as finished
+                seekStartTimeRef.current = 0;
+                seekAudioOffsetRef.current = 0;
+                if (allAudioReceivedRef.current) {
+                  finishPlayback();
+                }
+              };
+              setStatus("playing");
+              startProgressTracking();
+              return;
+            }
             await ensureAudioContextResumed(); setStatus("playing"); return;
           }
           if (status === "paused") { console.log('[TTS] resuming paused'); await ctx.resume(); setStatus("playing"); }
           else if (status === "playing") { console.log('[TTS] pausing'); await ctx.suspend(); setStatus("paused"); }
         } catch (err) { console.error('[TTS] togglePlayPause error:', err); }
-      }, [status, restartPlayback, ensureAudioContextResumed]);
+      }, [status, restartPlayback, ensureAudioContextResumed, startProgressTracking]);
+
+      // Handle word click for jump-to-position
+      const handleWordClick = useCallback(async (charStart, e) => {
+        e.stopPropagation();  // Prevent container click
+
+        // If finished, restart and seek
+        if (status === "finished") {
+          // For simplicity, restart then seek
+          await restartPlayback();
+          return;
+        }
+
+        // If already paused near this position, resume instead of seeking
+        if (status === "paused" && Math.abs(charPosition - charStart) < 5) {
+          await togglePlayPause();
+          return;
+        }
+
+        // Check if audio is available for this position
+        if (charStart <= audioAvailableUpToCharRef.current) {
+          // Seek immediately
+          await seekToCharPosition(charStart);
+        } else {
+          // Set pending target, show shimmer, wait for audio
+          setPendingJumpTarget(charStart);
+          setStatus("paused");
+          if (audioContextRef.current) {
+            await audioContextRef.current.suspend();
+          }
+          // Will auto-seek when audio arrives (checked in scheduleAudioChunk)
+        }
+      }, [status, charPosition, seekToCharPosition, togglePlayPause, restartPlayback]);
 
       const toggleFullscreen = useCallback(async () => {
         const app = appRef.current;
@@ -1123,11 +1380,32 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         return () => { if (pendingModelContextUpdateRef.current) clearTimeout(pendingModelContextUpdateRef.current); };
       }, [app, status, charPosition, displayText]);
 
+      // Auto-jump when audio arrives for pending jump target
+      // We track audioAvailableUpToChar via a state that updates when chunks arrive
+      const [audioAvailableUpToChar, setAudioAvailableUpToChar] = useState(0);
+
+      // Update audioAvailableUpToChar state when ref changes (polled in scheduleAudioChunkInternal)
+      useEffect(() => {
+        const checkInterval = setInterval(() => {
+          if (audioAvailableUpToCharRef.current !== audioAvailableUpToChar) {
+            setAudioAvailableUpToChar(audioAvailableUpToCharRef.current);
+          }
+        }, 100);
+        return () => clearInterval(checkInterval);
+      }, [audioAvailableUpToChar]);
+
+      // Auto-jump when pending target becomes available
+      useEffect(() => {
+        if (pendingJumpTarget !== null && audioAvailableUpToChar >= pendingJumpTarget) {
+          seekToCharPosition(pendingJumpTarget);
+        }
+      }, [pendingJumpTarget, audioAvailableUpToChar, seekToCharPosition]);
+
       if (error) return <div><strong>ERROR:</strong> {error.message}</div>;
       if (!app) return <div>Connecting...</div>;
 
-      const spokenText = displayText.slice(0, charPosition);
-      const pendingText = displayText.slice(charPosition);
+      // Split text into words for click-to-jump
+      const words = splitIntoWords(displayText);
 
       return (
         <main className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)} style={{
@@ -1137,9 +1415,18 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           paddingLeft: hostContext?.safeAreaInsets?.left,
         }}>
           <div className="textWrapper">
-            <div className="textDisplay" onClick={togglePlayPause} style={{cursor: "pointer"}}>
-              <span className="spoken">{spokenText}</span>
-              <span className="pending">{pendingText}</span>
+            <div className="textDisplay" style={{cursor: "pointer"}}>
+              {words.map((w, i) => (
+                <span key={i}>
+                  <span
+                    className={getWordClass(w, charPosition, audioAvailableUpToChar, pendingJumpTarget)}
+                    onClick={(e) => handleWordClick(w.charStart, e)}
+                  >
+                    {w.word}
+                  </span>
+                  {w.whitespace}
+                </span>
+              ))}
             </div>
           </div>
           {/* Toolbar - top right */}
