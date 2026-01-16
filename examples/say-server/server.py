@@ -667,6 +667,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const progressIntervalRef = useRef(null);
       const appRef = useRef(null);
       const lastModelContextUpdateRef = useRef(0);
+      const audioOperationInProgressRef = useRef(false);
       const pendingModelContextUpdateRef = useRef(null);
 
       // Show overlay when not playing (idle, paused, or finished)
@@ -846,19 +847,22 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       }, [scheduleAudioChunkInternal]);
 
       const restartPlayback = useCallback(async () => {
-        if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
-        await cancelCurrentQueue();
-        if (audioContextRef.current) { await audioContextRef.current.close(); audioContextRef.current = null; }
-        const textToReplay = fullTextRef.current || lastTextRef.current;
-        if (!textToReplay) return;
-        queueIdRef.current = null; lastTextRef.current = ""; isPollingRef.current = false;
-        nextPlayTimeRef.current = 0; playbackStartTimeRef.current = 0;
-        setStatus("idle"); chunkTimingsRef.current = []; allAudioReceivedRef.current = false;
-        setCharPosition(0); pendingChunksRef.current = []; setHasPendingChunks(false);
-        setDisplayText(textToReplay);
-        const app = appRef.current;
-        if (!app) return;
+        // Prevent concurrent audio operations
+        if (audioOperationInProgressRef.current) return;
+        audioOperationInProgressRef.current = true;
         try {
+          if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null; }
+          await cancelCurrentQueue();
+          if (audioContextRef.current) { await audioContextRef.current.close(); audioContextRef.current = null; }
+          const textToReplay = fullTextRef.current || lastTextRef.current;
+          if (!textToReplay) return;
+          queueIdRef.current = null; lastTextRef.current = ""; isPollingRef.current = false;
+          nextPlayTimeRef.current = 0; playbackStartTimeRef.current = 0;
+          setStatus("idle"); chunkTimingsRef.current = []; allAudioReceivedRef.current = false;
+          setCharPosition(0); pendingChunksRef.current = []; setHasPendingChunks(false);
+          setDisplayText(textToReplay);
+          const app = appRef.current;
+          if (!app) return;
           const result = await app.callServerTool({ name: "create_tts_queue", arguments: { voice: "cosette" } });
           const data = JSON.parse(result.content[0].text);
           if (data.error) return;
@@ -870,10 +874,15 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           lastTextRef.current = textToReplay;
           await app.callServerTool({ name: "end_tts_queue", arguments: { queue_id: queueIdRef.current } });
           startPolling();
-        } catch (err) {}
+        } catch (err) {
+        } finally {
+          audioOperationInProgressRef.current = false;
+        }
       }, [cancelCurrentQueue, startPolling]);
 
       const togglePlayPause = useCallback(async () => {
+        // Prevent concurrent audio operations
+        if (audioOperationInProgressRef.current) return;
         let ctx = audioContextRef.current;
         try {
           if (status === "finished") { await restartPlayback(); return; }
@@ -947,7 +956,17 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         },
       });
 
-      useEffect(() => { if (app) setHostContext(app.getHostContext()); }, [app]);
+      useEffect(() => {
+        if (!app) return;
+        const ctx = app.getHostContext();
+        setHostContext(ctx);
+        if (ctx?.availableDisplayModes?.includes("fullscreen")) {
+          setFullscreenAvailable(true);
+        }
+        if (ctx?.displayMode) {
+          setDisplayMode(ctx.displayMode);
+        }
+      }, [app]);
 
       useEffect(() => {
         if (!app || !displayText || status === "idle") return;
