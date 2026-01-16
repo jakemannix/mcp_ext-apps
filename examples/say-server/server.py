@@ -106,7 +106,7 @@ tts_queues: dict[str, TTSQueueState] = {}
 # Public Tool: say
 # ------------------------------------------------------
 
-DEFAULT_TEXT = """Hello! I'm a text-to-speech demonstration. This speech is being generated in real-time as you watch. The words you see highlighted are synchronized with the audio playback, creating a karaoke-style reading experience. You can click to pause or resume, and double-click to restart from the beginning. Pretty neat, right?"""
+DEFAULT_TEXT = """Hello! I'm a text-to-speech demonstration. This speech is being generated in real-time as you watch. The words you see highlighted are synchronized with the audio playback, creating a karaoke-style reading experience. You can click to pause or resume, and use the reset button to restart from the beginning. Pretty neat, right?"""
 
 
 @mcp.tool(meta={
@@ -609,43 +609,28 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
     }
     .spoken { color: var(--color-text-primary); }
     .pending { color: var(--color-text-secondary); }
-    .playOverlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity 0.2s;
-    }
-    .playOverlayVisible { opacity: 1; pointer-events: auto; }
-    /* When playing: hidden by default, visible on hover */
-    .playOverlay.playing { pointer-events: auto; }
-    .playOverlay.playing:hover { opacity: 1; }
-    .playBtn {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.95); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 28px;
-      box-shadow: 0 0 0 8px rgba(255,255,255,0.3), 0 0 0 16px rgba(255,255,255,0.15),
-                  0 0 0 24px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.3);
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .playBtn:hover { transform: scale(1.08); }
-    .playBtn:active { transform: scale(0.96); }
-    /* Control buttons */
-    .controlBtn {
+    /* Toolbar - top right, visible on hover */
+    .toolbar {
       position: absolute;
+      top: 8px; right: 8px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+    .container:hover .toolbar { opacity: 0.8; }
+    .toolbar:hover { opacity: 1; }
+    .controlBtn {
       width: 32px; height: 32px; border: none; border-radius: 6px;
       background: rgba(0, 0, 0, 0.5); color: white; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.2s, background 0.2s; z-index: 10;
+      transition: background 0.2s;
       font-size: 14px;
     }
-    .container:hover .controlBtn { opacity: 0.7; }
-    .controlBtn:hover { opacity: 1; background: rgba(0, 0, 0, 0.8); }
+    .controlBtn:hover { background: rgba(0, 0, 0, 0.8); }
     .controlBtn svg { width: 16px; height: 16px; }
-    /* Top left play/pause button */
-    .playPauseTopBtn { top: 8px; left: 8px; }
-    /* Bottom right buttons */
-    .playPauseBtn { bottom: 8px; right: 88px; }
-    .resetBtn { bottom: 8px; right: 48px; }
-    .fullscreenBtn { bottom: 8px; right: 8px; display: none; }
+    .fullscreenBtn { display: none; }
     .fullscreenBtn.available { display: flex; }
     .fullscreenBtn .collapseIcon { display: none; }
     .container.fullscreen .fullscreenBtn .expandIcon { display: none; }
@@ -693,8 +678,6 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const initQueuePromiseRef = useRef(null);
       const pendingModelContextUpdateRef = useRef(null);
 
-      // Show overlay when not playing (pause only visible on hover)
-      const showOverlay = displayText.length > 0 && status !== "playing";
 
       const roundToWordEnd = useCallback((pos) => {
         const text = lastTextRef.current;
@@ -795,7 +778,10 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const scheduleAudioChunk = useCallback(async (chunk) => {
         const ctx = audioContextRef.current;
         if (!ctx) return;
-        if (ctx.state === "suspended") {
+        // Only defer to pendingChunks if suspended AND playback hasn't started yet
+        // (i.e., autoplay is blocked). If we're paused by user (chunkTimings exists),
+        // schedule normally - the audio will queue up and play when resumed.
+        if (ctx.state === "suspended" && chunkTimingsRef.current.length === 0) {
           pendingChunksRef.current.push(chunk);
           setHasPendingChunks(true);
           return;
@@ -891,6 +877,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         if (ctx && ctx.state === "suspended") {
           await ctx.resume();
           if (pendingChunksRef.current.length > 0) {
+            // This is only reached during initial autoplay unblocking (before any audio played).
+            // Reset nextPlayTimeRef to current time so chunks start immediately.
             nextPlayTimeRef.current = ctx.currentTime;
             const chunks = pendingChunksRef.current;
             pendingChunksRef.current = [];
@@ -1032,7 +1020,13 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
             if (audioContextRef.current) { await audioContextRef.current.close(); audioContextRef.current = null; }
             return {};
           };
-          app.onhostcontextchanged = (params) => setHostContext(prev => ({ ...prev, ...params }));
+          app.onhostcontextchanged = (params) => {
+            setHostContext(prev => ({ ...prev, ...params }));
+            // Sync displayMode when host changes it (e.g., user exits fullscreen via host UI)
+            if (params.displayMode) {
+              setDisplayMode(params.displayMode);
+            }
+          };
         },
       });
 
@@ -1087,40 +1081,31 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           paddingLeft: hostContext?.safeAreaInsets?.left,
         }}>
           <div className="textWrapper">
-            <div className="textDisplay"
-              onDoubleClick={(e) => { e.preventDefault(); restartPlayback(); }}
-            >
+            <div className="textDisplay" onClick={togglePlayPause} style={{cursor: "pointer"}}>
               <span className="spoken">{spokenText}</span>
               <span className="pending">{pendingText}</span>
             </div>
-            <div className={`playOverlay` + (showOverlay ? ` playOverlayVisible` : ``) + (status === "playing" ? ` playing` : ``)} onClick={togglePlayPause}>
-              <button className="playBtn" onClick={(e) => { e.stopPropagation(); togglePlayPause(); }}>
-                {status === "finished" ? "🔄" : status === "playing" ? "⏸️" : "▶️"}
-              </button>
-            </div>
           </div>
-          {/* Top left play/pause button */}
-          <button className="controlBtn playPauseTopBtn" onClick={togglePlayPause} title="Play/Pause (Space)">
-            {status === "playing" ? "⏸️" : status === "finished" ? "🔄" : "▶️"}
-          </button>
-          {/* Bottom right control buttons */}
-          <button className="controlBtn playPauseBtn" onClick={togglePlayPause} title="Play/Pause (Space)">
-            {status === "playing" ? "⏸️" : status === "finished" ? "🔄" : "▶️"}
-          </button>
-          <button className="controlBtn resetBtn" onClick={restartPlayback} title="Restart (double-click text)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-            </svg>
-          </button>
-          <button className={`controlBtn fullscreenBtn` + (fullscreenAvailable ? ` available` : ``)} onClick={toggleFullscreen} title="Toggle fullscreen (Enter)">
-            <svg className="expandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-            </svg>
-            <svg className="collapseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-            </svg>
-          </button>
+          {/* Toolbar - top right */}
+          <div className="toolbar">
+            <button className="controlBtn" onClick={togglePlayPause} title="Play/Pause">
+              {status === "playing" ? "⏸️" : status === "finished" ? "🔄" : "▶️"}
+            </button>
+            <button className="controlBtn" onClick={restartPlayback} title="Restart">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+            </button>
+            <button className={`controlBtn fullscreenBtn` + (fullscreenAvailable ? ` available` : ``)} onClick={toggleFullscreen} title="Toggle fullscreen">
+              <svg className="expandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+              <svg className="collapseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+              </svg>
+            </button>
+          </div>
         </main>
       );
     }
