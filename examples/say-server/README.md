@@ -99,10 +99,16 @@ The entire server is contained in a single `server.py` file:
 4. **TTS backend**: Manages per-request audio queues using Pocket TTS
 
 The widget communicates with the server via MCP tool calls:
+
 - Receives streaming text via `ontoolinputpartial` callback
 - Incrementally sends new text to the server as it arrives (via `add_tts_text`)
 - Polls for generated audio chunks while TTS runs in parallel
 - Plays audio via Web Audio API with synchronized text highlighting
+
+## TODO
+
+- Persist caret position in localStorage (resume from where you left off)
+- Click anywhere in text to move the cursor/playback position
 
 ## Credits
 
