@@ -37,7 +37,8 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
+from pydantic import Field
 
 import torch
 import uvicorn
@@ -112,15 +113,17 @@ DEFAULT_TEXT = """Hello! I'm a text-to-speech demonstration. This speech is bein
     "ui":{"resourceUri": WIDGET_URI},
     "ui/resourceUri": WIDGET_URI, # legacy support
 })
-def say(text: str = DEFAULT_TEXT) -> list[types.TextContent]:
+def say(
+    text: Annotated[str, Field(description="The text to speak")] = DEFAULT_TEXT,
+    autoPlay: Annotated[bool, Field(
+        description="Whether to start playing automatically. Note: browsers may block autoplay until user interaction."
+    )] = True,
+) -> list[types.TextContent]:
     """Say the given text using text-to-speech.
 
     The audio plays in the widget as text is being provided.
     This tool is designed for streaming: as text is typed/generated,
     the widget receives partial updates and starts speaking immediately.
-
-    Args:
-        text: The text to speak
     """
     # This is a no-op - the widget handles everything via ontoolinputpartial
     # The tool exists to:
@@ -625,18 +628,22 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
     }
     .playBtn:hover { transform: scale(1.08); }
     .playBtn:active { transform: scale(0.96); }
-    /* Fullscreen button */
-    .fullscreenBtn {
-      position: absolute; bottom: 8px; right: 8px;
+    /* Control buttons (bottom right) */
+    .controlBtn {
+      position: absolute; bottom: 8px;
       width: 32px; height: 32px; border: none; border-radius: 6px;
       background: rgba(0, 0, 0, 0.5); color: white; cursor: pointer;
-      display: none; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       opacity: 0; transition: opacity 0.2s, background 0.2s; z-index: 10;
     }
+    .container:hover .controlBtn { opacity: 0.7; }
+    .controlBtn:hover { opacity: 1; background: rgba(0, 0, 0, 0.8); }
+    .controlBtn svg { width: 16px; height: 16px; }
+    /* Reset button */
+    .resetBtn { right: 48px; }
+    /* Fullscreen button */
+    .fullscreenBtn { right: 8px; display: none; }
     .fullscreenBtn.available { display: flex; }
-    .container:hover .fullscreenBtn.available { opacity: 0.7; }
-    .fullscreenBtn:hover { opacity: 1; background: rgba(0, 0, 0, 0.8); }
-    .fullscreenBtn svg { width: 16px; height: 16px; }
     .fullscreenBtn .collapseIcon { display: none; }
     .container.fullscreen .fullscreenBtn .expandIcon { display: none; }
     .container.fullscreen .fullscreenBtn .collapseIcon { display: block; }
@@ -663,6 +670,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const [hasPendingChunks, setHasPendingChunks] = useState(false);
       const [displayMode, setDisplayMode] = useState("inline");
       const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
+      const [autoPlay, setAutoPlay] = useState(true); // Default to autoPlay, can be overridden by tool input
 
       const queueIdRef = useRef(null);
       const audioContextRef = useRef(null);
@@ -982,6 +990,9 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
           app.ontoolinput = async (params) => {
             const text = params.arguments?.text;
             if (!text) return;
+            // Read autoPlay setting (defaults to true, but browser may block autoplay)
+            const shouldAutoPlay = params.arguments?.autoPlay !== false;
+            setAutoPlay(shouldAutoPlay);
             // Detect new session: text doesn't continue from where we left off
             const isNewSession = lastTextRef.current.length > 0 && !text.startsWith(lastTextRef.current);
             if (isNewSession) {
@@ -1074,7 +1085,13 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
               </button>
             </div>
           </div>
-          <button className={`fullscreenBtn` + (fullscreenAvailable ? ` available` : ``)} onClick={toggleFullscreen} title="Toggle fullscreen">
+          <button className="controlBtn resetBtn" onClick={restartPlayback} title="Restart (double-click text)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+          </button>
+          <button className={`controlBtn fullscreenBtn` + (fullscreenAvailable ? ` available` : ``)} onClick={toggleFullscreen} title="Toggle fullscreen (Enter)">
             <svg className="expandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
             </svg>
