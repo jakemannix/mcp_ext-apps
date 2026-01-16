@@ -606,6 +606,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       border-radius: 6px; pointer-events: none; opacity: 0; transition: opacity 0.2s;
     }
     .playOverlayVisible { opacity: 1; pointer-events: auto; }
+    .playOverlayVisible.playing { opacity: 0.3; }
+    .playOverlayVisible.playing:hover { opacity: 1; }
     .playBtn {
       width: 64px; height: 64px; border-radius: 50%;
       background: rgba(255, 255, 255, 0.95); border: none; cursor: pointer;
@@ -670,8 +672,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const audioOperationInProgressRef = useRef(false);
       const pendingModelContextUpdateRef = useRef(null);
 
-      // Show overlay when not playing (idle, paused, or finished)
-      const showOverlay = displayText.length > 0 && status !== "playing";
+      // Always show overlay when there's text (for play/pause control)
+      const showOverlay = displayText.length > 0;
 
       const roundToWordEnd = useCallback((pos) => {
         const text = lastTextRef.current;
@@ -1008,15 +1010,14 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         }}>
           <div className="textWrapper">
             <div className="textDisplay"
-              onClick={() => { if (status === "playing" || status === "paused") togglePlayPause(); }}
               onDoubleClick={(e) => { e.preventDefault(); restartPlayback(); }}
             >
               <span className="spoken">{spokenText}</span>
               <span className="pending">{pendingText}</span>
             </div>
-            <div className={`playOverlay ` + (showOverlay ? `playOverlayVisible` : ``)} onClick={togglePlayPause}>
+            <div className={`playOverlay` + (showOverlay ? ` playOverlayVisible` : ``) + (status === "playing" ? ` playing` : ``)} onClick={togglePlayPause}>
               <button className="playBtn" onClick={(e) => { e.stopPropagation(); togglePlayPause(); }}>
-                {status === "finished" ? "🔄" : "▶️"}
+                {status === "finished" ? "🔄" : status === "playing" ? "⏸️" : "▶️"}
               </button>
             </div>
           </div>
