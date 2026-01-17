@@ -922,8 +922,8 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         const app = appRef.current;
         if (isPollingRef.current || !app) return;
         isPollingRef.current = true;
-        // Initial delay to let TTS generate first chunk (reduces unnecessary polls)
-        await new Promise(r => setTimeout(r, 150));
+
+        let emptyPollCount = 0;
         while (queueIdRef.current) {
           try {
             const result = await app.callServerTool({ name: "poll_tts_audio", arguments: { queue_id: queueIdRef.current } });
@@ -934,7 +934,17 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
             }
             for (const chunk of data.chunks) await scheduleAudioChunk(chunk);
             if (data.done) { allAudioReceivedRef.current = true; break; }
-            await new Promise(r => setTimeout(r, data.chunks.length > 0 ? 30 : 80));
+
+            // Adaptive backoff: faster when streaming, slower when waiting
+            if (data.chunks.length > 0) {
+              emptyPollCount = 0;  // Reset - we're getting chunks
+              await new Promise(r => setTimeout(r, 20));  // Fast poll during streaming
+            } else {
+              emptyPollCount++;
+              // Exponential backoff for empty polls: 50ms, 100ms, 150ms max
+              const delay = Math.min(50 + (emptyPollCount * 50), 150);
+              await new Promise(r => setTimeout(r, delay));
+            }
           } catch (err) {
             console.log('[TTS] Polling error:', err);
             break;
