@@ -239,12 +239,29 @@ app.registerTool(
     description:
       "Update the shader source code. Compiles and runs the new shader immediately.",
     inputSchema: z.object({
-      fragmentShader: z.string().describe("The main fragment shader source code (mainImage function)"),
-      common: z.string().optional().describe("Common code shared across all shaders"),
-      bufferA: z.string().optional().describe("Buffer A shader source (for multi-pass rendering)"),
-      bufferB: z.string().optional().describe("Buffer B shader source (for multi-pass rendering)"),
-      bufferC: z.string().optional().describe("Buffer C shader source (for multi-pass rendering)"),
-      bufferD: z.string().optional().describe("Buffer D shader source (for multi-pass rendering)"),
+      fragmentShader: z
+        .string()
+        .describe("The main fragment shader source code (mainImage function)"),
+      common: z
+        .string()
+        .optional()
+        .describe("Common code shared across all shaders"),
+      bufferA: z
+        .string()
+        .optional()
+        .describe("Buffer A shader source (for multi-pass rendering)"),
+      bufferB: z
+        .string()
+        .optional()
+        .describe("Buffer B shader source (for multi-pass rendering)"),
+      bufferC: z
+        .string()
+        .optional()
+        .describe("Buffer C shader source (for multi-pass rendering)"),
+      bufferD: z
+        .string()
+        .optional()
+        .describe("Buffer D shader source (for multi-pass rendering)"),
     }),
   },
   async (args) => {
@@ -272,8 +289,7 @@ app.registerTool(
   "get-shader-info",
   {
     title: "Get Shader Info",
-    description:
-      "Get the current shader source code and compilation status.",
+    description: "Get the current shader source code and compilation status.",
   },
   async () => {
     log.info("get-shader-info tool called");

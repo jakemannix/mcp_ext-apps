@@ -680,12 +680,13 @@ app.registerTool(
   "set-allocation",
   {
     title: "Set Category Allocation",
-    description:
-      "Set the allocation percentage for a specific budget category",
+    description: "Set the allocation percentage for a specific budget category",
     inputSchema: z.object({
       categoryId: z
         .string()
-        .describe("Category ID (e.g., 'rd', 'sales', 'marketing', 'ops', 'ga')"),
+        .describe(
+          "Category ID (e.g., 'rd', 'sales', 'marketing', 'ops', 'ga')",
+        ),
       percent: z
         .number()
         .min(0)
@@ -703,7 +704,9 @@ app.registerTool(
       };
     }
 
-    const category = state.config.categories.find((c) => c.id === args.categoryId);
+    const category = state.config.categories.find(
+      (c) => c.id === args.categoryId,
+    );
     if (!category) {
       return {
         content: [
@@ -858,9 +861,7 @@ app.registerTool(
   async () => {
     if (!state.config || !state.analytics) {
       return {
-        content: [
-          { type: "text" as const, text: "Error: Data not loaded" },
-        ],
+        content: [{ type: "text" as const, text: "Error: Data not loaded" }],
         isError: true,
       };
     }

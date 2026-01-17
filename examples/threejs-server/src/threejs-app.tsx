@@ -173,6 +173,8 @@ export default function ThreeJSApp({
   sendMessage: _sendMessage,
   openLink: _openLink,
   sendLog: _sendLog,
+  onSceneError,
+  onSceneRendering,
 }: ThreeJSAppProps) {
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -195,11 +197,21 @@ export default function ThreeJSApp({
     if (!code || !canvasRef.current || !containerRef.current) return;
 
     setError(null);
+    onSceneError(null);
+    onSceneRendering(true);
+
     const width = containerRef.current.offsetWidth || 800;
-    executeThreeCode(code, canvasRef.current, width, height).catch((e) =>
-      setError(e instanceof Error ? e.message : "Unknown error"),
-    );
-  }, [code, height]);
+    executeThreeCode(code, canvasRef.current, width, height)
+      .then(() => {
+        onSceneRendering(true);
+      })
+      .catch((e) => {
+        const errorMessage = e instanceof Error ? e.message : "Unknown error";
+        setError(errorMessage);
+        onSceneError(errorMessage);
+        onSceneRendering(false);
+      });
+  }, [code, height, onSceneError, onSceneRendering]);
 
   if (isStreaming || !code) {
     return (

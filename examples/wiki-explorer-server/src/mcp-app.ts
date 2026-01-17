@@ -420,7 +420,10 @@ app.registerTool(
     const response = result.structuredContent as unknown as ToolResponse;
     if (response && response.page) {
       initialUrl = response.page.url;
-      addNode(response.page.url, response.page.title, "default", { x: 0, y: 0 });
+      addNode(response.page.url, response.page.title, "default", {
+        x: 0,
+        y: 0,
+      });
       graph.warmupTicks(100);
       handleToolResultData(result);
       graph.centerAt(0, 0, 500);
@@ -465,7 +468,9 @@ app.registerTool(
 
     if (!currentUrl) {
       return {
-        content: [{ type: "text" as const, text: "No article is currently selected" }],
+        content: [
+          { type: "text" as const, text: "No article is currently selected" },
+        ],
         structuredContent: {
           hasSelection: false,
           article: null,
@@ -477,7 +482,12 @@ app.registerTool(
 
     if (!node) {
       return {
-        content: [{ type: "text" as const, text: "Selected article not found in graph" }],
+        content: [
+          {
+            type: "text" as const,
+            text: "Selected article not found in graph",
+          },
+        ],
         structuredContent: {
           hasSelection: false,
           article: null,
@@ -512,7 +522,8 @@ app.registerTool(
   "highlight-node",
   {
     title: "Highlight Node",
-    description: "Highlight and center on a specific node in the graph by title or URL",
+    description:
+      "Highlight and center on a specific node in the graph by title or URL",
     inputSchema: z.object({
       identifier: z
         .string()
@@ -526,8 +537,7 @@ app.registerTool(
     // Find node by title (case-insensitive partial match) or exact URL
     const node = graphData.nodes.find(
       (n) =>
-        n.url === identifier ||
-        n.title.toLowerCase().includes(lowerIdentifier),
+        n.url === identifier || n.title.toLowerCase().includes(lowerIdentifier),
     );
 
     if (!node) {
