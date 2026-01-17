@@ -15,6 +15,7 @@ A demo MCP App that renders [ShaderToy](https://www.shadertoy.com/)-compatible G
 - **Real-time Rendering**: Renders GLSL shaders using WebGL 2.0
 - **ShaderToy Compatibility**: Uses the standard `mainImage(out vec4 fragColor, in vec2 fragCoord)` entry point
 - **Multi-pass Rendering**: Supports buffers A-D for feedback effects, blur chains, and simulations
+- **Mouse & Touch Interaction**: Full iMouse support with click detection (works on mobile)
 - **Standard Uniforms**: iResolution, iTime, iTimeDelta, iFrame, iMouse, iDate, iChannel0-3
 
 ## Running
@@ -101,13 +102,20 @@ _Tool input:_
 }
 ```
 
-**Interactive Julia Set** (mouse controls the fractal's c parameter):
+**Interactive Julia Set** (click and drag to control the fractal's c parameter):
 
 ```glsl
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y * 2.5;
-    vec2 mouse = (iMouse.xy / iResolution.xy - 0.5) * 2.0;
-    vec2 c = mouse;
+    // Use mouse position if clicked, otherwise use animated default
+    vec2 c;
+    if (iMouse.z > 0.0) {
+        // Mouse is pressed - use mouse position
+        c = (iMouse.xy / iResolution.xy - 0.5) * 2.0;
+    } else {
+        // Not pressed - animate around an interesting region
+        c = vec2(-0.8 + 0.2 * sin(iTime * 0.5), 0.156 + 0.1 * cos(iTime * 0.7));
+    }
     vec2 z = uv;
     float iter = 0.0;
     for (int i = 0; i < 100; i++) {
@@ -126,24 +134,32 @@ _Tool input:_
 
 ```json
 {
-  "fragmentShader": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y * 2.5;
-    vec2 mouse = (iMouse.xy / iResolution.xy - 0.5) * 2.0;
-    vec2 c = mouse;
-    vec2 z = uv;
-    float iter = 0.0;
-    for (int i = 0; i < 100; i++) {
-        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-        if (dot(z, z) > 4.0) break;
-        iter++;
-    }
-    float t = iter / 100.0;
-    vec3 col = 0.5 + 0.5 * cos(3.0 + t * 6.28 * 2.0 + vec3(0.0, 0.6, 1.0));
-    if (iter == 100.0) col = vec3(0.0);
-    fragColor = vec4(col, 1.0);
-}"
+  "fragmentShader": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y * 2.5;\n    vec2 c;\n    if (iMouse.z > 0.0) {\n        c = (iMouse.xy / iResolution.xy - 0.5) * 2.0;\n    } else {\n        c = vec2(-0.8 + 0.2 * sin(iTime * 0.5), 0.156 + 0.1 * cos(iTime * 0.7));\n    }\n    vec2 z = uv;\n    float iter = 0.0;\n    for (int i = 0; i < 100; i++) {\n        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;\n        if (dot(z, z) > 4.0) break;\n        iter++;\n    }\n    float t = iter / 100.0;\n    vec3 col = 0.5 + 0.5 * cos(3.0 + t * 6.28 * 2.0 + vec3(0.0, 0.6, 1.0));\n    if (iter == 100.0) col = vec3(0.0);\n    fragColor = vec4(col, 1.0);\n}"
 }
 ```
+
+## Mouse & Touch Interaction
+
+The `iMouse` uniform provides interactive input, compatible with the official Shadertoy specification:
+
+| Component | When Button Down | After Release | Never Clicked |
+|-----------|-----------------|---------------|---------------|
+| `iMouse.xy` | Current position | Last position | `(0, 0)` |
+| `iMouse.zw` | Click start (positive) | Negated (-x, -y) | `(0, 0)` |
+
+**Detecting button state:**
+
+```glsl
+if (iMouse.z > 0.0) {
+    // Button/touch is currently held down
+} else if (iMouse.z < 0.0) {
+    // Button was released (can use abs(iMouse.zw) for last click position)
+} else {
+    // Never clicked - show default state or animate
+}
+```
+
+Touch events are automatically supported for mobile devices.
 
 ## Architecture
 
