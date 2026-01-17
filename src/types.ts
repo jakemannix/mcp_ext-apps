@@ -26,6 +26,8 @@ export {
   INITIALIZE_METHOD,
   INITIALIZED_METHOD,
   REQUEST_DISPLAY_MODE_METHOD,
+  SCREENSHOT_METHOD,
+  CLICK_METHOD,
   type McpUiTheme,
   type McpUiDisplayMode,
   type McpUiStyleVariableKey,
@@ -59,6 +61,10 @@ export {
   type McpUiResourceMeta,
   type McpUiRequestDisplayModeRequest,
   type McpUiRequestDisplayModeResult,
+  type McpUiScreenshotRequest,
+  type McpUiScreenshotResult,
+  type McpUiClickRequest,
+  type McpUiClickResult,
   type McpUiToolVisibility,
   type McpUiToolMeta,
 } from "./spec.types.js";
@@ -71,6 +77,8 @@ import type {
   McpUiUpdateModelContextRequest,
   McpUiResourceTeardownRequest,
   McpUiRequestDisplayModeRequest,
+  McpUiScreenshotRequest,
+  McpUiClickRequest,
   McpUiHostContextChangedNotification,
   McpUiToolInputNotification,
   McpUiToolInputPartialNotification,
@@ -120,6 +128,10 @@ export {
   McpUiResourceMetaSchema,
   McpUiRequestDisplayModeRequestSchema,
   McpUiRequestDisplayModeResultSchema,
+  McpUiScreenshotRequestSchema,
+  McpUiScreenshotResultSchema,
+  McpUiClickRequestSchema,
+  McpUiClickResultSchema,
   McpUiToolVisibilitySchema,
   McpUiToolMetaSchema,
 } from "./generated/schema.js";
@@ -162,6 +174,8 @@ export type AppRequest =
   | McpUiUpdateModelContextRequest
   | McpUiResourceTeardownRequest
   | McpUiRequestDisplayModeRequest
+  | McpUiScreenshotRequest
+  | McpUiClickRequest
   | CallToolRequest
   | ListToolsRequest
   | ListResourcesRequest

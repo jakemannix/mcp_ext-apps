@@ -119,6 +119,22 @@ export type McpUiToolMetaSchemaInferredType = z.infer<
   typeof generated.McpUiToolMetaSchema
 >;
 
+export type McpUiScreenshotRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiScreenshotRequestSchema
+>;
+
+export type McpUiScreenshotResultSchemaInferredType = z.infer<
+  typeof generated.McpUiScreenshotResultSchema
+>;
+
+export type McpUiClickRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiClickRequestSchema
+>;
+
+export type McpUiClickResultSchemaInferredType = z.infer<
+  typeof generated.McpUiClickResultSchema
+>;
+
 export type McpUiMessageRequestSchemaInferredType = z.infer<
   typeof generated.McpUiMessageRequestSchema
 >;
@@ -277,6 +293,22 @@ expectType<McpUiToolVisibilitySchemaInferredType>(
 );
 expectType<spec.McpUiToolMeta>({} as McpUiToolMetaSchemaInferredType);
 expectType<McpUiToolMetaSchemaInferredType>({} as spec.McpUiToolMeta);
+expectType<spec.McpUiScreenshotRequest>(
+  {} as McpUiScreenshotRequestSchemaInferredType,
+);
+expectType<McpUiScreenshotRequestSchemaInferredType>(
+  {} as spec.McpUiScreenshotRequest,
+);
+expectType<spec.McpUiScreenshotResult>(
+  {} as McpUiScreenshotResultSchemaInferredType,
+);
+expectType<McpUiScreenshotResultSchemaInferredType>(
+  {} as spec.McpUiScreenshotResult,
+);
+expectType<spec.McpUiClickRequest>({} as McpUiClickRequestSchemaInferredType);
+expectType<McpUiClickRequestSchemaInferredType>({} as spec.McpUiClickRequest);
+expectType<spec.McpUiClickResult>({} as McpUiClickResultSchemaInferredType);
+expectType<McpUiClickResultSchemaInferredType>({} as spec.McpUiClickResult);
 expectType<spec.McpUiMessageRequest>(
   {} as McpUiMessageRequestSchemaInferredType,
 );
