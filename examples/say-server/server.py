@@ -147,12 +147,12 @@ def list_voices() -> list[types.TextContent]:
             "/path/to/local/voice.wav",
         ],
         "collections": [
-            "alba-mackenna (CC BY 4.0) - voice-acted characters",
-            "vctk (CC BY 4.0) - VCTK dataset speakers",
-            "cml-tts/fr (CC BY 4.0) - French voices",
-            "voice-donations (CC0) - community voices",
-            "expresso (CC BY-NC 4.0) - expressive voices (non-commercial)",
-            "ears (CC BY-NC 4.0) - emotional voices (non-commercial)",
+            "alba-mackenna (CC-BY 4.0) - voice-acted characters",
+            "vctk (CC-BY 4.0) - VCTK dataset speakers",
+            "cml-tts/fr (CC-BY 4.0) - French voices",
+            "voice-donations (CC0) - public domain community voices",
+            "expresso (CC-BY-NC 4.0) - expressive (NON-COMMERCIAL ONLY)",
+            "ears (CC-BY-NC 4.0) - emotional (NON-COMMERCIAL ONLY)",
         ],
     }
     return [types.TextContent(type="text", text=json.dumps(voice_info, indent=2))]

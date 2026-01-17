@@ -126,4 +126,29 @@ The server includes modified Pocket TTS code to support streaming text input (te
 
 ## License
 
-MIT
+This example is MIT licensed.
+
+### Third-Party Licenses
+
+This project uses the following open-source components:
+
+| Component | License | Link |
+|-----------|---------|------|
+| [pocket-tts](https://github.com/kyutai-labs/pocket-tts) | MIT | Python TTS library |
+| [Kyutai TTS model](https://huggingface.co/kyutai/tts-0.75b-en-public) | CC-BY 4.0 | Text-to-speech model weights |
+| [kyutai/tts-voices](https://huggingface.co/kyutai/tts-voices) | Mixed (see below) | Voice prompt files |
+
+### Voice Collection Licenses
+
+The predefined voices in this example use **CC-BY 4.0** licensed collections:
+
+| Collection | License | Commercial Use |
+|------------|---------|----------------|
+| alba-mackenna | CC-BY 4.0 | ✅ Yes (with attribution) |
+| vctk | CC-BY 4.0 | ✅ Yes (with attribution) |
+| cml-tts/fr | CC-BY 4.0 | ✅ Yes (with attribution) |
+| voice-donations | CC0 (Public Domain) | ✅ Yes |
+| **expresso** | CC-BY-NC 4.0 | ❌ Non-commercial only |
+| **ears** | CC-BY-NC 4.0 | ❌ Non-commercial only |
+
+⚠️ **Note**: If you use voices from the `expresso/` or `ears/` collections, your use is restricted to non-commercial purposes.
