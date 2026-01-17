@@ -8,6 +8,10 @@ This example showcases several MCP App capabilities:
 
 - **Single-file executable**: Python server with embedded React UI - no build step required
 - **Partial tool inputs** (`ontoolinputpartial`): Widget receives streaming text as it's being generated
+- **Model context updates**: Widget updates the LLM with playback progress ("Playing: ...snippet...")
+- **Native theming**: Uses CSS variables for automatic dark/light mode adaptation
+- **Fullscreen mode**: Toggle fullscreen via `requestDisplayMode()` API, press Escape to exit
+- **Multi-widget speak lock**: Coordinates multiple TTS widgets via localStorage so only one plays at a time
 - **Hidden tools** (`visibility: ["app"]`): Private tools only accessible to the widget, not the model
 - **CSP metadata**: Resource declares required domains (`esm.sh`) for in-browser transpilation
 

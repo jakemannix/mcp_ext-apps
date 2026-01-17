@@ -19,6 +19,10 @@ Architecture:
 - The widget uses `ontoolinputpartial` to receive text as it streams
 - Widget calls private tools to create TTS queue, add text, and poll audio
 - Audio plays in the widget using Web Audio API
+- Model context updates show playback progress to the LLM
+- Native theming adapts to dark/light mode automatically
+- Fullscreen mode with Escape key to exit
+- Multi-widget speak lock coordinates playback across instances
 
 Usage:
   # Start the MCP server
@@ -1213,12 +1217,21 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const pendingText = displayText.slice(charPosition);
 
       return (
-        <main className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)} style={{
-          paddingTop: hostContext?.safeAreaInsets?.top,
-          paddingRight: hostContext?.safeAreaInsets?.right,
-          paddingBottom: hostContext?.safeAreaInsets?.bottom,
-          paddingLeft: hostContext?.safeAreaInsets?.left,
-        }}>
+        <main
+          className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)}
+          style={{
+            paddingTop: hostContext?.safeAreaInsets?.top,
+            paddingRight: hostContext?.safeAreaInsets?.right,
+            paddingBottom: hostContext?.safeAreaInsets?.bottom,
+            paddingLeft: hostContext?.safeAreaInsets?.left,
+          }}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && displayMode === "fullscreen") {
+              toggleFullscreen();
+            }
+          }}
+        >
           <div className="textWrapper">
             <div className="textDisplay" onClick={togglePlayPause} style={{cursor: "pointer"}}>
               <span className="spoken">{spokenText}</span>
