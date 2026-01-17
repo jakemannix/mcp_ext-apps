@@ -85,11 +85,14 @@ Connect to `http://localhost:3109/mcp` and call the `say` tool:
 The default voice is `cosette`. Use the `list_voices` tool or pass a `voice` parameter to `say`:
 
 ### Predefined Voices
+
 - `alba`, `marius`, `javert`, `jean` - from [alba-mackenna](https://huggingface.co/kyutai/tts-voices/tree/main/alba-mackenna) (CC BY 4.0)
 - `cosette`, `eponine`, `azelma`, `fantine` - from [VCTK dataset](https://huggingface.co/kyutai/tts-voices/tree/main/vctk) (CC BY 4.0)
 
 ### Custom Voices
+
 You can also use HuggingFace URLs or local file paths:
+
 ```json
 {"text": "Hello!", "voice": "hf://kyutai/tts-voices/voice-donations/alice.wav"}
 {"text": "Hello!", "voice": "/path/to/my-voice.wav"}
