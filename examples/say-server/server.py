@@ -19,6 +19,10 @@ Architecture:
 - The widget uses `ontoolinputpartial` to receive text as it streams
 - Widget calls private tools to create TTS queue, add text, and poll audio
 - Audio plays in the widget using Web Audio API
+- Model context updates show playback progress to the LLM
+- Native theming adapts to dark/light mode automatically
+- Fullscreen mode with Escape key to exit
+- Multi-widget speak lock coordinates playback across instances
 
 Usage:
   # Start the MCP server
@@ -101,12 +105,16 @@ class TTSQueueState:
 
     # Tracking
     created_at: float = field(default_factory=time.time)
+    last_activity: float = field(default_factory=time.time)  # Last text or end signal
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     task: asyncio.Task | None = None
 
 
 # Active TTS queues
 tts_queues: dict[str, TTSQueueState] = {}
+
+# Queue timeout: if no activity for this long, mark as error
+QUEUE_TIMEOUT_SECONDS = 30
 
 
 # ------------------------------------------------------
@@ -254,15 +262,9 @@ def add_tts_text(queue_id: str, text: str) -> list[types.TextContent]:
     # Queue the text (non-blocking)
     try:
         state.text_queue.put_nowait(text)
+        state.last_activity = time.time()  # Update activity timestamp
     except asyncio.QueueFull:
         return [types.TextContent(type="text", text='{"error": "Queue full"}')]
-
-    # BACKPRESSURE: Return queue depth so widget can throttle:
-    # import json
-    # return [types.TextContent(type="text", text=json.dumps({
-    #     "queued": True,
-    #     "queue_depth": state.text_queue.qsize()
-    # }))]
 
     return [types.TextContent(type="text", text='{"queued": true}')]
 
@@ -276,16 +278,20 @@ def end_tts_queue(queue_id: str) -> list[types.TextContent]:
     """
     state = tts_queues.get(queue_id)
     if not state:
+        logger.warning(f"end_tts_queue called for unknown queue: {queue_id}")
         return [types.TextContent(type="text", text='{"error": "Queue not found"}')]
     if state.end_signaled:
+        logger.info(f"end_tts_queue called for already-ended queue: {queue_id}")
         return [types.TextContent(type="text", text='{"already_ended": true}')]
 
     state.end_signaled = True
+    state.last_activity = time.time()  # Update activity timestamp
     try:
         state.text_queue.put_nowait(None)  # EOF marker
     except asyncio.QueueFull:
         pass
 
+    logger.info(f"end_tts_queue called for queue: {queue_id}")
     return [types.TextContent(type="text", text='{"ended": true}')]
 
 
@@ -328,10 +334,14 @@ def poll_tts_audio(queue_id: str) -> list[types.TextContent]:
         queue_id: The queue ID from create_tts_queue
     """
     import json
+    import time
 
     state = tts_queues.get(queue_id)
     if not state:
         return [types.TextContent(type="text", text='{"error": "Queue not found"}')]
+
+    # Update last activity to prevent timeout during active polling
+    state.last_activity = time.time()
 
     # Get new chunks (use sync approach since we can't await in tool)
     # The lock is async, so we need to be careful here
@@ -339,7 +349,8 @@ def poll_tts_audio(queue_id: str) -> list[types.TextContent]:
     new_chunks = state.audio_chunks[state.chunks_delivered:]
     state.chunks_delivered = len(state.audio_chunks)
 
-    done = state.status == "complete" and state.chunks_delivered >= len(state.audio_chunks)
+    # Consider queues with errors as "done" so widget stops polling
+    done = (state.status == "complete" or state.status == "error") and state.chunks_delivered >= len(state.audio_chunks)
 
     response = {
         "chunks": [
@@ -356,7 +367,11 @@ def poll_tts_audio(queue_id: str) -> list[types.TextContent]:
         "status": state.status,
     }
 
-    # Clean up completed queues
+    # Include error message if present
+    if state.error_message:
+        response["error"] = state.error_message
+
+    # Clean up completed or errored queues
     if done:
         # Schedule cleanup after a delay
         async def cleanup():
@@ -555,7 +570,21 @@ async def _run_tts_queue(state: TTSQueueState):
 
     try:
         while True:
-            text_item = await state.text_queue.get()
+            # Wait for text with timeout to detect stale queues
+            try:
+                text_item = await asyncio.wait_for(
+                    state.text_queue.get(),
+                    timeout=5.0  # Check every 5 seconds
+                )
+            except asyncio.TimeoutError:
+                # Check if queue is stale (no activity for too long)
+                if time.time() - state.last_activity > QUEUE_TIMEOUT_SECONDS:
+                    logger.warning(f"TTS queue {state.id} timeout after {QUEUE_TIMEOUT_SECONDS}s of inactivity")
+                    state.status = "error"
+                    state.error_message = f"Queue timeout: no activity for {QUEUE_TIMEOUT_SECONDS}s"
+                    break
+                # Continue waiting - queue might still be active
+                continue
 
             if text_item is None:
                 # EOF - flush remaining text
@@ -904,15 +933,33 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         const app = appRef.current;
         if (isPollingRef.current || !app) return;
         isPollingRef.current = true;
+
+        let emptyPollCount = 0;
         while (queueIdRef.current) {
           try {
             const result = await app.callServerTool({ name: "poll_tts_audio", arguments: { queue_id: queueIdRef.current } });
             const data = JSON.parse(result.content[0].text);
-            if (data.error) break;
+            if (data.error) {
+              console.log('[TTS] Queue error:', data.error);
+              break;
+            }
             for (const chunk of data.chunks) await scheduleAudioChunk(chunk);
             if (data.done) { allAudioReceivedRef.current = true; break; }
-            await new Promise(r => setTimeout(r, data.chunks.length > 0 ? 30 : 80));
-          } catch (err) { break; }
+
+            // Adaptive backoff: faster when streaming, slower when waiting
+            if (data.chunks.length > 0) {
+              emptyPollCount = 0;  // Reset - we're getting chunks
+              await new Promise(r => setTimeout(r, 20));  // Fast poll during streaming
+            } else {
+              emptyPollCount++;
+              // Exponential backoff for empty polls: 50ms, 100ms, 150ms max
+              const delay = Math.min(50 + (emptyPollCount * 50), 150);
+              await new Promise(r => setTimeout(r, delay));
+            }
+          } catch (err) {
+            console.log('[TTS] Polling error:', err);
+            break;
+          }
         }
         isPollingRef.current = false;
       }, [scheduleAudioChunk]);
@@ -1083,23 +1130,26 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         onAppCreated: (app) => {
           appRef.current = app;
           app.ontoolinputpartial = async (params) => {
-            console.log('[TTS] ontoolinputpartial called');
+            console.log('[TTS] ontoolinputpartial called, queueId:', queueIdRef.current);
             const newText = params.arguments?.text;
             if (!newText) return;
             // Detect new session: text doesn't continue from where we left off
             const isNewSession = lastTextRef.current.length > 0 && !newText.startsWith(lastTextRef.current);
-            if (isNewSession) console.log('[TTS] new session detected in partial');
             if (isNewSession) {
+              console.log('[TTS] new session detected in partial - resetting queue');
               // Reset for new session
               queueIdRef.current = null;
               lastTextRef.current = "";
             }
             setDisplayText(newText);
-            if (!queueIdRef.current && !(await initTTSQueue())) return;
+            if (!queueIdRef.current && !(await initTTSQueue())) {
+              console.log('[TTS] initTTSQueue failed in partial');
+              return;
+            }
             await sendTextToTTS(newText);
           };
           app.ontoolinput = async (params) => {
-            console.log('[TTS] ontoolinput called');
+            console.log('[TTS] ontoolinput called, queueId:', queueIdRef.current);
             const text = params.arguments?.text;
             if (!text) return;
             // Read voice setting (defaults to cosette)
@@ -1110,16 +1160,20 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
             setAutoPlay(shouldAutoPlay);
             // Detect new session: text doesn't continue from where we left off
             const isNewSession = lastTextRef.current.length > 0 && !text.startsWith(lastTextRef.current);
-            if (isNewSession) console.log('[TTS] new session detected in input');
             if (isNewSession) {
+              console.log('[TTS] new session detected in input - resetting queue');
               queueIdRef.current = null;
               lastTextRef.current = "";
             }
             setDisplayText(text);
-            if (!queueIdRef.current && !(await initTTSQueue())) return;
+            if (!queueIdRef.current && !(await initTTSQueue())) {
+              console.log('[TTS] initTTSQueue failed in input');
+              return;
+            }
             await sendTextToTTS(text);
           };
           app.ontoolresult = async (params) => {
+            console.log('[TTS] ontoolresult called, queueId:', queueIdRef.current);
             fullTextRef.current = lastTextRef.current;
             // Read widget UUID from tool result _meta for speak lock coordination
             const resultUuid = params.content?.[0]?._meta?.widgetUUID;
@@ -1128,8 +1182,13 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
               console.log('[TTS] Widget UUID:', resultUuid);
             }
             if (queueIdRef.current) {
+              console.log('[TTS] Calling end_tts_queue for:', queueIdRef.current);
               try { await app.callServerTool({ name: "end_tts_queue", arguments: { queue_id: queueIdRef.current } }); }
-              catch (err) {}
+              catch (err) {
+                console.log('[TTS] end_tts_queue error:', err);
+              }
+            } else {
+              console.log('[TTS] No queueId to end in ontoolresult');
             }
             // DON'T reset here - let audio continue playing
             // New session detection happens in ontoolinputpartial via text comparison
@@ -1220,12 +1279,21 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const pendingText = displayText.slice(charPosition);
 
       return (
-        <main className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)} style={{
-          paddingTop: hostContext?.safeAreaInsets?.top,
-          paddingRight: hostContext?.safeAreaInsets?.right,
-          paddingBottom: hostContext?.safeAreaInsets?.bottom,
-          paddingLeft: hostContext?.safeAreaInsets?.left,
-        }}>
+        <main
+          className={`container` + (displayMode === "fullscreen" ? ` fullscreen` : ``)}
+          style={{
+            paddingTop: hostContext?.safeAreaInsets?.top,
+            paddingRight: hostContext?.safeAreaInsets?.right,
+            paddingBottom: hostContext?.safeAreaInsets?.bottom,
+            paddingLeft: hostContext?.safeAreaInsets?.left,
+          }}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && displayMode === "fullscreen") {
+              toggleFullscreen();
+            }
+          }}
+        >
           <div className="textWrapper">
             <div className="textDisplay" onClick={togglePlayPause} style={{cursor: "pointer"}}>
               <span className="spoken">{spokenText}</span>

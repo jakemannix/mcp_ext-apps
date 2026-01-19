@@ -1,7 +1,7 @@
 {
   "name": "@modelcontextprotocol/server-say",
   "version": "0.4.1",
-  "type": "module",
+  "private": true,
   "description": "Streaming TTS MCP App Server with karaoke-style text highlighting",
   "repository": {
     "type": "git",
@@ -10,26 +10,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build",
-    "watch": "cross-env INPUT=mcp-app.html vite build --watch",
-    "serve": "uv run server.py",
-    "start": "cross-env NODE_ENV=development npm run build && npm run serve",
-    "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'npm run serve'"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^0.4.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^4.3.4",
-    "concurrently": "^9.2.1",
-    "cross-env": "^10.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^6.0.0",
-    "vite-plugin-singlefile": "^2.3.0"
+    "start": "uv run server.py",
+    "dev": "uv run server.py",
+    "build": "echo 'No build step needed for Python server'"
   }
 }

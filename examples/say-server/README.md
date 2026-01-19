@@ -8,6 +8,10 @@ This example showcases several MCP App capabilities:
 
 - **Single-file executable**: Python server with embedded React UI - no build step required
 - **Partial tool inputs** (`ontoolinputpartial`): Widget receives streaming text as it's being generated
+- **Model context updates**: Widget updates the LLM with playback progress ("Playing: ...snippet...")
+- **Native theming**: Uses CSS variables for automatic dark/light mode adaptation
+- **Fullscreen mode**: Toggle fullscreen via `requestDisplayMode()` API, press Escape to exit
+- **Multi-widget speak lock**: Coordinates multiple TTS widgets via localStorage so only one plays at a time
 - **Hidden tools** (`visibility: ["app"]`): Private tools only accessible to the widget, not the model
 - **CSP metadata**: Resource declares required domains (`esm.sh`) for in-browser transpilation
 
@@ -85,11 +89,14 @@ Connect to `http://localhost:3109/mcp` and call the `say` tool:
 The default voice is `cosette`. Use the `list_voices` tool or pass a `voice` parameter to `say`:
 
 ### Predefined Voices
+
 - `alba`, `marius`, `javert`, `jean` - from [alba-mackenna](https://huggingface.co/kyutai/tts-voices/tree/main/alba-mackenna) (CC BY 4.0)
 - `cosette`, `eponine`, `azelma`, `fantine` - from [VCTK dataset](https://huggingface.co/kyutai/tts-voices/tree/main/vctk) (CC BY 4.0)
 
 ### Custom Voices
+
 You can also use HuggingFace URLs or local file paths:
+
 ```json
 {"text": "Hello!", "voice": "hf://kyutai/tts-voices/voice-donations/alice.wav"}
 {"text": "Hello!", "voice": "/path/to/my-voice.wav"}
