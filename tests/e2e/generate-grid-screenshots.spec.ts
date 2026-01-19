@@ -54,6 +54,7 @@ const SERVERS = [
   },
   { key: "map-server", name: "Map Server", dir: "map-server" },
   { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
+  { key: "qr-server", name: "QR Code Server", dir: "qr-server" },
   {
     key: "scenario-modeler",
     name: "SaaS Scenario Modeler",

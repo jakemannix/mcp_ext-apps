@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "mcp>=1.9.0",
+#     "mcp @ git+https://github.com/modelcontextprotocol/python-sdk@main",
 #     "qrcode[pil]>=8.0",
 #     "uvicorn>=0.34.0",
 #     "starlette>=0.46.0",
@@ -30,7 +30,10 @@ PORT = int(os.environ.get("PORT", "3108"))
 mcp = FastMCP("QR Code Server", port=PORT, stateless_http=True)
 
 
-@mcp.tool(meta={"ui/resourceUri": WIDGET_URI})
+@mcp.tool(meta={
+    "ui":{"resourceUri": WIDGET_URI},
+    "ui/resourceUri": WIDGET_URI, # legacy support
+})
 def generate_qr(
     text: str = "https://modelcontextprotocol.io",
     box_size: int = 10,
@@ -72,52 +75,16 @@ def generate_qr(
     return [types.ImageContent(type="image", data=b64, mimeType="image/png")]
 
 
-# Register widget resource using FastMCP decorator (returns HTML string)
-@mcp.resource(WIDGET_URI, mime_type="text/html;profile=mcp-app")
+# IMPORTANT: all the external domains used by app must be listed
+# in the meta.ui.csp.resourceDomains - otherwise they will be blocked by CSP policy
+@mcp.resource(
+    WIDGET_URI,
+    mime_type="text/html;profile=mcp-app",
+    meta={"ui": {"csp": {"resourceDomains": ["https://unpkg.com"]}}},
+)
 def widget() -> str:
+    """Widget HTML resource with CSP metadata for external dependencies."""
     return Path(__file__).parent.joinpath("widget.html").read_text()
-
-
-# Override the read_resource handler to inject _meta into the response
-# This is needed because FastMCP doesn't support custom _meta on resources
-_low_level_server = mcp._mcp_server
-
-
-async def _read_resource_with_meta(req: types.ReadResourceRequest):
-    """Custom handler that injects CSP metadata for the widget resource."""
-    uri = str(req.params.uri)
-    html = Path(__file__).parent.joinpath("widget.html").read_text()
-
-    if uri == WIDGET_URI:
-        # NOTE: Must use model_validate with '_meta' key (not 'meta') due to Pydantic alias behavior
-        content = types.TextResourceContents.model_validate({
-            "uri": WIDGET_URI,
-            "mimeType": "text/html;profile=mcp-app",
-            "text": html,
-            # IMPORTANT: all the external domains used by app must be listed
-            # in the _meta.ui.csp.resourceDomains - otherwise they will be blocked by CSP policy
-            "_meta": {"ui": {"csp": {"resourceDomains": ["https://unpkg.com"]}}}
-        })
-        return types.ServerResult(
-            types.ReadResourceResult(contents=[content])
-        )
-
-    # Fallback for other resources (shouldn't happen for this server)
-    return types.ServerResult(
-        types.ReadResourceResult(
-            contents=[
-                types.TextResourceContents(
-                    uri=uri,
-                    mimeType="text/plain",
-                    text="Resource not found"
-                )
-            ]
-        )
-    )
-
-
-# Replace the handler after FastMCP has registered its own
-_low_level_server.request_handlers[types.ReadResourceRequest] = _read_resource_with_meta
 
 if __name__ == "__main__":
     if "--stdio" in sys.argv:
