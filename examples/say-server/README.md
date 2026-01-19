@@ -122,6 +122,18 @@ The widget communicates with the server via MCP tool calls:
 - Polls for generated audio chunks while TTS runs in parallel
 - Plays audio via Web Audio API with synchronized text highlighting
 
+## Multi-Widget Speak Lock
+
+When multiple TTS widgets exist in the same browser (e.g., multiple chat messages each with their own say widget), they coordinate via localStorage to ensure only one plays at a time:
+
+1. **Unique Widget IDs**: Each widget receives a UUID via `toolResult._meta.widgetUUID`
+2. **Announce on Play**: When starting, a widget writes `{uuid, timestamp}` to `localStorage["mcp-tts-playing"]`
+3. **Poll for Conflicts**: Every 200ms, playing widgets check if another widget took the lock
+4. **Yield Gracefully**: If another widget started playing, pause and yield
+5. **Clean Up**: On pause/finish, clear the lock (only if owned)
+
+This "last writer wins" protocol ensures a seamless experience: clicking play on any widget immediately pauses others, without requiring cross-iframe postMessage coordination.
+
 ## TODO
 
 - Persist caret position in localStorage (resume from where you left off)
