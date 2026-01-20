@@ -98,17 +98,3 @@ Use {@link app!App.ontoolinputpartial ontoolinputpartial} to receive streaming t
 
 > [!IMPORTANT]
 > Partial arguments are "healed" JSON — the host closes unclosed brackets/braces to produce valid JSON. This means objects may be incomplete (e.g., the last item in an array may be truncated). Don't rely on partial data for critical operations; use it only for preview UI.
-
-## [TODO] Supporting both iframe & MCP Apps in same binary
-
-See recipe: https://github.com/modelcontextprotocol/ext-apps/issues/34
-
-{@includeCode ./patterns.tsx#iframeAndMcpApps}
-
-## [TODO] Migrating from OpenAI to MCP Apps
-
-See [OpenAI -> MCP Apps](https://docs.google.com/document/d/13ROImOR9B8xc32yhqsFyC9Hh3_H63JFORDIyjyIPcU4/edit) migration guide.
-
-Also: [Managing State](https://platform.openai.com/docs/actions/managing-state) (OpenAI)
-
-{@includeCode ./patterns.tsx#migrateFromOpenai}

@@ -305,25 +305,6 @@ function visibilityBasedPause(
   //#endregion visibilityBasedPause
 }
 
-/**
- * Example: Supporting both iframe & MCP Apps in same binary
- */
-function iframeAndMcpApps() {
-  //#region iframeAndMcpApps
-  // TODO: See recipe: https://github.com/modelcontextprotocol/ext-apps/issues/34
-  //#endregion iframeAndMcpApps
-}
-
-/**
- * Example: Migrating from OpenAI to MCP Apps
- */
-function migrateFromOpenai() {
-  //#region migrateFromOpenai
-  // TODO: See OpenAI -> MCP Apps migration guide
-  // https://docs.google.com/document/d/13ROImOR9B8xc32yhqsFyC9Hh3_H63JFORDIyjyIPcU4/edit
-  //#endregion migrateFromOpenai
-}
-
 // Suppress unused variable warnings
 void chunkedDataServer;
 void chunkedDataClient;
@@ -332,5 +313,3 @@ void hostStylingReact;
 void persistWidgetStateServer;
 void persistWidgetState;
 void visibilityBasedPause;
-void iframeAndMcpApps;
-void migrateFromOpenai;

@@ -1,3 +1,7 @@
+---
+title: Migrate OpenAI App
+---
+
 # Migrating from OpenAI Apps SDK to MCP Apps SDK
 
 This guide helps you migrate from the OpenAI Apps SDK to the MCP Apps SDK (`@modelcontextprotocol/ext-apps`).
@@ -50,7 +54,7 @@ This guide helps you migrate from the OpenAI Apps SDK to the MCP Apps SDK (`@mod
 
 ### Server-Side Migration Example
 
-### Before (OpenAI)
+#### Before (OpenAI)
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -110,7 +114,7 @@ function createServer() {
 }
 ```
 
-### After (MCP Apps)
+#### After (MCP Apps)
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -184,7 +188,7 @@ function createServer() {
 6. **Helper Functions**: MCP provides `registerAppTool()` and `registerAppResource()` helpers
 7. **Not Yet Implemented**: `_meta["openai/toolInvocation/invoking"]`, `_meta["openai/toolInvocation/invoked"]`, and `_meta["openai/widgetDescription"]` don't have MCP equivalents yet
 
-## Client-side
+## Client-Side
 
 ### Quick Start Comparison
 
@@ -302,7 +306,7 @@ function createServer() {
 | —      | `app.getHostVersion()`      | Returns `{ name, version }` of host               |
 | —      | `app.getHostCapabilities()` | Check `serverTools`, `openLinks`, `logging`, etc. |
 
-### Full Migration Example
+### Client-Side Migration Example
 
 #### Before (OpenAI)
 
