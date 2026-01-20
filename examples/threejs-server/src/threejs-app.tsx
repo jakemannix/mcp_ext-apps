@@ -30,9 +30,10 @@ type ThreeJSAppProps = WidgetProps<ThreeJSToolInput>;
 // Default demo code shown when no code is provided
 const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);
+// Transparent background - scene composites over host UI
+renderer.setClearColor(0x000000, 0);
 
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
@@ -66,13 +67,6 @@ animate();`;
 // Streaming Preview
 // =============================================================================
 
-const SHIMMER_STYLE = `
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-`;
-
 function LoadingShimmer({ height, code }: { height: number; code?: string }) {
   const preRef = useRef<HTMLPreElement>(null);
 
@@ -85,28 +79,25 @@ function LoadingShimmer({ height, code }: { height: number; code?: string }) {
       style={{
         width: "100%",
         height,
-        borderRadius: 8,
+        borderRadius: "var(--border-radius-lg, 8px)",
         padding: 16,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         background:
-          "linear-gradient(90deg, #1a1a2e 25%, #2d2d44 50%, #1a1a2e 75%)",
-        backgroundSize: "200% 100%",
-        animation: "shimmer 1.5s ease-in-out infinite",
+          "linear-gradient(135deg, var(--color-background-secondary, light-dark(#f0f0f5, #2a2a3c)) 0%, var(--color-background-tertiary, light-dark(#e5e5ed, #1e1e2e)) 100%)",
       }}
     >
-      <style>{SHIMMER_STYLE}</style>
       <div
         style={{
-          color: "#888",
-          fontFamily: "system-ui",
+          color: "var(--color-text-tertiary, light-dark(#666, #888))",
+          fontFamily: "var(--font-sans, system-ui)",
           fontSize: 12,
           marginBottom: 8,
         }}
       >
-        🎮 Three.js
+        Three.js
       </div>
       {code && (
         <pre
@@ -116,10 +107,10 @@ function LoadingShimmer({ height, code }: { height: number; code?: string }) {
             padding: 0,
             flex: 1,
             overflow: "auto",
-            color: "#aaa",
-            fontFamily: "monospace",
-            fontSize: 11,
-            lineHeight: 1.4,
+            color: "var(--color-text-ghost, light-dark(#777, #aaa))",
+            fontFamily: "var(--font-mono, monospace)",
+            fontSize: "var(--font-text-xs-size, 11px)",
+            lineHeight: "var(--font-text-xs-line-height, 1.4)",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
           }}
@@ -135,6 +126,43 @@ function LoadingShimmer({ height, code }: { height: number; code?: string }) {
 // Three.js Execution
 // =============================================================================
 
+// Visibility-aware animation controller
+function createAnimationController() {
+  let isVisible = true;
+  let pendingCallbacks: FrameRequestCallback[] = [];
+  let rafIds: number[] = [];
+
+  const visibilityAwareRAF = (callback: FrameRequestCallback): number => {
+    if (isVisible) {
+      const id = requestAnimationFrame(callback);
+      rafIds.push(id);
+      return id;
+    } else {
+      // Queue callback for when visible again
+      pendingCallbacks.push(callback);
+      return -1;
+    }
+  };
+
+  const setVisible = (visible: boolean) => {
+    isVisible = visible;
+    if (visible && pendingCallbacks.length > 0) {
+      // Resume queued animations
+      const callbacks = pendingCallbacks;
+      pendingCallbacks = [];
+      callbacks.forEach((cb) => visibilityAwareRAF(cb));
+    }
+  };
+
+  const cleanup = () => {
+    rafIds.forEach((id) => cancelAnimationFrame(id));
+    rafIds = [];
+    pendingCallbacks = [];
+  };
+
+  return { visibilityAwareRAF, setVisible, cleanup };
+}
+
 const threeContext = {
   THREE,
   OrbitControls,
@@ -148,16 +176,18 @@ async function executeThreeCode(
   canvas: HTMLCanvasElement,
   width: number,
   height: number,
+  visibilityAwareRAF: (callback: FrameRequestCallback) => number,
 ): Promise<void> {
   const fn = new Function(
     "ctx",
     "canvas",
     "width",
     "height",
+    "requestAnimationFrame",
     `const { THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass } = ctx;
      return (async () => { ${code} })();`,
   );
-  await fn(threeContext, canvas, width, height);
+  await fn(threeContext, canvas, width, height, visibilityAwareRAF);
 }
 
 // =============================================================================
@@ -177,6 +207,9 @@ export default function ThreeJSApp({
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const animControllerRef = useRef<ReturnType<
+    typeof createAnimationController
+  > | null>(null);
 
   const height = toolInputs?.height ?? toolInputsPartial?.height ?? 400;
   const code = toolInputs?.code || DEFAULT_THREEJS_CODE;
@@ -191,14 +224,38 @@ export default function ThreeJSApp({
     paddingLeft: safeAreaInsets?.left,
   };
 
+  // Visibility-based pause/play
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        animControllerRef.current?.setVisible(entry.isIntersecting);
+      });
+    });
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!code || !canvasRef.current || !containerRef.current) return;
 
+    // Cleanup previous animation
+    animControllerRef.current?.cleanup();
+    animControllerRef.current = createAnimationController();
+
     setError(null);
     const width = containerRef.current.offsetWidth || 800;
-    executeThreeCode(code, canvasRef.current, width, height).catch((e) =>
-      setError(e instanceof Error ? e.message : "Unknown error"),
-    );
+    executeThreeCode(
+      code,
+      canvasRef.current,
+      width,
+      height,
+      animControllerRef.current.visibilityAwareRAF,
+    ).catch((e) => setError(e instanceof Error ? e.message : "Unknown error"));
+
+    return () => animControllerRef.current?.cleanup();
   }, [code, height]);
 
   if (isStreaming || !code) {
@@ -221,9 +278,8 @@ export default function ThreeJSApp({
         style={{
           width: "100%",
           height,
-          borderRadius: 8,
+          borderRadius: "var(--border-radius-lg, 8px)",
           display: "block",
-          background: "#1a1a2e",
         }}
       />
       {error && <div className="error-overlay">Error: {error}</div>}

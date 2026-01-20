@@ -27,6 +27,7 @@ export default defineConfig({
     },
   ],
   // Run examples server before tests
+  // Supports EXAMPLE=<folder> env var to run a single example (e.g., EXAMPLE=say-server npm run test:e2e)
   webServer: {
     command: "npm run examples:start",
     url: "http://localhost:8080",
@@ -34,6 +35,11 @@ export default defineConfig({
     reuseExistingServer: false,
     // 3 minutes to allow uv to download Python dependencies on first run
     timeout: 180000,
+    // Pass through EXAMPLE env var to filter to a single server
+    env: {
+      ...process.env,
+      EXAMPLE: process.env.EXAMPLE ?? "",
+    },
   },
   // Snapshot configuration
   expect: {

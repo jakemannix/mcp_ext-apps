@@ -28,6 +28,13 @@
     margin-top: 0.5rem;
   }
 
+  /* Server time row: flex layout for consistent mask width in E2E tests */
+  > p {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+
   /* Consistent font for form inputs (inherits from global.css) */
   textarea,
   input {

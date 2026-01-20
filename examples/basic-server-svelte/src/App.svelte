@@ -162,6 +162,13 @@ async function handleOpenLink() {
     margin-top: 0.5rem;
   }
 
+  /* Server time row: flex layout for consistent mask width in E2E tests */
+  > p {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+
   textarea,
   input {
     font-family: inherit;
@@ -195,5 +202,11 @@ async function handleOpenLink() {
     content: "ℹ️ ";
     font-style: normal;
   }
+}
+
+/* Server time fills remaining width for consistent E2E screenshot masking */
+:global(#server-time) {
+  flex: 1;
+  min-width: 0;
 }
 </style>

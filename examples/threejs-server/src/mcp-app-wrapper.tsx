@@ -5,7 +5,7 @@
  * props to the actual widget component.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { StrictMode, useState, useCallback, useEffect } from "react";
 import { createRoot } from "react-dom/client";
@@ -77,6 +77,9 @@ function McpAppWrapper() {
       };
     },
   });
+
+  // Apply host styling (theme, CSS variables, fonts)
+  useHostStyles(app);
 
   // Get initial host context after connection
   useEffect(() => {

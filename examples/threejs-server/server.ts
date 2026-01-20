@@ -22,9 +22,9 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
 // Default code example for the Three.js widget
 const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);
+renderer.setClearColor(0x000000, 0); // Transparent background
 
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
@@ -54,27 +54,31 @@ const THREEJS_DOCUMENTATION = `# Three.js Widget Documentation
 - \`OrbitControls\` - Interactive camera controls
 - \`EffectComposer\`, \`RenderPass\`, \`UnrealBloomPass\` - Post-processing effects
 
-## Basic Template
+## Basic Template (Transparent Background)
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);  // Dark background
+renderer.setClearColor(0x000000, 0); // Transparent - blends with host UI
 
 // Add objects here...
 
 camera.position.z = 5;
-renderer.render(scene, camera);  // Static render
+renderer.render(scene, camera);
 \`\`\`
 
-## Example: Rotating Cube with Lighting
+## Transparent vs Solid Background
+- **Transparent (default)**: Use \`alpha: true\` and \`setClearColor(0x000000, 0)\`
+- **Solid color**: Use \`setClearColor(0x1a1a2e)\` (omit alpha param)
+
+## Example: Rotating Cube
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);
+renderer.setClearColor(0x000000, 0);
 
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
@@ -82,7 +86,6 @@ const cube = new THREE.Mesh(
 );
 scene.add(cube);
 
-// Lighting - keep intensity at 1 or below
 scene.add(new THREE.DirectionalLight(0xffffff, 1));
 scene.add(new THREE.AmbientLight(0x404040));
 
@@ -101,9 +104,9 @@ animate();
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x2d2d44);
+renderer.setClearColor(0x000000, 0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -128,7 +131,7 @@ animate();
 \`\`\`
 
 ## Tips
-- Always set \`renderer.setClearColor()\` to a dark color
+- Use \`alpha: true\` for transparent backgrounds that blend with host UI
 - Keep light intensity ≤ 1 to avoid washed-out scenes
 - Use \`MeshStandardMaterial\` for realistic lighting
 - For animations, use \`requestAnimationFrame\`
@@ -157,7 +160,7 @@ export function createServer(): McpServer {
     {
       title: "Show Three.js Scene",
       description:
-        "Render an interactive 3D scene with custom Three.js code. Available globals: THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, canvas, width, height.",
+        "Render an interactive 3D scene with custom Three.js code. Supports transparent backgrounds (alpha: true) for seamless host UI integration. Available globals: THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, canvas, width, height.",
       inputSchema: {
         code: z
           .string()
@@ -171,16 +174,14 @@ export function createServer(): McpServer {
           .describe("Height in pixels"),
       },
       outputSchema: z.object({
-        code: z.string(),
-        height: z.number(),
+        success: z.boolean(),
       }),
       _meta: { ui: { resourceUri } },
     },
-    async ({ code, height }) => {
-      const data = { code, height };
+    async () => {
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
-        structuredContent: data,
+        content: [{ type: "text", text: "Three.js scene rendered" }],
+        structuredContent: { success: true },
       };
     },
   );

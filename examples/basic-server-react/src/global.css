@@ -10,3 +10,9 @@ html, body {
 code {
   font-size: 1em;
 }
+
+/* Server time fills remaining width for consistent E2E screenshot masking */
+#server-time {
+  flex: 1;
+  min-width: 0;
+}

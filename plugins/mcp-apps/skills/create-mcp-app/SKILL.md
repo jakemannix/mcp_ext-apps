@@ -71,7 +71,7 @@ Each template includes:
 
 ### API Reference (Source Files)
 
-Read JSDoc documentation directly from source:
+Read JSDoc documentation directly from `/tmp/mcp-ext-apps/src/`:
 
 | File | Contents |
 |------|----------|
@@ -86,6 +86,7 @@ Read JSDoc documentation directly from source:
 
 | Example | Pattern Demonstrated |
 |---------|---------------------|
+| `examples/shadertoy-server/` | **Streaming partial input** + visibility-based pause/play (best practice for large inputs) |
 | `examples/wiki-explorer-server/` | `callServerTool` for interactive data fetching |
 | `examples/system-monitor-server/` | Polling pattern with interval management |
 | `examples/video-resource-server/` | Binary/blob resources |
@@ -173,8 +174,30 @@ app.onhostcontextchanged = (ctx) => {
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 
 const { app } = useApp({ appInfo, capabilities, onAppCreated });
-useHostStyles(app); // Handles theme, styles, fonts automatically
+useHostStyles(app); // Injects CSS variables to document, making var(--*) available
 ```
+
+**Using variables in CSS** - After applying, use `var()`:
+```css
+.container {
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  border-radius: var(--border-radius-md);
+}
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--font-text-sm-size);
+  line-height: var(--font-text-sm-line-height);
+  color: var(--color-text-secondary);
+}
+.heading {
+  font-size: var(--font-heading-lg-size);
+  font-weight: var(--font-weight-semibold);
+}
+```
+
+Key variable groups: `--color-background-*`, `--color-text-*`, `--color-border-*`, `--font-sans`, `--font-mono`, `--font-text-*-size`, `--font-heading-*-size`, `--border-radius-*`. See `src/spec.types.ts` for full list.
 
 ### Safe Area Handling
 
@@ -189,6 +212,96 @@ app.onhostcontextchanged = (ctx) => {
 };
 ```
 
+### Streaming Partial Input
+
+For large tool inputs, use `ontoolinputpartial` to show progress during LLM generation. The partial JSON is healed (always valid), enabling progressive UI updates.
+
+**Spec:** [ui/notifications/tool-input-partial](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#streaming-tool-input)
+
+```typescript
+app.ontoolinputpartial = (params) => {
+  const args = params.arguments; // Healed partial JSON - always valid, fields appear as generated
+  // Use args directly for progressive rendering
+};
+
+app.ontoolinput = (params) => {
+  // Final complete input - switch from preview to full render
+};
+```
+
+**Use cases:**
+| Pattern | Example |
+|---------|---------|
+| Code preview | Show streaming code in `<pre>`, render on complete (`examples/shadertoy-server/`) |
+| Progressive form | Fill form fields as they stream in |
+| Live chart | Add data points to chart as array grows |
+| Partial render | Render incomplete structured data (tables, lists, trees) |
+
+**Simple pattern (code preview):**
+```typescript
+app.ontoolinputpartial = (params) => {
+  codePreview.textContent = params.arguments?.code ?? "";
+  codePreview.style.display = "block";
+  canvas.style.display = "none";
+};
+app.ontoolinput = (params) => {
+  codePreview.style.display = "none";
+  canvas.style.display = "block";
+  render(params.arguments);
+};
+```
+
+### Visibility-Based Resource Management
+
+Pause expensive operations (animations, WebGL, polling) when widget scrolls out of viewport:
+
+```typescript
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      animation.play(); // or: startPolling(), shaderToy.play()
+    } else {
+      animation.pause(); // or: stopPolling(), shaderToy.pause()
+    }
+  });
+});
+observer.observe(document.querySelector(".main"));
+```
+
+### Fullscreen Mode
+
+Request fullscreen via `app.requestDisplayMode()`. Check availability in host context:
+
+```typescript
+let currentMode: "inline" | "fullscreen" = "inline";
+
+app.onhostcontextchanged = (ctx) => {
+  // Check if fullscreen available
+  if (ctx.availableDisplayModes?.includes("fullscreen")) {
+    fullscreenBtn.style.display = "block";
+  }
+  // Track current mode
+  if (ctx.displayMode) {
+    currentMode = ctx.displayMode;
+    container.classList.toggle("fullscreen", currentMode === "fullscreen");
+  }
+};
+
+async function toggleFullscreen() {
+  const newMode = currentMode === "fullscreen" ? "inline" : "fullscreen";
+  const result = await app.requestDisplayMode({ mode: newMode });
+  currentMode = result.mode;
+}
+```
+
+**CSS pattern** - Remove border radius in fullscreen:
+```css
+.main { border-radius: var(--border-radius-lg); overflow: hidden; }
+.main.fullscreen { border-radius: 0; }
+```
+
+See `examples/shadertoy-server/` for complete implementation.
+
 ## Common Mistakes to Avoid
 
 1. **Handlers after connect()** - Register ALL handlers BEFORE calling `app.connect()`
@@ -198,6 +311,7 @@ app.onhostcontextchanged = (ctx) => {
 5. **Ignoring safe area insets** - Always handle `ctx.safeAreaInsets`
 6. **No text fallback** - Always provide `content` array for non-UI hosts
 7. **Hardcoded styles** - Use host CSS variables for theme integration
+8. **No streaming for large inputs** - Use `ontoolinputpartial` to show progress during generation
 
 ## Testing
 

@@ -16,6 +16,7 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   "basic-vue": ["#server-time"], // Server time display
   "cohort-heatmap": ['[class*="heatmapWrapper"]'], // Heatmap grid (random data)
   "customer-segmentation": [".chart-container"], // Scatter plot (random data)
+  "say-server": [".playBtn", ".playOverlayBtn"], // Play buttons may have different states
   shadertoy: ["#canvas"], // WebGL shader canvas (animated)
   "system-monitor": [
     ".chart-container", // CPU chart (highly dynamic)
@@ -35,29 +36,91 @@ const SLOW_SERVERS: Record<string, number> = {
   threejs: 2000, // Three.js WebGL initialization
 };
 
-// Server configurations (key is used for screenshot filenames, name is the MCP server name)
-const SERVERS = [
-  { key: "integration", name: "Integration Test Server" },
-  { key: "basic-preact", name: "Basic MCP App Server (Preact)" },
-  { key: "basic-react", name: "Basic MCP App Server (React)" },
-  { key: "basic-solid", name: "Basic MCP App Server (Solid)" },
-  { key: "basic-svelte", name: "Basic MCP App Server (Svelte)" },
-  { key: "basic-vanillajs", name: "Basic MCP App Server (Vanilla JS)" },
-  { key: "basic-vue", name: "Basic MCP App Server (Vue)" },
-  { key: "budget-allocator", name: "Budget Allocator Server" },
-  { key: "cohort-heatmap", name: "Cohort Heatmap Server" },
-  { key: "customer-segmentation", name: "Customer Segmentation Server" },
-  { key: "map-server", name: "Map Server" },
-  { key: "pdf-server", name: "PDF Server" },
-  { key: "qr-server", name: "QR Code Server" },
-  { key: "scenario-modeler", name: "SaaS Scenario Modeler" },
-  { key: "shadertoy", name: "ShaderToy Server" },
-  { key: "sheet-music", name: "Sheet Music Server" },
-  { key: "system-monitor", name: "System Monitor Server" },
-  { key: "threejs", name: "Three.js Server" },
-  { key: "transcript", name: "Transcript Server" },
-  { key: "wiki-explorer", name: "Wiki Explorer" },
+// Servers to skip in CI (require special resources like GPU, large ML models)
+const SKIP_SERVERS = new Set<string>([
+  // None currently - say-server widget works without TTS model for screenshots
+]);
+
+// Optional: filter to a single example via EXAMPLE env var (folder name)
+const EXAMPLE_FILTER = process.env.EXAMPLE;
+
+// Server configurations (key is used for screenshot filenames, name is the MCP server name, dir is the folder name)
+const ALL_SERVERS = [
+  {
+    key: "integration",
+    name: "Integration Test Server",
+    dir: "integration-server",
+  },
+  {
+    key: "basic-preact",
+    name: "Basic MCP App Server (Preact)",
+    dir: "basic-server-preact",
+  },
+  {
+    key: "basic-react",
+    name: "Basic MCP App Server (React)",
+    dir: "basic-server-react",
+  },
+  {
+    key: "basic-solid",
+    name: "Basic MCP App Server (Solid)",
+    dir: "basic-server-solid",
+  },
+  {
+    key: "basic-svelte",
+    name: "Basic MCP App Server (Svelte)",
+    dir: "basic-server-svelte",
+  },
+  {
+    key: "basic-vanillajs",
+    name: "Basic MCP App Server (Vanilla JS)",
+    dir: "basic-server-vanillajs",
+  },
+  {
+    key: "basic-vue",
+    name: "Basic MCP App Server (Vue)",
+    dir: "basic-server-vue",
+  },
+  {
+    key: "budget-allocator",
+    name: "Budget Allocator Server",
+    dir: "budget-allocator-server",
+  },
+  {
+    key: "cohort-heatmap",
+    name: "Cohort Heatmap Server",
+    dir: "cohort-heatmap-server",
+  },
+  {
+    key: "customer-segmentation",
+    name: "Customer Segmentation Server",
+    dir: "customer-segmentation-server",
+  },
+  { key: "map-server", name: "Map Server", dir: "map-server" },
+  { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
+  { key: "qr-server", name: "QR Code Server", dir: "qr-server" },
+  { key: "say-server", name: "Say Demo", dir: "say-server" },
+  {
+    key: "scenario-modeler",
+    name: "SaaS Scenario Modeler",
+    dir: "scenario-modeler-server",
+  },
+  { key: "shadertoy", name: "ShaderToy Server", dir: "shadertoy-server" },
+  { key: "sheet-music", name: "Sheet Music Server", dir: "sheet-music-server" },
+  {
+    key: "system-monitor",
+    name: "System Monitor Server",
+    dir: "system-monitor-server",
+  },
+  { key: "threejs", name: "Three.js Server", dir: "threejs-server" },
+  { key: "transcript", name: "Transcript Server", dir: "transcript-server" },
+  { key: "wiki-explorer", name: "Wiki Explorer", dir: "wiki-explorer-server" },
 ];
+
+// Filter servers if EXAMPLE is specified
+const SERVERS = EXAMPLE_FILTER
+  ? ALL_SERVERS.filter((s) => s.dir === EXAMPLE_FILTER)
+  : ALL_SERVERS;
 
 /**
  * Helper to get the app frame locator (nested: sandbox > app)
@@ -129,12 +192,23 @@ test.describe("Host UI", () => {
 
 // Define tests for each server using forEach to avoid for-loop issues
 SERVERS.forEach((server) => {
+  // Skip servers that require special resources (GPU, large ML models)
+  const shouldSkip = SKIP_SERVERS.has(server.key);
+
   test.describe(server.name, () => {
     test("loads app UI", async ({ page }) => {
+      if (shouldSkip) {
+        test.skip();
+        return;
+      }
       await loadServer(page, server.name);
     });
 
     test("screenshot matches golden", async ({ page }) => {
+      if (shouldSkip) {
+        test.skip();
+        return;
+      }
       await loadServer(page, server.name);
 
       // Some servers (WebGL, tile-based) need extra stabilization time
@@ -153,12 +227,20 @@ SERVERS.forEach((server) => {
 });
 
 // Interaction tests for integration server (tests all SDK communication APIs)
-const integrationServer = SERVERS.find((s) => s.key === "integration")!;
+// Only run if integration-server is included (either no filter or EXAMPLE=integration-server)
+const integrationServer = SERVERS.find((s) => s.key === "integration");
+const integrationServerName =
+  integrationServer?.name ?? "Integration Test Server";
 
-test.describe(`${integrationServer.name} - Interactions`, () => {
+test.describe(`Integration Test Server - Interactions`, () => {
+  test.skip(
+    () => !integrationServer,
+    "Skipped: integration-server not in EXAMPLE filter",
+  );
+
   test("Send Message button triggers host callback", async ({ page }) => {
     const logs = captureHostLogs(page);
-    await loadServer(page, integrationServer.name);
+    await loadServer(page, integrationServerName);
 
     const appFrame = getAppFrame(page);
     await appFrame.locator('button:has-text("Send Message")').click();
@@ -171,7 +253,7 @@ test.describe(`${integrationServer.name} - Interactions`, () => {
 
   test("Send Log button triggers host callback", async ({ page }) => {
     const logs = captureHostLogs(page);
-    await loadServer(page, integrationServer.name);
+    await loadServer(page, integrationServerName);
 
     const appFrame = getAppFrame(page);
     await appFrame.locator('button:has-text("Send Log")').click();
@@ -185,7 +267,7 @@ test.describe(`${integrationServer.name} - Interactions`, () => {
 
   test("Open Link button triggers host callback", async ({ page }) => {
     const logs = captureHostLogs(page);
-    await loadServer(page, integrationServer.name);
+    await loadServer(page, integrationServerName);
 
     const appFrame = getAppFrame(page);
     await appFrame.locator('button:has-text("Open Link")').click();

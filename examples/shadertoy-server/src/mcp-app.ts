@@ -1,7 +1,12 @@
 /**
  * ShaderToy renderer MCP App using ShaderToyLite.js
  */
-import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
+import {
+  App,
+  type McpUiHostContext,
+  applyHostStyleVariables,
+  applyDocumentTheme,
+} from "@modelcontextprotocol/ext-apps";
 import "./global.css";
 import "./mcp-app.css";
 import ShaderToyLite, {
@@ -34,6 +39,7 @@ const log = {
 // Get element references
 const mainEl = document.querySelector(".main") as HTMLElement;
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+const codePreview = document.getElementById("code-preview") as HTMLPreElement;
 const fullscreenBtn = document.getElementById(
   "fullscreen-btn",
 ) as HTMLButtonElement;
@@ -49,8 +55,12 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-// Handle host context changes (display mode)
+// Handle host context changes (display mode, styling)
 function handleHostContextChanged(ctx: McpUiHostContext) {
+  // Apply host styling
+  if (ctx.theme) applyDocumentTheme(ctx.theme);
+  if (ctx.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
+
   // Note: We ignore safeAreaInsets to maximize shader display area
 
   // Show fullscreen button if available (only update if field is present)
@@ -112,8 +122,21 @@ app.onteardown = async () => {
   return {};
 };
 
+app.ontoolinputpartial = (params) => {
+  // Show code preview, hide canvas
+  codePreview.classList.add("visible");
+  canvas.classList.add("hidden");
+  const code = params.arguments?.fragmentShader;
+  codePreview.textContent = typeof code === "string" ? code : "";
+  codePreview.scrollTop = codePreview.scrollHeight;
+};
+
 app.ontoolinput = (params) => {
   log.info("Received shader input");
+
+  // Hide code preview, show canvas
+  codePreview.classList.remove("visible");
+  canvas.classList.remove("hidden");
 
   if (!isShaderInput(params.arguments)) {
     log.error("Invalid tool input");
@@ -161,6 +184,18 @@ app.ontoolinput = (params) => {
 app.onerror = log.error;
 
 app.onhostcontextchanged = handleHostContextChanged;
+
+// Pause/resume shader based on visibility
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      shaderToy?.play();
+    } else {
+      shaderToy?.pause();
+    }
+  });
+});
+observer.observe(mainEl);
 
 // Connect to host
 app.connect().then(() => {

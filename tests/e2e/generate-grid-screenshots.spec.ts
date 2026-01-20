@@ -10,7 +10,7 @@
  * integration-server is excluded (it's for E2E testing, same UI as basic-server-react).
  */
 
-import { test, type Page } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import * as path from "path";
 import * as fs from "fs";
 import sharp from "sharp";
@@ -30,8 +30,11 @@ const SKIP_SERVERS = new Set([
   "video-resource", // Uses custom screenshot from PR comment
 ]);
 
+// Optional: filter to a single example via EXAMPLE env var (folder name)
+const EXAMPLE_FILTER = process.env.EXAMPLE;
+
 // Server configurations (excludes integration-server which is for E2E testing)
-const SERVERS = [
+const ALL_SERVERS = [
   {
     key: "basic-react",
     name: "Basic MCP App Server (React)",
@@ -54,6 +57,8 @@ const SERVERS = [
   },
   { key: "map-server", name: "Map Server", dir: "map-server" },
   { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
+  { key: "qr-server", name: "QR Code Server", dir: "qr-server" },
+  { key: "say-server", name: "Say Demo", dir: "say-server" },
   {
     key: "scenario-modeler",
     name: "SaaS Scenario Modeler",
@@ -80,6 +85,11 @@ const SERVERS = [
   { key: "wiki-explorer", name: "Wiki Explorer", dir: "wiki-explorer-server" },
 ];
 
+// Filter servers if EXAMPLE is specified
+const SERVERS = EXAMPLE_FILTER
+  ? ALL_SERVERS.filter((s) => s.dir === EXAMPLE_FILTER)
+  : ALL_SERVERS;
+
 /**
  * Wait for the MCP App to load inside nested iframes.
  */
@@ -95,12 +105,9 @@ async function waitForAppLoad(page: Page) {
  */
 async function loadServer(page: Page, serverName: string) {
   await page.goto("/");
-  await page
-    .locator("select")
-    .nth(0)
-    .waitFor({ state: "visible", timeout: 30000 });
-  await page.waitForTimeout(500);
-  await page.locator("select").nth(0).selectOption({ label: serverName });
+  // Wait for servers to connect (select becomes enabled when servers are ready)
+  await expect(page.locator("select").first()).toBeEnabled({ timeout: 30000 });
+  await page.locator("select").first().selectOption({ label: serverName });
   await page.click('button:has-text("Call Tool")');
   await waitForAppLoad(page);
 }
