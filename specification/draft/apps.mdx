@@ -198,12 +198,20 @@ interface UIResourceMeta {
    * Dedicated origin for widget
    *
    * Optional domain for the widget's sandbox origin. Useful when widgets need
-   * dedicated origins for API key allowlists or cross-origin isolation.
+   * stable, dedicated origins for OAuth callbacks, CORS policies, or API key allowlists.
    *
-   * If omitted, Host uses default sandbox origin.
+   * **Host-dependent:** The format and validation rules for this field are
+   * determined by each host. Servers MUST consult host-specific documentation
+   * for the expected domain format. Common patterns include:
+   * - Hash-based subdomains (e.g., `{hash}.claudemcpcontent.com`)
+   * - URL-derived subdomains (e.g., `www-example-com.oaiusercontent.com`)
+   *
+   * If omitted, Host uses default sandbox origin (typically per-conversation).
    *
    * @example
-   * "https://weather-widget.example.com"
+   * "a904794854a047f6.claudemcpcontent.com"
+   * @example
+   * "www-example-com.oaiusercontent.com"
    */
   domain?: string,
   /**
