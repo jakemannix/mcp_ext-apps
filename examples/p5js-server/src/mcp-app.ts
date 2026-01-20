@@ -111,160 +111,207 @@ fullscreenBtn.addEventListener("click", toggleFullscreen);
  */
 function createSketch(sketchCode: string): (p: p5) => void {
   return (p: p5) => {
-    // Create a sandboxed environment with p5 functions available
-    const sketchFn = new Function(
-      "p",
-      `
-      // Expose p5 instance methods and properties
-      const {
-        // Structure
-        setup, draw, preload, remove,
-        // Environment
-        frameCount, deltaTime, focused, cursor, frameRate, noCursor,
-        displayWidth, displayHeight, windowWidth, windowHeight, width, height,
-        fullscreen, pixelDensity, displayDensity, getURL, getURLPath, getURLParams,
-        // Color
-        background, clear, colorMode, fill, noFill, noStroke, stroke,
-        alpha, blue, brightness, color, green, hue, lerpColor, lightness, red, saturation,
-        // Shape
-        arc, ellipse, circle, line, point, quad, rect, square, triangle,
-        ellipseMode, rectMode, strokeCap, strokeJoin, strokeWeight,
-        // Curves
-        bezier, bezierDetail, bezierPoint, bezierTangent,
-        curve, curveDetail, curveTightness, curvePoint, curveTangent,
-        // Vertex
-        beginContour, beginShape, bezierVertex, curveVertex, endContour, endShape,
-        quadraticVertex, vertex,
-        // 3D
-        plane, box, sphere, cylinder, cone, ellipsoid, torus,
-        orbitControl, debugMode, noDebugMode,
-        // Lights Camera
-        ambientLight, directionalLight, pointLight, lights, lightFalloff,
-        spotLight, noLights,
-        camera, perspective, ortho, frustum, createCamera, setCamera,
-        // Transform
-        applyMatrix, resetMatrix, rotate, rotateX, rotateY, rotateZ,
-        scale, shearX, shearY, translate,
-        // Text
-        textAlign, textLeading, textSize, textStyle, textWidth, textAscent, textDescent, textWrap,
-        loadFont, text, textFont,
-        // Image
-        createImage, saveCanvas, saveFrames,
-        image, imageMode, tint, noTint, loadImage,
-        // Pixels
-        blend, copy, filter, get, loadPixels, set, updatePixels, pixels,
-        // Math
-        abs, ceil, constrain, dist, exp, floor, lerp, log, mag, map, max, min,
-        norm, pow, round, sq, sqrt, fract,
-        createVector, Vector: p.constructor.Vector,
-        noise, noiseDetail, noiseSeed,
-        randomSeed, random, randomGaussian,
-        acos, asin, atan, atan2, cos, sin, tan, degrees, radians, angleMode,
-        // Typography
-        HALF_PI, PI, QUARTER_PI, TAU, TWO_PI,
-        // Constants
-        ARROW, CROSS, HAND, MOVE, TEXT, WAIT,
-        LEFT, RIGHT, TOP, BOTTOM, CENTER, BASELINE,
-        RADIUS, CORNER, CORNERS,
-        POINTS, LINES, TRIANGLES, TRIANGLE_FAN, TRIANGLE_STRIP, QUADS, QUAD_STRIP,
-        CLOSE, OPEN,
-        CHORD, PIE,
-        SQUARE, ROUND, PROJECT, MITER, BEVEL,
-        RGB, HSB, HSL,
-        BLEND, ADD, DARKEST, LIGHTEST, DIFFERENCE, EXCLUSION, MULTIPLY, SCREEN,
-        REPLACE, OVERLAY, HARD_LIGHT, SOFT_LIGHT, DODGE, BURN,
-        WEBGL, P2D,
-        // Input
-        mouseX, mouseY, pmouseX, pmouseY, winMouseX, winMouseY, pwinMouseX, pwinMouseY,
-        mouseButton, mouseIsPressed,
-        movedX, movedY,
-        key, keyCode, keyIsPressed,
-        touches,
-        LEFT_ARROW, RIGHT_ARROW, UP_ARROW, DOWN_ARROW, SHIFT, CONTROL, OPTION, ALT, RETURN, ENTER, ESCAPE, BACKSPACE, DELETE, TAB,
-        // Events (these get called if defined)
-        mousePressed, mouseReleased, mouseClicked, mouseMoved, mouseDragged, mouseWheel,
-        keyPressed, keyReleased, keyTyped,
-        touchStarted, touchMoved, touchEnded,
-        deviceMoved, deviceTurned, deviceShaken,
-        windowResized,
-        // Time
-        millis, day, hour, minute, month, second, year,
-        // Data
-        createStringDict, createNumberDict,
-        append, arrayCopy, concat, reverse, shorten, shuffle, sort, splice, subset,
-        float, int, str, boolean, byte, char, unchar, hex, unhex,
-        join, match, matchAll, nf, nfc, nfp, nfs, split, splitTokens, trim,
-        // Structure
-        push, pop,
-        loop, noLoop, isLooping,
-        redraw,
-        // Rendering
-        createCanvas, resizeCanvas,
-        createGraphics, blendMode,
-        // DOM
-        select, selectAll, removeElements,
-        createDiv, createP, createSpan, createImg, createA, createSlider, createButton,
-        createCheckbox, createSelect, createRadio, createColorPicker, createInput, createFileInput,
-        createVideo, createAudio, createCapture, createElement
-      } = p;
+    // Cast to any to access all p5 properties dynamically
+    const _p = p as unknown as Record<string, unknown>;
 
-      // Make these getters work properly
-      Object.defineProperties(this, {
-        mouseX: { get: () => p.mouseX },
-        mouseY: { get: () => p.mouseY },
-        pmouseX: { get: () => p.pmouseX },
-        pmouseY: { get: () => p.pmouseY },
-        winMouseX: { get: () => p.winMouseX },
-        winMouseY: { get: () => p.winMouseY },
-        pwinMouseX: { get: () => p.pwinMouseX },
-        pwinMouseY: { get: () => p.pwinMouseY },
-        mouseButton: { get: () => p.mouseButton },
-        mouseIsPressed: { get: () => p.mouseIsPressed },
-        movedX: { get: () => p.movedX },
-        movedY: { get: () => p.movedY },
-        key: { get: () => p.key },
-        keyCode: { get: () => p.keyCode },
-        keyIsPressed: { get: () => p.keyIsPressed },
-        touches: { get: () => p.touches },
-        frameCount: { get: () => p.frameCount },
-        deltaTime: { get: () => p.deltaTime },
-        focused: { get: () => p.focused },
-        displayWidth: { get: () => p.displayWidth },
-        displayHeight: { get: () => p.displayHeight },
-        windowWidth: { get: () => p.windowWidth },
-        windowHeight: { get: () => p.windowHeight },
-        width: { get: () => p.width },
-        height: { get: () => p.height },
-        pixels: { get: () => p.pixels }
-      });
+    // Helper to safely bind a method
+    const bind = (name: string) => {
+      const fn = _p[name];
+      return typeof fn === "function" ? fn.bind(p) : fn;
+    };
 
-      // User's sketch code
-      ${sketchCode}
+    // Create wrapper with all p5 methods and properties
+    const createWrapper = () => {
+      // Methods - bind to p5 instance
+      const methods = [
+        "background", "clear", "colorMode", "fill", "noFill", "noStroke", "stroke", "strokeWeight",
+        "arc", "ellipse", "circle", "line", "point", "quad", "rect", "square", "triangle",
+        "ellipseMode", "rectMode", "strokeCap", "strokeJoin",
+        "bezier", "bezierDetail", "bezierPoint", "bezierTangent",
+        "curve", "curveDetail", "curvePoint", "curveTangent", "curveTightness",
+        "beginContour", "beginShape", "bezierVertex", "curveVertex", "endContour", "endShape", "quadraticVertex", "vertex",
+        "plane", "box", "sphere", "cylinder", "cone", "ellipsoid", "torus", "orbitControl", "debugMode", "noDebugMode",
+        "ambientLight", "directionalLight", "pointLight", "lights", "lightFalloff", "spotLight", "noLights",
+        "camera", "perspective", "ortho", "frustum", "createCamera", "setCamera",
+        "applyMatrix", "resetMatrix", "rotate", "rotateX", "rotateY", "rotateZ", "scale", "shearX", "shearY", "translate",
+        "textAlign", "textLeading", "textSize", "textStyle", "textWidth", "textAscent", "textDescent", "textWrap", "textFont", "text", "loadFont",
+        "createImage", "saveCanvas", "saveFrames", "image", "imageMode", "tint", "noTint", "loadImage",
+        "blend", "copy", "filter", "get", "set", "loadPixels", "updatePixels",
+        "constrain", "dist", "lerp", "mag", "map", "norm", "sq", "fract",
+        "random", "randomSeed", "randomGaussian", "noise", "noiseDetail", "noiseSeed", "createVector",
+        "degrees", "radians", "angleMode",
+        "color", "alpha", "blue", "brightness", "green", "hue", "lerpColor", "lightness", "red", "saturation",
+        "push", "pop", "loop", "noLoop", "isLooping", "redraw",
+        "createCanvas", "resizeCanvas", "createGraphics", "blendMode",
+        "frameRate", "cursor", "noCursor", "fullscreen", "pixelDensity", "displayDensity",
+        "getURL", "getURLPath", "getURLParams",
+        "millis", "second", "minute", "hour", "day", "month", "year",
+        "createStringDict", "createNumberDict",
+        "append", "arrayCopy", "concat", "reverse", "shorten", "shuffle", "sort", "splice", "subset",
+        "float", "int", "str", "boolean", "byte", "char", "unchar", "hex", "unhex",
+        "join", "match", "matchAll", "nf", "nfc", "nfp", "nfs", "split", "splitTokens", "trim",
+        "select", "selectAll", "removeElements",
+        "createDiv", "createP", "createSpan", "createImg", "createA", "createSlider", "createButton",
+        "createCheckbox", "createSelect", "createRadio", "createColorPicker", "createInput", "createFileInput",
+        "createVideo", "createAudio", "createCapture", "createElement"
+      ];
 
-      // Return functions that were defined
-      return {
-        preload: typeof preload === 'function' ? preload : undefined,
-        setup: typeof setup === 'function' ? setup : undefined,
-        draw: typeof draw === 'function' ? draw : undefined,
-        mousePressed: typeof mousePressed === 'function' ? mousePressed : undefined,
-        mouseReleased: typeof mouseReleased === 'function' ? mouseReleased : undefined,
-        mouseClicked: typeof mouseClicked === 'function' ? mouseClicked : undefined,
-        mouseMoved: typeof mouseMoved === 'function' ? mouseMoved : undefined,
-        mouseDragged: typeof mouseDragged === 'function' ? mouseDragged : undefined,
-        mouseWheel: typeof mouseWheel === 'function' ? mouseWheel : undefined,
-        keyPressed: typeof keyPressed === 'function' ? keyPressed : undefined,
-        keyReleased: typeof keyReleased === 'function' ? keyReleased : undefined,
-        keyTyped: typeof keyTyped === 'function' ? keyTyped : undefined,
-        touchStarted: typeof touchStarted === 'function' ? touchStarted : undefined,
-        touchMoved: typeof touchMoved === 'function' ? touchMoved : undefined,
-        touchEnded: typeof touchEnded === 'function' ? touchEnded : undefined,
-        windowResized: typeof windowResized === 'function' ? windowResized : undefined
+      const boundMethods: Record<string, unknown> = {};
+      for (const name of methods) {
+        boundMethods[name] = bind(name);
+      }
+
+      // Add Math functions that p5 also provides
+      boundMethods.abs = Math.abs;
+      boundMethods.ceil = Math.ceil;
+      boundMethods.floor = Math.floor;
+      boundMethods.round = Math.round;
+      boundMethods.sqrt = Math.sqrt;
+      boundMethods.pow = Math.pow;
+      boundMethods.min = Math.min;
+      boundMethods.max = Math.max;
+      boundMethods.exp = Math.exp;
+      boundMethods.log = Math.log;
+      boundMethods.sin = Math.sin;
+      boundMethods.cos = Math.cos;
+      boundMethods.tan = Math.tan;
+      boundMethods.asin = Math.asin;
+      boundMethods.acos = Math.acos;
+      boundMethods.atan = Math.atan;
+      boundMethods.atan2 = Math.atan2;
+
+      // Constants
+      const constants = [
+        "PI", "TWO_PI", "HALF_PI", "QUARTER_PI", "TAU",
+        "CENTER", "LEFT", "RIGHT", "TOP", "BOTTOM", "BASELINE",
+        "CORNER", "CORNERS", "RADIUS",
+        "CLOSE", "OPEN", "CHORD", "PIE",
+        "SQUARE", "ROUND", "PROJECT", "MITER", "BEVEL",
+        "RGB", "HSB", "HSL", "WEBGL", "P2D",
+        "POINTS", "LINES", "TRIANGLES", "TRIANGLE_FAN", "TRIANGLE_STRIP", "QUADS", "QUAD_STRIP",
+        "BLEND", "ADD", "DARKEST", "LIGHTEST", "DIFFERENCE", "EXCLUSION", "MULTIPLY", "SCREEN",
+        "REPLACE", "OVERLAY", "HARD_LIGHT", "SOFT_LIGHT", "DODGE", "BURN",
+        "ARROW", "CROSS", "HAND", "MOVE", "TEXT", "WAIT",
+        "LEFT_ARROW", "RIGHT_ARROW", "UP_ARROW", "DOWN_ARROW",
+        "ENTER", "RETURN", "ESCAPE", "BACKSPACE", "DELETE", "TAB", "SHIFT", "CONTROL", "OPTION", "ALT"
+      ];
+
+      for (const name of constants) {
+        boundMethods[name] = _p[name];
+      }
+
+      // Dynamic properties - use getters
+      boundMethods.ctx = {
+        get mouseX() { return _p.mouseX; },
+        get mouseY() { return _p.mouseY; },
+        get pmouseX() { return _p.pmouseX; },
+        get pmouseY() { return _p.pmouseY; },
+        get winMouseX() { return _p.winMouseX; },
+        get winMouseY() { return _p.winMouseY; },
+        get pwinMouseX() { return _p.pwinMouseX; },
+        get pwinMouseY() { return _p.pwinMouseY; },
+        get mouseButton() { return _p.mouseButton; },
+        get mouseIsPressed() { return _p.mouseIsPressed; },
+        get movedX() { return _p.movedX; },
+        get movedY() { return _p.movedY; },
+        get key() { return _p.key; },
+        get keyCode() { return _p.keyCode; },
+        get keyIsPressed() { return _p.keyIsPressed; },
+        get touches() { return _p.touches; },
+        get frameCount() { return _p.frameCount; },
+        get deltaTime() { return _p.deltaTime; },
+        get focused() { return _p.focused; },
+        get windowWidth() { return _p.windowWidth; },
+        get windowHeight() { return _p.windowHeight; },
+        get width() { return _p.width; },
+        get height() { return _p.height; },
+        get displayWidth() { return _p.displayWidth; },
+        get displayHeight() { return _p.displayHeight; },
+        get pixels() { return _p.pixels; },
       };
-    `,
-    );
+
+      return boundMethods;
+    };
 
     try {
-      const fns = sketchFn.call({}, p);
+      const wrapper = createWrapper();
+
+      // Build the function body with all bindings
+      // Define dynamic properties on globalThis (safe in iframe sandbox)
+      const fnBody = `
+        const {
+          background, clear, colorMode, fill, noFill, noStroke, stroke, strokeWeight,
+          arc, ellipse, circle, line, point, quad, rect, square, triangle,
+          ellipseMode, rectMode, strokeCap, strokeJoin,
+          bezier, curve, beginContour, beginShape, bezierVertex, curveVertex, endContour, endShape, quadraticVertex, vertex,
+          plane, box, sphere, cylinder, cone, ellipsoid, torus, orbitControl,
+          ambientLight, directionalLight, pointLight, lights, spotLight, noLights,
+          camera, perspective, ortho, applyMatrix, resetMatrix, rotate, rotateX, rotateY, rotateZ, scale, shearX, shearY, translate,
+          textAlign, textSize, textFont, text, textWidth, loadFont,
+          createImage, image, imageMode, tint, noTint, loadImage,
+          loadPixels, updatePixels, get, set,
+          abs, ceil, floor, round, sqrt, pow, min, max, exp, log, sin, cos, tan, asin, acos, atan, atan2,
+          constrain, dist, lerp, mag, map, norm, sq,
+          random, randomSeed, randomGaussian, noise, noiseDetail, noiseSeed, createVector, degrees, radians, angleMode,
+          color, alpha, blue, brightness, green, hue, lerpColor, lightness, red, saturation,
+          push, pop, loop, noLoop, redraw,
+          createCanvas, resizeCanvas, createGraphics, blendMode,
+          frameRate, cursor, noCursor, millis, second, minute, hour, day, month, year,
+          PI, TWO_PI, HALF_PI, QUARTER_PI, TAU,
+          CENTER, LEFT, RIGHT, TOP, BOTTOM, BASELINE, CORNER, CORNERS, RADIUS,
+          CLOSE, OPEN, CHORD, PIE, SQUARE, ROUND, PROJECT, MITER, BEVEL,
+          RGB, HSB, HSL, WEBGL, P2D,
+          POINTS, LINES, TRIANGLES, TRIANGLE_FAN, TRIANGLE_STRIP, QUADS, QUAD_STRIP,
+          BLEND, ADD, DARKEST, LIGHTEST, DIFFERENCE, EXCLUSION, MULTIPLY, SCREEN, REPLACE, OVERLAY, HARD_LIGHT, SOFT_LIGHT, DODGE, BURN,
+          LEFT_ARROW, RIGHT_ARROW, UP_ARROW, DOWN_ARROW, ENTER, RETURN, ESCAPE, BACKSPACE, DELETE, TAB, SHIFT, CONTROL, OPTION, ALT,
+          ctx
+        } = __wrapper__;
+
+        // Define dynamic properties as getters on globalThis
+        // This makes them available as global variables in the sketch
+        const __dynamicProps__ = [
+          'mouseX', 'mouseY', 'pmouseX', 'pmouseY', 'winMouseX', 'winMouseY',
+          'pwinMouseX', 'pwinMouseY', 'movedX', 'movedY',
+          'mouseButton', 'mouseIsPressed', 'key', 'keyCode', 'keyIsPressed',
+          'touches', 'frameCount', 'deltaTime', 'focused',
+          'windowWidth', 'windowHeight', 'width', 'height',
+          'displayWidth', 'displayHeight', 'pixels'
+        ];
+
+        __dynamicProps__.forEach(prop => {
+          Object.defineProperty(globalThis, prop, {
+            get: () => ctx[prop],
+            configurable: true,
+            enumerable: false
+          });
+        });
+
+        // User's sketch code
+        ${sketchCode}
+
+        // Return functions that were defined
+        return {
+          preload: typeof preload === 'function' ? preload : undefined,
+          setup: typeof setup === 'function' ? setup : undefined,
+          draw: typeof draw === 'function' ? draw : undefined,
+          mousePressed: typeof mousePressed === 'function' ? mousePressed : undefined,
+          mouseReleased: typeof mouseReleased === 'function' ? mouseReleased : undefined,
+          mouseClicked: typeof mouseClicked === 'function' ? mouseClicked : undefined,
+          mouseMoved: typeof mouseMoved === 'function' ? mouseMoved : undefined,
+          mouseDragged: typeof mouseDragged === 'function' ? mouseDragged : undefined,
+          mouseWheel: typeof mouseWheel === 'function' ? mouseWheel : undefined,
+          keyPressed: typeof keyPressed === 'function' ? keyPressed : undefined,
+          keyReleased: typeof keyReleased === 'function' ? keyReleased : undefined,
+          keyTyped: typeof keyTyped === 'function' ? keyTyped : undefined,
+          touchStarted: typeof touchStarted === 'function' ? touchStarted : undefined,
+          touchMoved: typeof touchMoved === 'function' ? touchMoved : undefined,
+          touchEnded: typeof touchEnded === 'function' ? touchEnded : undefined,
+          windowResized: typeof windowResized === 'function' ? windowResized : undefined
+        };
+      `;
+
+      const sketchFn = new Function("__wrapper__", fnBody);
+      const fns = sketchFn.call({}, wrapper);
 
       // Bind the p5 functions from user code
       if (fns.preload) p.preload = fns.preload.bind(p);
@@ -299,7 +346,11 @@ function createSketch(sketchCode: string): (p: p5) => void {
         p.fill(255, 100, 100);
         p.textSize(14);
         p.textAlign(p.CENTER, p.CENTER);
-        p.text(`Error: ${err instanceof Error ? err.message : String(err)}`, p.width / 2, p.height / 2);
+        p.text(
+          `Error: ${err instanceof Error ? err.message : String(err)}`,
+          p.width / 2,
+          p.height / 2,
+        );
       };
     }
   };
