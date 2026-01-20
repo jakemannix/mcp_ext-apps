@@ -356,17 +356,17 @@ export function hasUiSupport(
   }
 
   // Check experimental field (current MCP schema)
-  const experimentalCap = clientCapabilities.experimental?.[
-    EXTENSION_ID
-  ] as McpUiClientCapability | undefined;
+  const experimentalCap = clientCapabilities.experimental?.[EXTENSION_ID] as
+    | McpUiClientCapability
+    | undefined;
   if (experimentalCap?.mimeTypes?.includes(mimeType)) {
     return true;
   }
 
   // Check extensions field (future SEP-1724)
-  const extensionsCap = clientCapabilities.extensions?.[
-    EXTENSION_ID
-  ] as McpUiClientCapability | undefined;
+  const extensionsCap = clientCapabilities.extensions?.[EXTENSION_ID] as
+    | McpUiClientCapability
+    | undefined;
   if (extensionsCap?.mimeTypes?.includes(mimeType)) {
     return true;
   }
@@ -408,15 +408,15 @@ export function getUiCapability(
   }
 
   // Prefer extensions when available (forward compatibility with SEP-1724)
-  const extensionsCap = clientCapabilities.extensions?.[
-    EXTENSION_ID
-  ] as McpUiClientCapability | undefined;
+  const extensionsCap = clientCapabilities.extensions?.[EXTENSION_ID] as
+    | McpUiClientCapability
+    | undefined;
   if (extensionsCap) {
     return extensionsCap;
   }
 
   // Fall back to experimental (current MCP schema)
-  return clientCapabilities.experimental?.[
-    EXTENSION_ID
-  ] as McpUiClientCapability | undefined;
+  return clientCapabilities.experimental?.[EXTENSION_ID] as
+    | McpUiClientCapability
+    | undefined;
 }
