@@ -131,6 +131,11 @@ if (FIX_DOCKER) {
       readFileSync(join(projectRoot, "package.json"), "utf-8"),
     );
     const prepareScript = pkgJson.scripts?.prepare || "";
+    // Escape for nested bash single-quote -> node -e double-quote context
+    const escapedPrepareScript = JSON.stringify(prepareScript).replace(
+      /"/g,
+      '\\"',
+    );
 
     execSync(
       `docker run --rm -v "${safePath}:/app" -w /app node:20 bash -c '
@@ -149,7 +154,7 @@ if (FIX_DOCKER) {
           const fs = require(\\\"fs\\\");
           const pkg = JSON.parse(fs.readFileSync(\\\"package.json\\\"));
           pkg.scripts = pkg.scripts || {};
-          pkg.scripts.prepare = ${JSON.stringify(prepareScript)};
+          pkg.scripts.prepare = ${escapedPrepareScript};
           fs.writeFileSync(\\\"package.json\\\", JSON.stringify(pkg, null, 2));
         "
       '`,
