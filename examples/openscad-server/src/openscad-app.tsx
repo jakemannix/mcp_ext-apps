@@ -29,7 +29,9 @@ interface OpenSCADInstance {
   callMain: (args: string[]) => number;
 }
 
-type OpenSCADFactory = (options: { noInitialRun: boolean }) => Promise<OpenSCADInstance>;
+type OpenSCADFactory = (options: {
+  noInitialRun: boolean;
+}) => Promise<OpenSCADInstance>;
 
 // =============================================================================
 // Constants
@@ -93,7 +95,8 @@ async function loadOpenSCAD(): Promise<OpenSCADFactory> {
     });
 
     // The script exposes OpenSCAD as a global
-    const OpenSCAD = (window as unknown as { OpenSCAD: OpenSCADFactory }).OpenSCAD;
+    const OpenSCAD = (window as unknown as { OpenSCAD: OpenSCADFactory })
+      .OpenSCAD;
     if (!OpenSCAD) {
       throw new Error("OpenSCAD not found after loading script");
     }
@@ -212,7 +215,7 @@ interface ThreeContext {
 function createThreeContext(
   canvas: HTMLCanvasElement,
   width: number,
-  height: number
+  height: number,
 ): ThreeContext {
   const scene = new THREE.Scene();
 
@@ -259,7 +262,7 @@ function loadSTLGeometry(stlData: Uint8Array): THREE.BufferGeometry {
   // Create a copy of the buffer to ensure it's a proper ArrayBuffer
   const buffer = stlData.buffer.slice(
     stlData.byteOffset,
-    stlData.byteOffset + stlData.byteLength
+    stlData.byteOffset + stlData.byteLength,
   ) as ArrayBuffer;
   const geometry = loader.parse(buffer);
   geometry.computeVertexNormals();
@@ -269,7 +272,7 @@ function loadSTLGeometry(stlData: Uint8Array): THREE.BufferGeometry {
 function centerAndScaleModel(
   geometry: THREE.BufferGeometry,
   camera: THREE.PerspectiveCamera,
-  controls: OrbitControls
+  controls: OrbitControls,
 ): THREE.Mesh {
   // Center the geometry
   geometry.computeBoundingBox();
@@ -292,7 +295,8 @@ function centerAndScaleModel(
   boundingBox.getSize(size);
   const maxDim = Math.max(size.x, size.y, size.z);
   const fitOffset = 1.5;
-  const distance = maxDim * fitOffset / Math.tan((camera.fov * Math.PI) / 360);
+  const distance =
+    (maxDim * fitOffset) / Math.tan((camera.fov * Math.PI) / 360);
 
   camera.position.set(distance * 0.7, distance * 0.7, distance * 0.7);
   camera.lookAt(0, 0, 0);
@@ -375,7 +379,8 @@ export default function OpenSCADApp({
     const size = new THREE.Vector3();
     boundingBox.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
-    const distance = maxDim * 1.5 / Math.tan((ctx.camera.fov * Math.PI) / 360);
+    const distance =
+      (maxDim * 1.5) / Math.tan((ctx.camera.fov * Math.PI) / 360);
 
     ctx.camera.position.set(distance * 0.7, distance * 0.7, distance * 0.7);
     ctx.camera.lookAt(0, 0, 0);
@@ -397,7 +402,10 @@ export default function OpenSCADApp({
 
         const stlData = await compileOpenSCAD(code);
 
-        sendLog({ level: "info", data: "Compilation successful, rendering..." });
+        sendLog({
+          level: "info",
+          data: "Compilation successful, rendering...",
+        });
 
         // Setup Three.js if needed
         if (!canvasRef.current || !containerRef.current) return;
@@ -420,9 +428,13 @@ export default function OpenSCADApp({
         setCompiledCode(code);
         sendLog({ level: "info", data: "Rendering complete" });
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        const errorMessage =
+          err instanceof Error ? err.message : "Unknown error";
         setCompileError(errorMessage);
-        sendLog({ level: "error", data: `Compilation failed: ${errorMessage}` });
+        sendLog({
+          level: "error",
+          data: `Compilation failed: ${errorMessage}`,
+        });
       } finally {
         setIsCompiling(false);
       }

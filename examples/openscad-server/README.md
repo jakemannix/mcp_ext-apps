@@ -16,6 +16,7 @@ A 3D modeling MCP App Server that renders OpenSCAD code using WebAssembly and Th
 Renders a 3D model from OpenSCAD code.
 
 **Parameters:**
+
 - `code` (string): OpenSCAD code to compile and render
 - `height` (number, optional): Height of the viewer in pixels (default: 500)
 
@@ -26,17 +27,20 @@ Returns documentation and examples for using OpenSCAD.
 ## Running the Server
 
 ### HTTP Mode (default)
+
 ```bash
 npm run start
 # Server will be available at http://localhost:3120/mcp
 ```
 
 ### Stdio Mode
+
 ```bash
 npm run start:stdio
 ```
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
@@ -72,6 +76,7 @@ Ask Claude to create 3D models:
 ## OpenSCAD Quick Reference
 
 ### Basic Shapes
+
 ```openscad
 cube([10, 20, 30]);           // Box
 sphere(r = 10);                // Sphere
@@ -79,6 +84,7 @@ cylinder(h = 20, r = 5);       // Cylinder
 ```
 
 ### Transformations
+
 ```openscad
 translate([x, y, z]) object();
 rotate([rx, ry, rz]) object();
@@ -86,6 +92,7 @@ scale([sx, sy, sz]) object();
 ```
 
 ### Boolean Operations
+
 ```openscad
 union() { a(); b(); }          // Combine
 difference() { a(); b(); }     // Subtract b from a
@@ -93,6 +100,7 @@ intersection() { a(); b(); }   // Overlap only
 ```
 
 ### Modules
+
 ```openscad
 module my_shape(size = 10) {
     cube([size, size, size]);
