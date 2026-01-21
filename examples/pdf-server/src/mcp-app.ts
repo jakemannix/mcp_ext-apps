@@ -769,16 +769,12 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
   if (ctx.displayMode) {
     const wasFullscreen = currentDisplayMode === "fullscreen";
     currentDisplayMode = ctx.displayMode as "inline" | "fullscreen";
-    if (ctx.displayMode === "fullscreen") {
-      mainEl.classList.add("fullscreen");
-      log.info("Fullscreen mode enabled");
-    } else {
-      mainEl.classList.remove("fullscreen");
-      log.info("Inline mode");
-      // When exiting fullscreen, request resize to fit content
-      if (wasFullscreen && pdfDocument) {
-        requestFitToContent();
-      }
+    const isFullscreen = currentDisplayMode === "fullscreen";
+    mainEl.classList.toggle("fullscreen", isFullscreen);
+    log.info(isFullscreen ? "Fullscreen mode enabled" : "Inline mode");
+    // When exiting fullscreen, request resize to fit content
+    if (wasFullscreen && !isFullscreen && pdfDocument) {
+      requestFitToContent();
     }
     updateFullscreenButton();
   }

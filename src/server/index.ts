@@ -8,18 +8,7 @@
  * @module server-helpers
  *
  * @example
- * ```typescript
- * import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
- *
- * // Register a tool that displays a widget
- * registerAppTool(server, "weather", {
- *   description: "Get weather forecast",
- *   _meta: { ui: { resourceUri: "ui://weather/widget.html" } },
- * }, handler);
- *
- * // Register the HTML resource the tool references
- * registerAppResource(server, "Weather Widget", "ui://weather/widget.html", {}, readCallback);
- * ```
+ * {@includeCode ./index.examples.ts#index_overview}
  */
 
 import {
@@ -126,57 +115,13 @@ export interface McpUiAppResourceConfig extends ResourceMetadata {
  * @param cb - Tool handler function
  *
  * @example Basic usage
- * ```typescript
- * import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
- * import { z } from 'zod';
+ * {@includeCode ./index.examples.ts#registerAppTool_basicUsage}
  *
- * registerAppTool(server, "get-weather", {
- *   title: "Get Weather",
- *   description: "Get current weather for a location",
- *   inputSchema: { location: z.string() },
- *   _meta: {
- *     ui: { resourceUri: "ui://weather/widget.html" },
- *   },
- * }, async (args) => {
- *   const weather = await fetchWeather(args.location);
- *   return { content: [{ type: "text", text: JSON.stringify(weather) }] };
- * });
- * ```
+ * @example Tool visible to model but not callable by UI
+ * {@includeCode ./index.examples.ts#registerAppTool_modelOnlyVisibility}
  *
- * @example Tool visibility - create app-only tools for UI actions
- * ```typescript
- * import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
- * import { z } from 'zod';
- *
- * // Main tool - visible to both model and app (default)
- * registerAppTool(server, "show-cart", {
- *   description: "Display the user's shopping cart",
- *   _meta: {
- *     ui: {
- *       resourceUri: "ui://shop/cart.html",
- *       visibility: ["model", "app"],
- *     },
- *   },
- * }, async () => {
- *   const cart = await getCart();
- *   return { content: [{ type: "text", text: JSON.stringify(cart) }] };
- * });
- *
- * // App-only tool - hidden from the model, only callable by the UI
- * registerAppTool(server, "update-quantity", {
- *   description: "Update item quantity in cart",
- *   inputSchema: { itemId: z.string(), quantity: z.number() },
- *   _meta: {
- *     ui: {
- *       resourceUri: "ui://shop/cart.html",
- *       visibility: ["app"],
- *     },
- *   },
- * }, async ({ itemId, quantity }) => {
- *   const cart = await updateCartItem(itemId, quantity);
- *   return { content: [{ type: "text", text: JSON.stringify(cart) }] };
- * });
- * ```
+ * @example Tool hidden from model, only callable by UI
+ * {@includeCode ./index.examples.ts#registerAppTool_appOnlyVisibility}
  *
  * @see {@link registerAppResource} to register the HTML resource referenced by the tool
  */
@@ -225,41 +170,10 @@ export function registerAppTool<
  * @param readCallback - Callback that returns the resource contents
  *
  * @example Basic usage
- * ```typescript
- * import { registerAppResource } from '@modelcontextprotocol/ext-apps/server';
- *
- * registerAppResource(server, "Weather Widget", "ui://weather/widget.html", {
- *   description: "Interactive weather display",
- * }, async () => ({
- *   contents: [{
- *     uri: "ui://weather/widget.html",
- *     mimeType: RESOURCE_MIME_TYPE,
- *     text: await fs.readFile("dist/widget.html", "utf-8"),
- *   }],
- * }));
- * ```
+ * {@includeCode ./index.examples.ts#registerAppResource_basicUsage}
  *
  * @example With CSP configuration for external domains
- * ```typescript
- * registerAppResource(server, "Music Player", "ui://music/player.html", {
- *   description: "Audio player with external soundfonts",
- * }, async () => ({
- *   contents: [{
- *     uri: "ui://music/player.html",
- *     mimeType: RESOURCE_MIME_TYPE,
- *     text: PLAYER_HTML,
- *     // CSP must be on the content item, not the resource config
- *     _meta: {
- *       ui: {
- *         csp: {
- *           connectDomains: ["https://api.example.com"],  // For fetch/WebSocket
- *           resourceDomains: ["https://cdn.example.com"], // For scripts/styles/images
- *         },
- *       },
- *     },
- *   }],
- * }));
- * ```
+ * {@includeCode ./index.examples.ts#registerAppResource_withCsp}
  *
  * @see {@link registerAppTool} to register tools that reference this resource
  */

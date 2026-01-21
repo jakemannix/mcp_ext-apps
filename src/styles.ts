@@ -10,12 +10,7 @@ import { McpUiStyles, McpUiTheme } from "./types";
  * @returns The current theme ("light" or "dark")
  *
  * @example Check current theme
- * ```typescript
- * import { getDocumentTheme } from '@modelcontextprotocol/ext-apps';
- *
- * const theme = getDocumentTheme();
- * console.log(`Current theme: ${theme}`);
- * ```
+ * {@includeCode ./styles.examples.ts#getDocumentTheme_checkCurrent}
  *
  * @see {@link applyDocumentTheme} to set the theme
  * @see {@link McpUiTheme} for the theme type
@@ -44,15 +39,7 @@ export function getDocumentTheme(): McpUiTheme {
  * @param theme - The theme to apply ("light" or "dark")
  *
  * @example Apply theme from host context
- * ```typescript
- * import { applyDocumentTheme } from '@modelcontextprotocol/ext-apps';
- *
- * app.onhostcontextchanged = (params) => {
- *   if (params.theme) {
- *     applyDocumentTheme(params.theme);
- *   }
- * };
- * ```
+ * {@includeCode ./styles.examples.ts#applyDocumentTheme_fromHostContext}
  *
  * @example Use with CSS selectors
  * ```css
@@ -85,20 +72,22 @@ export function applyDocumentTheme(theme: McpUiTheme): void {
  * @param root - The element to apply styles to (defaults to `document.documentElement`)
  *
  * @example Apply style variables from host context
- * ```typescript
- * import { applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
- *
- * app.onhostcontextchanged = (params) => {
- *   if (params.styles?.variables) {
- *     applyHostStyleVariables(params.styles.variables);
- *   }
- * };
- * ```
+ * {@includeCode ./styles.examples.ts#applyHostStyleVariables_fromHostContext}
  *
  * @example Apply to a specific element
- * ```typescript
- * const container = document.getElementById('app-root');
- * applyHostStyleVariables(hostContext.styles?.variables, container);
+ * {@includeCode ./styles.examples.ts#applyHostStyleVariables_toElement}
+ *
+ * @example Use host style variables in CSS
+ * ```css
+ * body {
+ *   background-color: var(--color-background-primary);
+ *   color: var(--color-text-primary);
+ * }
+ *
+ * .card {
+ *   background-color: var(--color-background-secondary);
+ *   border: 1px solid var(--color-border-primary);
+ * }
  * ```
  *
  * @see {@link McpUiStyles} for the available CSS variables
@@ -129,38 +118,18 @@ export function applyHostStyleVariables(
  * @param fontCss - CSS string containing `@font-face` rules and/or `@import` statements
  *
  * @example Apply fonts from host context
- * ```typescript
- * import { applyHostFonts } from '@modelcontextprotocol/ext-apps';
- *
- * app.onhostcontextchanged = (params) => {
- *   if (params.styles?.css?.fonts) {
- *     applyHostFonts(params.styles.css.fonts);
- *   }
- * };
- * ```
+ * {@includeCode ./styles.examples.ts#applyHostFonts_fromHostContext}
  *
  * @example Host providing self-hosted fonts
- * ```typescript
- * hostContext.styles.css.fonts = `
- *   @font-face {
- *     font-family: "Anthropic Sans";
- *     src: url("https://assets.anthropic.com/.../Regular.otf") format("opentype");
- *     font-weight: 400;
- *   }
- * `;
- * ```
+ * {@includeCode ./styles.examples.ts#applyHostFonts_selfHosted}
  *
  * @example Host providing Google Fonts
- * ```typescript
- * hostContext.styles.css.fonts = `
- *   @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
- * `;
- * ```
+ * {@includeCode ./styles.examples.ts#applyHostFonts_googleFonts}
  *
  * @example Use host fonts in CSS
  * ```css
  * body {
- *   font-family: "Anthropic Sans", sans-serif;
+ *   font-family: var(--font-sans, system-ui, sans-serif);
  * }
  * ```
  *

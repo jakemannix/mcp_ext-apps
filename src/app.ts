@@ -60,34 +60,22 @@ export {
 } from "./styles";
 
 /**
- * Metadata key for associating a resource URI with a tool call.
+ * Metadata key for associating a UI resource URI with a tool.
  *
- * MCP servers include this key in tool call result metadata to indicate which
- * UI resource should be displayed for the tool. When hosts receive a tool result
- * containing this metadata, they resolve and render the corresponding {@link App}.
+ * MCP servers include this key in tool definition metadata (via `tools/list`)
+ * to indicate which UI resource should be displayed when the tool is called.
+ * When hosts see a tool with this metadata, they fetch and render the
+ * corresponding {@link App}.
  *
- * **Note**: This constant is provided for reference. MCP servers set this metadata
- * in their tool handlers; App developers typically don't need to use it directly.
+ * **Note**: This constant is provided for reference. App developers typically
+ * don't need to use it directly. Prefer using {@link server-helpers!registerAppTool}
+ * with the `_meta.ui.resourceUri` format instead.
  *
  * @example How MCP servers use this key (server-side, not in Apps)
- * ```typescript
- * // In an MCP server's tool handler:
- * return {
- *   content: [{ type: "text", text: "Result" }],
- *   _meta: {
- *     [RESOURCE_URI_META_KEY]: "ui://weather/forecast"
- *   }
- * };
- * ```
+ * {@includeCode ./app.examples.ts#RESOURCE_URI_META_KEY_serverSide}
  *
  * @example How hosts check for this metadata (host-side)
- * ```typescript
- * const result = await mcpClient.callTool({ name: "weather", arguments: {} });
- * const uiUri = result._meta?.[RESOURCE_URI_META_KEY];
- * if (uiUri) {
- *   // Load and display the UI resource
- * }
- * ```
+ * {@includeCode ./app.examples.ts#RESOURCE_URI_META_KEY_hostSide}
  */
 export const RESOURCE_URI_META_KEY = "ui/resourceUri";
 
@@ -167,41 +155,7 @@ type RequestHandlerExtra = Parameters<
  * Both patterns work; use whichever fits your coding style better.
  *
  * @example Basic usage with PostMessageTransport
- * ```typescript
- * import {
- *   App,
- *   PostMessageTransport,
- *   McpUiToolInputNotificationSchema
- * } from '@modelcontextprotocol/ext-apps';
- *
- * const app = new App(
- *   { name: "WeatherApp", version: "1.0.0" },
- *   {} // capabilities
- * );
- *
- * // Register notification handler using setter (simpler)
- * app.ontoolinput = (params) => {
- *   console.log("Tool arguments:", params.arguments);
- * };
- *
- * // OR using inherited setNotificationHandler (more explicit)
- * app.setNotificationHandler(
- *   McpUiToolInputNotificationSchema,
- *   (notification) => {
- *     console.log("Tool arguments:", notification.params.arguments);
- *   }
- * );
- *
- * await app.connect(new PostMessageTransport(window.parent, window.parent));
- * ```
- *
- * @example Sending a message to the host's chat
- * ```typescript
- * await app.sendMessage({
- *   role: "user",
- *   content: [{ type: "text", text: "Weather updated!" }]
- * });
- * ```
+ * {@includeCode ./app.examples.ts#App_basicUsage}
  */
 export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   private _hostCapabilities?: McpUiHostCapabilities;
@@ -216,13 +170,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param options - Configuration options including `autoResize` behavior
    *
    * @example
-   * ```typescript
-   * const app = new App(
-   *   { name: "MyApp", version: "1.0.0" },
-   *   { tools: { listChanged: true } }, // capabilities
-   *   { autoResize: true } // options
-   * );
-   * ```
+   * {@includeCode ./app.examples.ts#App_constructor_basic}
    */
   constructor(
     private _appInfo: Implementation,
@@ -251,17 +199,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @returns Host capabilities, or `undefined` if not yet connected
    *
    * @example Check host capabilities after connection
-   * ```typescript
-   * await app.connect(transport);
-   * const caps = app.getHostCapabilities();
-   * if (caps === undefined) {
-   *   console.error("Not connected");
-   *   return;
-   * }
-   * if (caps.serverTools) {
-   *   console.log("Host supports server tool calls");
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_getHostCapabilities_checkAfterConnection}
    *
    * @see {@link connect} for the initialization handshake
    * @see {@link McpUiHostCapabilities} for the capabilities structure
@@ -280,15 +218,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @returns Host implementation info, or `undefined` if not yet connected
    *
    * @example Log host information after connection
-   * ```typescript
-   * await app.connect(transport);
-   * const host = app.getHostVersion();
-   * if (host === undefined) {
-   *   console.error("Not connected");
-   *   return;
-   * }
-   * console.log(`Connected to ${host.name} v${host.version}`);
-   * ```
+   * {@includeCode ./app.examples.ts#App_getHostVersion_logAfterConnection}
    *
    * @see {@link connect} for the initialization handshake
    */
@@ -309,20 +239,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @returns Host context, or `undefined` if not yet connected
    *
    * @example Access host context after connection
-   * ```typescript
-   * await app.connect(transport);
-   * const context = app.getHostContext();
-   * if (context === undefined) {
-   *   console.error("Not connected");
-   *   return;
-   * }
-   * if (context.theme === "dark") {
-   *   document.body.classList.add("dark-theme");
-   * }
-   * if (context.toolInfo) {
-   *   console.log("Tool:", context.toolInfo.tool.name);
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_getHostContext_accessAfterConnection}
    *
    * @see {@link connect} for the initialization handshake
    * @see {@link onhostcontextchanged} for context change notifications
@@ -346,25 +263,8 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * @param callback - Function called with the tool input params ({@link McpUiToolInputNotification.params})
    *
-   * @example Using the setter (simpler)
-   * ```typescript
-   * // Register before connecting to ensure no notifications are missed
-   * app.ontoolinput = (params) => {
-   *   console.log("Tool:", params.arguments);
-   *   // Update your UI with the tool arguments
-   * };
-   * await app.connect(transport);
-   * ```
-   *
-   * @example Using setNotificationHandler (more explicit)
-   * ```typescript
-   * app.setNotificationHandler(
-   *   McpUiToolInputNotificationSchema,
-   *   (notification) => {
-   *     console.log("Tool:", notification.params.arguments);
-   *   }
-   * );
-   * ```
+   * @example
+   * {@includeCode ./app.examples.ts#App_ontoolinput_setter}
    *
    * @see {@link setNotificationHandler} for the underlying method
    * @see {@link McpUiToolInputNotification} for the notification structure
@@ -384,6 +284,11 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * streams partial tool arguments during tool call initialization. This enables
    * progressive rendering of tool arguments before they're complete.
    *
+   * **Important:** Partial arguments are "healed" JSON — the host closes unclosed
+   * brackets/braces to produce valid JSON. This means objects may be incomplete
+   * (e.g., the last item in an array may be truncated). Use partial data only
+   * for preview UI, not for critical operations.
+   *
    * This setter is a convenience wrapper around `setNotificationHandler()` that
    * automatically handles the notification schema and extracts the params for you.
    *
@@ -392,12 +297,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param callback - Function called with each partial tool input update ({@link McpUiToolInputPartialNotification.params})
    *
    * @example Progressive rendering of tool arguments
-   * ```typescript
-   * app.ontoolinputpartial = (params) => {
-   *   console.log("Partial args:", params.arguments);
-   *   // Update your UI progressively as arguments stream in
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_ontoolinputpartial_progressiveRendering}
    *
    * @see {@link setNotificationHandler} for the underlying method
    * @see {@link McpUiToolInputPartialNotification} for the notification structure
@@ -426,16 +326,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param callback - Function called with the tool result ({@link McpUiToolResultNotification.params})
    *
    * @example Display tool execution results
-   * ```typescript
-   * app.ontoolresult = (params) => {
-   *   if (params.content) {
-   *     console.log("Tool output:", params.content);
-   *   }
-   *   if (params.isError) {
-   *     console.error("Tool execution failed");
-   *   }
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_ontoolresult_displayResults}
    *
    * @see {@link setNotificationHandler} for the underlying method
    * @see {@link McpUiToolResultNotification} for the notification structure
@@ -465,12 +356,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param callback - Function called when tool execution is cancelled. Receives optional cancellation reason — see {@link McpUiToolCancelledNotification.params}.
    *
    * @example Handle tool cancellation
-   * ```typescript
-   * app.ontoolcancelled = (params) => {
-   *   console.log("Tool cancelled:", params.reason);
-   *   showCancelledMessage(params.reason ?? "Operation was cancelled");
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_ontoolcancelled_handleCancellation}
    *
    * @see {@link setNotificationHandler} for the underlying method
    * @see {@link McpUiToolCancelledNotification} for the notification structure
@@ -504,15 +390,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param callback - Function called with the updated host context
    *
    * @example Respond to theme changes
-   * ```typescript
-   * app.onhostcontextchanged = (params) => {
-   *   if (params.theme === "dark") {
-   *     document.body.classList.add("dark-theme");
-   *   } else {
-   *     document.body.classList.remove("dark-theme");
-   *   }
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_onhostcontextchanged_respondToTheme}
    *
    * @see {@link setNotificationHandler} for the underlying method
    * @see {@link McpUiHostContextChangedNotification} for the notification structure
@@ -550,14 +428,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *   Must return `McpUiResourceTeardownResult` (can be an empty object `{}`) or a Promise resolving to it.
    *
    * @example Perform cleanup before teardown
-   * ```typescript
-   * app.onteardown = async () => {
-   *   await saveState();
-   *   closeConnections();
-   *   console.log("App ready for teardown");
-   *   return {};
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_onteardown_performCleanup}
    *
    * @see {@link setRequestHandler} for the underlying method
    * @see {@link McpUiResourceTeardownRequest} for the request structure
@@ -593,15 +464,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *   in the constructor.
    *
    * @example Handle tool calls from the host
-   * ```typescript
-   * app.oncalltool = async (params, extra) => {
-   *   if (params.name === "greet") {
-   *     const name = params.arguments?.name ?? "World";
-   *     return { content: [{ type: "text", text: `Hello, ${name}!` }] };
-   *   }
-   *   throw new Error(`Unknown tool: ${params.name}`);
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_oncalltool_handleFromHost}
    *
    * @see {@link setRequestHandler} for the underlying method
    */
@@ -635,13 +498,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *   allowed; capability validation occurs when handlers are invoked.
    *
    * @example Return available tools
-   * ```typescript
-   * app.onlisttools = async (params, extra) => {
-   *   return {
-   *     tools: ["calculate", "convert", "format"]
-   *   };
-   * };
-   * ```
+   * {@includeCode ./app.examples.ts#App_onlisttools_returnTools}
    *
    * @see {@link setRequestHandler} for the underlying method
    * @see {@link oncalltool} for handling tool execution
@@ -730,21 +587,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * between transport failures (thrown) and tool execution failures (returned).
    *
    * @example Fetch updated weather data
-   * ```typescript
-   * try {
-   *   const result = await app.callServerTool({
-   *     name: "get_weather",
-   *     arguments: { location: "Tokyo" }
-   *   });
-   *   if (result.isError) {
-   *     console.error("Tool returned error:", result.content);
-   *   } else {
-   *     console.log(result.content);
-   *   }
-   * } catch (error) {
-   *   console.error("Tool call failed:", error);
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_callServerTool_fetchWeather}
    */
   async callServerTool(
     params: CallToolRequest["params"],
@@ -765,22 +608,15 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    *
    * @param params - Message role and content
    * @param options - Request options (timeout, etc.)
-   * @returns Result indicating success or error (no message content returned)
+   * @returns Result with optional `isError` flag indicating host rejection
    *
-   * @throws {Error} If the host rejects the message
+   * @throws {Error} If the request times out or the connection is lost
    *
    * @example Send a text message from user interaction
-   * ```typescript
-   * try {
-   *   await app.sendMessage({
-   *     role: "user",
-   *     content: [{ type: "text", text: "Show me details for item #42" }]
-   *   });
-   * } catch (error) {
-   *   console.error("Failed to send message:", error);
-   *   // Handle error appropriately for your app
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_sendMessage_textFromInteraction}
+   *
+   * @example Send follow-up message after offloading large data to model context
+   * {@includeCode ./app.examples.ts#App_sendMessage_withLargeContext}
    *
    * @see {@link McpUiMessageRequest} for request structure
    */
@@ -804,13 +640,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param params - Log level and message
    *
    * @example Log app state for debugging
-   * ```typescript
-   * app.sendLog({
-   *   level: "info",
-   *   data: "Weather data refreshed",
-   *   logger: "WeatherApp"
-   * });
-   * ```
+   * {@includeCode ./app.examples.ts#App_sendLog_debugState}
    *
    * @returns Promise that resolves when the log notification is sent
    */
@@ -824,32 +654,24 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
   /**
    * Update the host's model context with app state.
    *
-   * Unlike `sendLog`, which is for debugging/telemetry, context updates
-   * are intended to be available to the model in future reasoning,
-   * without requiring a follow-up action (like `sendMessage`).
+   * Context updates are intended to be available to the model in future
+   * turns, without triggering an immediate model response (unlike {@link sendMessage}).
    *
    * The host will typically defer sending the context to the model until the
-   * next user message (including `ui/message`), and will only send the last
-   * update received. Each call overwrites any previous context update.
+   * next user message — either from the actual user or via `sendMessage`. Only
+   * the last update is sent; each call overwrites any previous context.
    *
    * @param params - Context content and/or structured content
    * @param options - Request options (timeout, etc.)
    *
    * @throws {Error} If the host rejects the context update (e.g., unsupported content type)
+   * @throws {Error} If the request times out or the connection is lost
    *
    * @example Update model context with current app state
-   * ```typescript
-   * await app.updateModelContext({
-   *   content: [{ type: "text", text: "User selected 3 items totaling $150.00" }]
-   * });
-   * ```
+   * {@includeCode ./app.examples.ts#App_updateModelContext_appState}
    *
-   * @example Update with structured content
-   * ```typescript
-   * await app.updateModelContext({
-   *   structuredContent: { selectedItems: 3, total: 150.00, currency: "USD" }
-   * });
-   * ```
+   * @example Report runtime error to model
+   * {@includeCode ./app.examples.ts#App_updateModelContext_reportError}
    *
    * @returns Promise that resolves when the context update is acknowledged
    */
@@ -871,26 +693,19 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * Request the host to open an external URL in the default browser.
    *
    * The host may deny this request based on user preferences or security policy.
-   * Apps should handle rejection gracefully.
+   * Apps should handle rejection gracefully by checking `result.isError`.
    *
    * @param params - URL to open
    * @param options - Request options (timeout, etc.)
-   * @returns Result indicating success or error
+   * @returns Result with `isError: true` if the host denied the request (e.g., blocked domain, user cancelled)
    *
-   * @throws {Error} If the host denies the request (e.g., blocked domain, user cancelled)
    * @throws {Error} If the request times out or the connection is lost
    *
    * @example Open documentation link
-   * ```typescript
-   * try {
-   *   await app.openLink({ url: "https://docs.example.com" });
-   * } catch (error) {
-   *   console.error("Failed to open link:", error);
-   *   // Optionally show fallback: display URL for manual copy
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_openLink_documentation}
    *
    * @see {@link McpUiOpenLinkRequest} for request structure
+   * @see {@link McpUiOpenLinkResult} for result structure
    */
   openLink(params: McpUiOpenLinkRequest["params"], options?: RequestOptions) {
     return this.request(
@@ -918,14 +733,8 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param options - Request options (timeout, etc.)
    * @returns Result containing the actual display mode that was set
    *
-   * @example Request fullscreen mode
-   * ```typescript
-   * const context = app.getHostContext();
-   * if (context?.availableDisplayModes?.includes("fullscreen")) {
-   *   const result = await app.requestDisplayMode({ mode: "fullscreen" });
-   *   console.log("Display mode set to:", result.mode);
-   * }
-   * ```
+   * @example Toggle display mode
+   * {@includeCode ./app.examples.ts#App_requestDisplayMode_toggle}
    *
    * @see {@link McpUiRequestDisplayModeRequest} for request structure
    * @see {@link McpUiHostContext} for checking availableDisplayModes
@@ -953,12 +762,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @param params - New width and height in pixels
    *
    * @example Manually notify host of size change
-   * ```typescript
-   * app.sendSizeChanged({
-   *   width: 400,
-   *   height: 600
-   * });
-   * ```
+   * {@includeCode ./app.examples.ts#App_sendSizeChanged_manual}
    *
    * @returns Promise that resolves when the notification is sent
    *
@@ -985,16 +789,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @returns Cleanup function to disconnect the observer
    *
    * @example Manual setup for custom scenarios
-   * ```typescript
-   * const app = new App(appInfo, capabilities, { autoResize: false });
-   * await app.connect(transport);
-   *
-   * // Later, enable auto-resize manually
-   * const cleanup = app.setupSizeChangedNotifications();
-   *
-   * // Clean up when done
-   * cleanup();
-   * ```
+   * {@includeCode ./app.examples.ts#App_setupAutoResize_manual}
    */
   setupSizeChangedNotifications() {
     let scheduled = false;
@@ -1066,19 +861,7 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @throws {Error} If initialization fails or connection is lost
    *
    * @example Connect with PostMessageTransport
-   * ```typescript
-   * const app = new App(
-   *   { name: "MyApp", version: "1.0.0" },
-   *   {}
-   * );
-   *
-   * try {
-   *   await app.connect(new PostMessageTransport(window.parent, window.parent));
-   *   console.log("Connected successfully!");
-   * } catch (error) {
-   *   console.error("Failed to connect:", error);
-   * }
-   * ```
+   * {@includeCode ./app.examples.ts#App_connect_withPostMessageTransport}
    *
    * @see {@link McpUiInitializeRequest} for the initialization request structure
    * @see {@link McpUiInitializedNotification} for the initialized notification

@@ -4,7 +4,11 @@ import { OptionDefaults } from "typedoc";
 const config = {
   blockTags: [...OptionDefaults.blockTags, "@description"],
   intentionallyNotExported: ["AppOptions"],
-  projectDocuments: ["docs/quickstart.md"],
+  projectDocuments: [
+    "docs/quickstart.md",
+    "docs/patterns.md",
+    "docs/migrate_from_openai_apps.md",
+  ],
   entryPoints: [
     "src/server/index.ts",
     "src/app.ts",
@@ -17,6 +21,9 @@ const config = {
   gitRevision: "main",
   excludePrivate: true,
   excludeInternal: false,
+  jsDocCompatibility: {
+    exampleTag: false,
+  },
   categorizeByGroup: true,
   navigationLinks: {
     GitHub: "https://github.com/modelcontextprotocol/ext-apps",
