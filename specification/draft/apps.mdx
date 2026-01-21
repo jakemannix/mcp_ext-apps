@@ -1420,23 +1420,11 @@ Note: Tools with `visibility: ["app"]` are hidden from the agent but remain call
 
 ### Client\<\>Server Capability Negotiation
 
-Clients and servers negotiate MCP Apps support using the extension identifier `io.modelcontextprotocol/ui`.
-
-#### Capability Location
-
-The MCP Apps capability can be advertised in two locations within `ClientCapabilities`:
-
-1. **`experimental`**: The `experimental` field is part of the current MCP schema and allows arbitrary extension data. This is required for compatibility with existing SDKs.
-
-2. **`extensions`**: Once SEP-1724 is accepted and deployed, `extensions` will be the canonical location for extension capabilities.
-
-**Clients (hosts) SHOULD advertise in both locations** ("double-tag") to ensure compatibility with all servers during the transition period.
-
-**Servers SHOULD check both locations** when determining client support, preferring `extensions` when present.
+Clients and servers negotiate MCP Apps support through the standard MCP extensions capability mechanism (defined in SEP-1724).
 
 #### Client (Host) Capabilities
 
-Clients SHOULD advertise MCP Apps support in both fields:
+Clients advertise MCP Apps support in the initialize request using the extension identifier `io.modelcontextprotocol/ui`:
 
 ```json
 {
@@ -1444,11 +1432,6 @@ Clients SHOULD advertise MCP Apps support in both fields:
   "params": {
     "protocolVersion": "2024-11-05",
     "capabilities": {
-      "experimental": {
-        "io.modelcontextprotocol/ui": {
-          "mimeTypes": ["text/html;profile=mcp-app"]
-        }
-      },
       "extensions": {
         "io.modelcontextprotocol/ui": {
           "mimeTypes": ["text/html;profile=mcp-app"]
@@ -1474,7 +1457,7 @@ Future versions may add additional settings:
 
 #### Server Behavior
 
-Servers SHOULD check both `experimental` and `extensions` before registering UI-enabled tools. The SDK provides the `hasUiSupport` helper for this:
+Servers SHOULD check client capabilities before registering UI-enabled tools. The SDK provides the `hasUiSupport` helper for this:
 
 ```typescript
 import { hasUiSupport } from "@modelcontextprotocol/ext-apps/server";
