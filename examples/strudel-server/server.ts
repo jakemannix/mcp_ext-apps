@@ -169,11 +169,16 @@ export function createServer(): McpServer {
           "https://cdn.jsdelivr.net",
           "https://esm.sh",
           "https://unpkg.com",
+          "https://strudel.cc",
         ],
         resourceDomains: [
           "https://cdn.jsdelivr.net",
           "https://esm.sh",
           "https://unpkg.com",
+          "https://strudel.cc",
+        ],
+        frameDomains: [
+          "https://strudel.cc",
         ],
       },
     },

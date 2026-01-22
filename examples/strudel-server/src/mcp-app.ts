@@ -72,10 +72,6 @@ const audioState: AudioState = {
 
 let currentInput: StrudelInput | null = null;
 let currentDisplayMode: "inline" | "fullscreen" = "inline";
-let strudelRepl: {
-  stop: () => Promise<void>;
-  evaluate: (code: string) => Promise<void>;
-} | null = null;
 
 // Mouse state for iMouse uniform
 let mouseX = 0,
@@ -402,45 +398,52 @@ function analyzeAudio(): void {
   }
 }
 
-// ─── Strudel Integration ───
-async function startStrudel(code: string): Promise<void> {
-  const audioCtx = setupAudio();
+// ─── Strudel Embed Integration ───
+let embedLoaded = false;
+let strudelReplElement: HTMLElement | null = null;
 
-  // Stop previous instance
-  if (strudelRepl) {
-    try {
-      await strudelRepl.stop();
-    } catch {
-      /* ignore */
-    }
-  }
+async function loadStrudelEmbed(): Promise<void> {
+  if (embedLoaded) return;
 
-  try {
-    // Dynamically import Strudel from CDN
-    // @ts-expect-error - Dynamic import from CDN
-    const strudel = await import("https://unpkg.com/@strudel/web@1.3.0");
-
-    // Initialize Strudel
-    await strudel.initStrudel();
-
-    strudelRepl = {
-      stop: async () => {
-        strudel.hush();
-      },
-      evaluate: async (newCode: string) => {
-        // Evaluate and play the pattern
-        const fn = new Function(...Object.keys(strudel), `return (${newCode})`);
-        const pattern = fn(...Object.values(strudel));
-        if (pattern?.play) pattern.play();
-      },
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/@strudel/embed@latest";
+    script.onload = () => {
+      embedLoaded = true;
+      resolve();
     };
+    script.onerror = () => reject(new Error("Failed to load @strudel/embed"));
+    document.head.appendChild(script);
+  });
+}
 
-    // Evaluate and play the initial pattern
-    await strudelRepl.evaluate(code);
+async function startStrudel(code: string): Promise<void> {
+  try {
+    await loadStrudelEmbed();
 
-    // Connect analyser to audio output
-    if (audioState.analyser) {
-      audioState.analyser.connect(audioCtx.destination);
+    // Remove existing REPL if present
+    if (strudelReplElement) {
+      strudelReplElement.remove();
+    }
+
+    // Create strudel-repl element (code in HTML comments)
+    strudelReplElement = document.createElement("strudel-repl");
+    strudelReplElement.innerHTML = `<!--\n${code}\n-->`;
+    strudelReplElement.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    `;
+
+    // Insert before the UI overlay
+    const overlay = document.querySelector(".ui-overlay");
+    if (overlay) {
+      overlay.parentElement?.insertBefore(strudelReplElement, overlay);
+    } else {
+      document.body.appendChild(strudelReplElement);
     }
 
     audioState.playing = true;
@@ -455,7 +458,7 @@ async function startStrudel(code: string): Promise<void> {
       if (cpmMatch2) audioState.bpm = parseFloat(cpmMatch2[1]) * 4;
     }
 
-    log.info("Strudel started, BPM:", audioState.bpm);
+    log.info("Strudel REPL loaded");
   } catch (e) {
     log.error("Strudel init error:", e);
     // Fallback: simple oscillator demo
@@ -492,12 +495,11 @@ function startFallbackAudio(): void {
 
 async function stopAudio(): Promise<void> {
   audioState.playing = false;
-  if (strudelRepl) {
-    try {
-      await strudelRepl.stop();
-    } catch {
-      /* ignore */
-    }
+
+  // Remove strudel-repl element if present
+  if (strudelReplElement) {
+    strudelReplElement.remove();
+    strudelReplElement = null;
   }
   if (audioState.audioCtx) {
     try {
