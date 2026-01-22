@@ -194,7 +194,12 @@ export function createServer(): McpServer {
       return {
         contents: [
           // _meta must be on the content item, not the resource metadata
-          { uri: resourceUri, mimeType: RESOURCE_MIME_TYPE, text: html, _meta: cspMeta },
+          {
+            uri: resourceUri,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
+            _meta: cspMeta,
+          },
         ],
       };
     },

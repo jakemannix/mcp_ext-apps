@@ -418,21 +418,23 @@ async function startStrudel(code: string): Promise<void> {
   try {
     // Dynamically import Strudel from CDN
     // @ts-expect-error - Dynamic import from CDN
-    const strudel = await import("https://esm.sh/@strudel/repl@1.3.0");
+    const strudel = await import("https://unpkg.com/@strudel/web@1.3.0");
 
-    const { scheduler, evaluate } = await strudel.repl({
-      audioContext: audioCtx,
-      onSchedulerError: (e: Error) => log.error("Scheduler:", e),
-      onEvalError: (e: Error) => log.error("Eval:", e),
-    });
+    // Initialize Strudel
+    await strudel.initStrudel();
 
     strudelRepl = {
-      stop: () => scheduler.stop(),
-      evaluate: (newCode: string) => evaluate(newCode),
+      stop: async () => { strudel.hush(); },
+      evaluate: async (newCode: string) => {
+        // Evaluate and play the pattern
+        const fn = new Function(...Object.keys(strudel), `return (${newCode})`);
+        const pattern = fn(...Object.values(strudel));
+        if (pattern?.play) pattern.play();
+      },
     };
 
-    await evaluate(code);
-    scheduler.start();
+    // Evaluate and play the initial pattern
+    await strudelRepl.evaluate(code);
 
     // Connect analyser to audio output
     if (audioState.analyser) {
