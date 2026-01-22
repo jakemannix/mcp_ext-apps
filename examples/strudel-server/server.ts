@@ -17,77 +17,91 @@ const DIST_DIR = import.meta.filename.endsWith(".ts")
   ? path.join(import.meta.dirname, "dist")
   : import.meta.dirname;
 
-const TOOL_DESCRIPTION = `Creates and plays live-coded music patterns using Strudel, a JavaScript port of TidalCycles.
+const TOOL_DESCRIPTION = `Creates audio-reactive visualizations with live-coded music using Strudel (a JavaScript port of TidalCycles) and WebGL shaders.
 
-MINI-NOTATION SYNTAX:
-Strudel uses a concise pattern language to describe rhythmic sequences:
-
-- Sequences: "c3 e3 g3 b3" - space-separated notes play in order over one cycle
-- Rests: "~ c3 ~ e3" - tilde (~) creates silence
-- Subdivision: "[c3 e3] g3" - brackets subdivide time equally
-- Alternation: "<c3 e3 g3>" - angle brackets cycle through items
-- Multiplication: "c3*4" - repeat note 4 times per cycle
-- Division: "c3/2" - stretch note over 2 cycles
-- Chords: "[c3,e3,g3]" - comma creates simultaneous notes
+STRUDEL MINI-NOTATION:
+- Sequences: "c3 e3 g3 b3" - notes play in order over one cycle
+- Rests: "~ c3 ~ e3" - tilde creates silence
+- Subdivision: "[c3 e3] g3" - brackets subdivide time
+- Chords: "[c3,e3,g3]" - comma for simultaneous notes
 - Euclidean: "c3(3,8)" - distribute 3 notes over 8 steps
+- Speed: "c3*4" (faster) or "c3/2" (slower)
 
 PATTERN FUNCTIONS:
-- note("c3 e3 g3") - define pitch pattern
-- s("bd sd hh") - select samples (kick, snare, hihat)
-- sound("piano") - alias for s()
-- n("0 1 2 3") - sample/note index variation
-- gain(0.8) - volume control
-- pan("<0 1>") - stereo panning
-- speed(2) - playback speed
-- delay(0.5) - echo effect
-- room(0.8) - reverb
-- lpf(2000) - low-pass filter
-- hpf(200) - high-pass filter
-- crush(4) - bit crusher
+- note("c3 e3 g3") - pitch pattern
+- s("bd sd hh") - samples (kick, snare, hihat)
+- sound("piano") - instrument sounds
+- gain(0.8), pan("<0 1>"), speed(2)
+- delay(0.5), room(0.8), lpf(2000), hpf(200)
 
 PATTERN MODIFIERS:
-- .fast(2) - double speed
-- .slow(2) - half speed
-- .rev() - reverse pattern
-- .palindrome() - play forward then backward
-- .sometimes(fn) - randomly apply function
-- .every(4, fn) - apply function every N cycles
-- .stack(pattern2) - layer patterns
-- .cat(pattern2) - sequence patterns
+- .fast(2), .slow(2), .rev(), .palindrome()
+- .sometimes(fn), .every(4, fn)
+- stack(pattern1, pattern2) - layer patterns
+- .cpm(120) - set cycles per minute (tempo)
 
-EXAMPLES:
+SHADER FORMAT (Shadertoy-style with audio uniforms):
+Write a mainImage function. Available uniforms:
+- iResolution (vec3): viewport resolution
+- iTime (float): elapsed time in seconds
+- iMouse (vec4): mouse position
+- iBeat (float): current beat (fractional)
+- iAmp (float): overall amplitude (0-1)
+- iBass (float): bass level (0-1)
+- iMid (float): mid frequencies (0-1)
+- iHigh (float): high frequencies (0-1)
+- iChannel0 (sampler2D): FFT texture (256x2, row 0=frequency, row 1=waveform)
 
-// Simple melody
-note("c4 e4 g4 b4").s("piano")
+EXAMPLE SHADER:
+void mainImage(out vec4 O, in vec2 U) {
+  vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
+  float r = length(uv);
+  float beat = exp(-3.0 * fract(iBeat));
+  float ring = smoothstep(0.02, 0.0, abs(r - 0.3 * beat - 0.1 * iBass));
+  vec3 col = vec3(0.9, 0.2, 0.3) * ring * (1.0 + iBass);
+  col += vec3(0.2, 0.5, 0.9) * iMid * (1.0 - r);
+  O = vec4(col, 1.0);
+}
 
-// Drum pattern with variations
-s("bd sd [~ bd] sd").sometimes(x => x.speed(2))
+SOUNDS: bd, sd, hh, oh, cp, piano, sawtooth, sine, square
 
-// Arpeggiated synth with filter sweep
-note("c3 [e3 g3] a3 [g3 e3]")
-  .s("sawtooth")
-  .lpf(sine.range(200, 4000).slow(8))
-  .room(0.5)
+Note: Click play button to start audio (browser security requires user gesture).`;
 
-// Layered percussion
+const DEFAULT_PATTERN = `// Kick + bass pattern with tempo
 stack(
-  s("bd*4").gain(0.8),
-  s("~ sd ~ sd"),
-  s("hh*8").gain(0.5)
-)
+  s("bd*4").gain(1.2),
+  s("~ hh ~ hh").gain(0.6),
+  s("~ ~ cp ~").gain(0.8),
+  note("c2 ~ eb2 ~")
+    .s("sawtooth")
+    .cutoff(800)
+    .gain(0.5)
+).cpm(135/4)`;
 
-// Generative pattern
-n(irand(8)).s("numbers").slow(2)
+const DEFAULT_SHADER = `void mainImage(out vec4 O, in vec2 U) {
+  vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
 
-AVAILABLE SOUNDS:
-Drums: bd, sd, hh, oh, cp, cb, tom, rim
-Synths: sine, saw, square, triangle, sawtooth
-Instruments: piano, casio, gm_acoustic_grand_piano
-Samples: numbers, alphabet, and many more
+  // Radial pulse on beat
+  float r = length(uv);
+  float beat = exp(-3.0 * fract(iBeat));
+  float ring = smoothstep(0.02, 0.0, abs(r - 0.3 * beat - 0.1 * iBass));
 
-Note: Audio requires user interaction to start (click play button in the UI).`;
+  // Swirl with bass
+  float a = atan(uv.y, uv.x);
+  float spiral = sin(a * 5.0 + iTime * 2.0 - r * 10.0 + iBass * 3.0);
+  spiral = smoothstep(0.0, 0.4, spiral * (1.0 - r));
 
-const DEFAULT_PATTERN = `note("c3 e3 g3 b3").s("piano")`;
+  // Color from frequency bands
+  vec3 col = vec3(0.0);
+  col += vec3(0.9, 0.2, 0.3) * ring * (1.0 + iBass);
+  col += vec3(0.2, 0.5, 0.9) * spiral * iMid;
+  col += vec3(0.1, 0.9, 0.5) * beat * 0.3;
+
+  // Vignette
+  col *= 1.0 - 0.6 * r * r;
+
+  O = vec4(col, 1.0);
+}`;
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
@@ -112,12 +126,21 @@ export function createServer(): McpServer {
           .string()
           .default(DEFAULT_PATTERN)
           .describe("Strudel pattern code using mini-notation and pattern functions"),
+        shader: z
+          .string()
+          .default(DEFAULT_SHADER)
+          .describe("GLSL fragment shader code (mainImage function) for audio-reactive visualization"),
+        bpm: z
+          .number()
+          .positive()
+          .default(120)
+          .describe("Beats per minute for beat tracking (auto-detected from .cpm() if present)"),
       }),
       _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
       return {
-        content: [{ type: "text", text: "Strudel pattern loaded" }],
+        content: [{ type: "text", text: "Strudel pattern loaded with audio-reactive shader" }],
       };
     },
   );

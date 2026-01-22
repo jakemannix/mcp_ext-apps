@@ -18,7 +18,7 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   "customer-segmentation": [".chart-container"], // Scatter plot (random data)
   "say-server": [".playBtn", ".playOverlayBtn"], // Play buttons may have different states
   shadertoy: ["#canvas"], // WebGL shader canvas (animated)
-  strudel: ["#strudel-container"], // Strudel REPL iframe (dynamic)
+  strudel: ["#glCanvas", ".play-btn"], // WebGL canvas and play button (dynamic)
   "system-monitor": [
     ".chart-container", // CPU chart (highly dynamic)
     "#status-text", // Current timestamp

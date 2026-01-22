@@ -7,10 +7,45 @@
   <title>Strudel Music</title>
 </head>
 <body>
-  <main class="main">
-    <div id="strudel-container"></div>
-    <pre id="code-preview"></pre>
-    <button id="fullscreen-btn" class="fullscreen-btn" title="Toggle fullscreen">
+  <canvas id="glCanvas"></canvas>
+
+  <div class="ui-overlay">
+    <!-- Big centered play button -->
+    <button id="playBtn" class="play-btn" title="Click to start audio">
+      <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+      <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+      </svg>
+    </button>
+
+    <!-- Code preview during streaming -->
+    <pre id="codePreview" class="code-preview"></pre>
+
+    <!-- Audio meters at bottom -->
+    <div class="meters-bar">
+      <div class="beat-indicator" id="beatDot"></div>
+      <div class="meter">
+        <span>BASS</span>
+        <div class="meter-track"><div class="meter-fill bass" id="mBass"></div></div>
+      </div>
+      <div class="meter">
+        <span>MID</span>
+        <div class="meter-track"><div class="meter-fill mid" id="mMid"></div></div>
+      </div>
+      <div class="meter">
+        <span>HIGH</span>
+        <div class="meter-track"><div class="meter-fill high" id="mHigh"></div></div>
+      </div>
+      <div class="meter">
+        <span>AMP</span>
+        <div class="meter-track"><div class="meter-fill amp" id="mAmp"></div></div>
+      </div>
+    </div>
+
+    <!-- Fullscreen button -->
+    <button id="fullscreenBtn" class="fullscreen-btn" title="Toggle fullscreen">
       <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
       </svg>
@@ -18,7 +53,8 @@
         <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
       </svg>
     </button>
-  </main>
+  </div>
+
   <script type="module" src="/src/mcp-app.ts"></script>
 </body>
 </html>
