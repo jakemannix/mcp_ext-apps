@@ -1,6 +1,6 @@
 /**
  * Entry point for running the MCP server.
- * Run with: npx mcp-server-debug
+ * Run with: npx mcp-budget-allocator-server
  * Or: node dist/index.js [--stdio]
  */
 
@@ -84,7 +84,7 @@ async function main() {
     await createServer().connect(new StdioServerTransport());
   } else {
     const port = parseInt(process.env.PORT ?? "3103", 10);
-    await startServer(createServer, { port, name: "Debug Server" });
+    await startServer(createServer, { port, name: "Marketing" });
   }
 }
 
