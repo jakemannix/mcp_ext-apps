@@ -65,9 +65,9 @@ const DebugInputSchema = z.object({
   contentType: z
     .enum(["text", "image", "audio", "resource", "resourceLink", "mixed"])
     .default("text"),
-  multipleBlocks: z.boolean().default(false),
+  multipleBlocks: z.boolean().default(true),
   includeStructuredContent: z.boolean().default(true),
-  includeMeta: z.boolean().default(false),
+  includeMeta: z.boolean().default(true),
 
   // Streaming test (large input)
   largeInput: z.string().optional(),
