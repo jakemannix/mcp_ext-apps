@@ -97,10 +97,17 @@ const canvas = document.getElementById("glCanvas") as HTMLCanvasElement;
 const playBtn = document.getElementById("playBtn") as HTMLButtonElement;
 const codePreview = document.getElementById("codePreview") as HTMLPreElement;
 const codeOverlay = document.getElementById("codeOverlay") as HTMLPreElement;
+const codeToggleBtn = document.getElementById("codeToggleBtn") as HTMLButtonElement;
 const fullscreenBtn = document.getElementById(
   "fullscreenBtn",
 ) as HTMLButtonElement;
 const metersBar = document.querySelector(".meters-bar") as HTMLElement;
+
+// Code overlay toggle
+codeToggleBtn.addEventListener("click", () => {
+  codeOverlay.classList.toggle("visible");
+  codeToggleBtn.classList.toggle("active");
+});
 
 // ─── WebGL Setup ───
 const glContext = canvas.getContext("webgl2") || canvas.getContext("webgl");
@@ -380,7 +387,7 @@ async function startStrudel(code: string): Promise<void> {
   try {
     // Dynamically import Strudel from CDN
     // @ts-expect-error - Dynamic import from CDN
-    const strudel = await import("https://esm.sh/@strudel/repl@1.1.0");
+    const strudel = await import("https://esm.sh/@strudel/repl@latest");
 
     const { scheduler, evaluate } = await strudel.repl({
       audioContext: audioCtx,
