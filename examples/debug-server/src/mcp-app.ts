@@ -165,7 +165,9 @@ function renderEventLog(): void {
       : state.eventLog.filter((e) => e.type === state.logFilter);
 
   const fullPayload = (payload: unknown) =>
-    JSON.stringify(payload, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    JSON.stringify(payload, null, 2)
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
 
   eventLogEl.innerHTML = filtered
     .map(
