@@ -162,11 +162,30 @@ export function createServer(): McpServer {
   );
 
   // Register the resource which returns the bundled HTML/JavaScript for the UI
+  // CSP configuration for external Strudel dependencies
   registerAppResource(
     server,
     resourceUri,
     resourceUri,
-    { mimeType: RESOURCE_MIME_TYPE },
+    {
+      mimeType: RESOURCE_MIME_TYPE,
+      _meta: {
+        ui: {
+          csp: {
+            connectDomains: [
+              "https://cdn.jsdelivr.net",
+              "https://esm.sh",
+              "https://unpkg.com",
+            ],
+            resourceDomains: [
+              "https://cdn.jsdelivr.net",
+              "https://esm.sh",
+              "https://unpkg.com",
+            ],
+          },
+        },
+      },
+    },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),

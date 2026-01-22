@@ -14,9 +14,42 @@ import "./mcp-app.css";
 // ─── Types ───
 interface StrudelInput {
   code: string;
-  shader?: string;
-  bpm?: number;
+  shader: string;
+  bpm: number;
 }
+
+// ─── Defaults (matching server.ts) ───
+const DEFAULT_PATTERN = `note("[c eb g <f bb>](3,8,<0 1>)".sub(12))
+.s("<sawtooth>/64")
+.lpf(sine.range(300,2000).slow(16))
+.lpa(0.005)
+.lpd(perlin.range(.02,.2))
+.lps(perlin.range(0,.5).slow(3))
+.lpq(sine.range(2,10).slow(32))
+.release(.5)
+.lpenv(perlin.range(1,8).slow(2))
+.ftype('24db')
+.room(1)
+.juxBy(.5,rev)
+.sometimes(add(note(12)))
+.stack(s("bd*2").bank('RolandTR909'))
+.gain(.5).fast(2)`;
+
+const DEFAULT_SHADER = `void mainImage(out vec4 O, in vec2 U) {
+  vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
+  float r = length(uv);
+  float beat = exp(-3.0 * fract(iBeat));
+  float ring = smoothstep(0.02, 0.0, abs(r - 0.3 * beat - 0.1 * iBass));
+  float a = atan(uv.y, uv.x);
+  float spiral = sin(a * 5.0 + iTime * 2.0 - r * 10.0 + iBass * 3.0);
+  spiral = smoothstep(0.0, 0.4, spiral * (1.0 - r));
+  vec3 col = vec3(0.0);
+  col += vec3(0.9, 0.2, 0.3) * ring * (1.0 + iBass);
+  col += vec3(0.2, 0.5, 0.9) * spiral * iMid;
+  col += vec3(0.1, 0.9, 0.5) * beat * 0.3;
+  col *= 1.0 - 0.6 * r * r;
+  O = vec4(col, 1.0);
+}`;
 
 interface AudioState {
   playing: boolean;
@@ -47,12 +80,15 @@ interface ShaderUniforms {
 }
 
 // ─── Helpers ───
-function isStrudelInput(value: unknown): value is StrudelInput {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as Record<string, unknown>).code === "string"
-  );
+function getStrudelInput(value: unknown): StrudelInput {
+  const partial = (typeof value === "object" && value !== null)
+    ? value as Partial<StrudelInput>
+    : {};
+  return {
+    code: partial.code ?? DEFAULT_PATTERN,
+    shader: partial.shader ?? DEFAULT_SHADER,
+    bpm: partial.bpm ?? 120,
+  };
 }
 
 const log = {
@@ -97,10 +133,16 @@ const canvas = document.getElementById("glCanvas") as HTMLCanvasElement;
 const playBtn = document.getElementById("playBtn") as HTMLButtonElement;
 const codePreview = document.getElementById("codePreview") as HTMLPreElement;
 const codeOverlay = document.getElementById("codeOverlay") as HTMLPreElement;
-const codeToggleBtn = document.getElementById("codeToggleBtn") as HTMLButtonElement;
+const codeToggleBtn = document.getElementById(
+  "codeToggleBtn",
+) as HTMLButtonElement;
 const copyCodeBtn = document.getElementById("copyCodeBtn") as HTMLButtonElement;
-const copyShaderBtn = document.getElementById("copyShaderBtn") as HTMLButtonElement;
-const fullscreenBtn = document.getElementById("fullscreenBtn") as HTMLButtonElement;
+const copyShaderBtn = document.getElementById(
+  "copyShaderBtn",
+) as HTMLButtonElement;
+const fullscreenBtn = document.getElementById(
+  "fullscreenBtn",
+) as HTMLButtonElement;
 const metersBar = document.querySelector(".meters-bar") as HTMLElement;
 
 // Code overlay toggle
@@ -110,7 +152,10 @@ codeToggleBtn.addEventListener("click", () => {
 });
 
 // Copy to clipboard helper
-async function copyToClipboard(text: string, btn: HTMLButtonElement): Promise<void> {
+async function copyToClipboard(
+  text: string,
+  btn: HTMLButtonElement,
+): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
     btn.classList.add("copied");
@@ -417,7 +462,7 @@ async function startStrudel(code: string): Promise<void> {
   try {
     // Dynamically import Strudel from CDN
     // @ts-expect-error - Dynamic import from CDN
-    const strudel = await import("https://esm.sh/@strudel/repl@latest");
+    const strudel = await import("https://esm.sh/@strudel/repl@1.3.0");
 
     const { scheduler, evaluate } = await strudel.repl({
       audioContext: audioCtx,
@@ -640,12 +685,8 @@ app.ontoolinput = async (params) => {
   codePreview.classList.remove("visible");
   playBtn.classList.remove("hidden");
 
-  if (!isStrudelInput(params.arguments)) {
-    log.error("Invalid tool input");
-    return;
-  }
-
-  const input = params.arguments;
+  // Apply defaults for missing fields
+  const input = getStrudelInput(params.arguments);
   currentInput = input;
 
   // Update code overlay for hover display
@@ -653,23 +694,10 @@ app.ontoolinput = async (params) => {
   codeOverlay.classList.add("has-code");
 
   // Set BPM from input
-  if (input.bpm) {
-    audioState.bpm = input.bpm;
-  }
+  audioState.bpm = input.bpm;
 
   // Build shader
-  const shaderCode =
-    input.shader ||
-    `
-    void mainImage(out vec4 O, in vec2 U) {
-      vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
-      float r = length(uv);
-      float beat = exp(-3.0 * fract(iBeat));
-      vec3 col = vec3(0.2, 0.4, 0.8) * (1.0 - r) + vec3(beat * 0.3);
-      col += vec3(iBass, iMid, iHigh) * 0.5;
-      O = vec4(col, 1.0);
-    }
-  `;
+  const shaderCode = input.shader;
 
   if (!buildProgram(shaderCode)) {
     log.error("Failed to build shader, using fallback");
