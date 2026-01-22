@@ -220,7 +220,7 @@ export type ClientCapabilitiesWithExtensions = ClientCapabilities & {
 /**
  * MCP Apps capability settings advertised by clients.
  *
- * @see {@link hasUiSupport} for checking client support
+ * @see {@link getUiCapability} for checking client support
  */
 export interface McpUiClientCapability {
   /**
