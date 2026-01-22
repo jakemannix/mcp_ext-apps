@@ -16,6 +16,7 @@ import {
   RESOURCE_MIME_TYPE,
   McpUiResourceMeta,
   McpUiToolMeta,
+  McpUiClientCapabilities,
 } from "../app.js";
 import type {
   BaseToolCallback,
@@ -207,19 +208,6 @@ export function registerAppResource(
 export const EXTENSION_ID = "io.modelcontextprotocol/ui";
 
 /**
- * MCP Apps capability settings advertised by clients.
- *
- * @see {@link getUiCapability} for checking client support
- */
-export interface McpUiClientCapability {
-  /**
-   * Array of supported MIME types for UI resources.
-   * Must include `"text/html;profile=mcp-app"` for MCP Apps support.
-   */
-  mimeTypes?: string[];
-}
-
-/**
  * Get MCP Apps capability settings from client capabilities.
  *
  * This helper retrieves the capability object from the `extensions` field
@@ -257,12 +245,12 @@ export function getUiCapability(
     | (ClientCapabilities & { extensions?: Record<string, unknown> })
     | null
     | undefined,
-): McpUiClientCapability | undefined {
+): McpUiClientCapabilities | undefined {
   if (!clientCapabilities) {
     return undefined;
   }
 
   return clientCapabilities.extensions?.[EXTENSION_ID] as
-    | McpUiClientCapability
+    | McpUiClientCapabilities
     | undefined;
 }
