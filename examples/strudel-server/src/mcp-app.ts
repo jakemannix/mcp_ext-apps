@@ -80,17 +80,26 @@ const audioState: AudioState = {
 
 let currentInput: StrudelInput | null = null;
 let currentDisplayMode: "inline" | "fullscreen" = "inline";
-let strudelRepl: { stop: () => Promise<void>; evaluate: (code: string) => Promise<void> } | null = null;
+let strudelRepl: {
+  stop: () => Promise<void>;
+  evaluate: (code: string) => Promise<void>;
+} | null = null;
 
 // Mouse state for iMouse uniform
-let mouseX = 0, mouseY = 0, mouseDown = false;
-let mouseClickX = 0, mouseClickY = 0;
+let mouseX = 0,
+  mouseY = 0,
+  mouseDown = false;
+let mouseClickX = 0,
+  mouseClickY = 0;
 
 // ─── DOM Elements ───
 const canvas = document.getElementById("glCanvas") as HTMLCanvasElement;
 const playBtn = document.getElementById("playBtn") as HTMLButtonElement;
 const codePreview = document.getElementById("codePreview") as HTMLPreElement;
-const fullscreenBtn = document.getElementById("fullscreenBtn") as HTMLButtonElement;
+const codeOverlay = document.getElementById("codeOverlay") as HTMLPreElement;
+const fullscreenBtn = document.getElementById(
+  "fullscreenBtn",
+) as HTMLButtonElement;
 const metersBar = document.querySelector(".meters-bar") as HTMLElement;
 
 // ─── WebGL Setup ───
@@ -100,8 +109,14 @@ const gl = glContext;
 
 let program: WebGLProgram | null = null;
 let uniforms: ShaderUniforms = {
-  iTime: null, iResolution: null, iMouse: null,
-  iBeat: null, iAmp: null, iBass: null, iMid: null, iHigh: null,
+  iTime: null,
+  iResolution: null,
+  iMouse: null,
+  iBeat: null,
+  iAmp: null,
+  iBass: null,
+  iMid: null,
+  iHigh: null,
   iChannel0: null,
 };
 let fftTexture: WebGLTexture | null = null;
@@ -203,7 +218,17 @@ function createFFTTexture(): void {
   fftTexture = gl.createTexture();
   fftTextureData = new Uint8Array(256 * 2);
   gl.bindTexture(gl.TEXTURE_2D, fftTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 256, 2, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, fftTextureData);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.LUMINANCE,
+    256,
+    2,
+    0,
+    gl.LUMINANCE,
+    gl.UNSIGNED_BYTE,
+    fftTextureData,
+  );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -211,7 +236,13 @@ function createFFTTexture(): void {
 }
 
 function updateFFTTexture(): void {
-  if (!fftTexture || !fftTextureData || !audioState.freqData || !audioState.timeData) return;
+  if (
+    !fftTexture ||
+    !fftTextureData ||
+    !audioState.freqData ||
+    !audioState.timeData
+  )
+    return;
 
   // Copy frequency data to row 0
   const freqLen = Math.min(256, audioState.freqData.length);
@@ -226,7 +257,17 @@ function updateFFTTexture(): void {
   }
 
   gl.bindTexture(gl.TEXTURE_2D, fftTexture);
-  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 2, gl.LUMINANCE, gl.UNSIGNED_BYTE, fftTextureData);
+  gl.texSubImage2D(
+    gl.TEXTURE_2D,
+    0,
+    0,
+    0,
+    256,
+    2,
+    gl.LUMINANCE,
+    gl.UNSIGNED_BYTE,
+    fftTextureData,
+  );
 }
 
 // ─── Canvas Resize ───
@@ -244,23 +285,31 @@ canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   mouseX = (e.clientX - rect.left) * dpr;
-  mouseY = (canvas.height - (e.clientY - rect.top) * dpr); // Flip Y for GL coords
+  mouseY = canvas.height - (e.clientY - rect.top) * dpr; // Flip Y for GL coords
 });
 canvas.addEventListener("mousedown", (e) => {
   mouseDown = true;
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   mouseClickX = (e.clientX - rect.left) * dpr;
-  mouseClickY = (canvas.height - (e.clientY - rect.top) * dpr);
+  mouseClickY = canvas.height - (e.clientY - rect.top) * dpr;
 });
-canvas.addEventListener("mouseup", () => { mouseDown = false; });
-canvas.addEventListener("mouseleave", () => { mouseDown = false; });
+canvas.addEventListener("mouseup", () => {
+  mouseDown = false;
+});
+canvas.addEventListener("mouseleave", () => {
+  mouseDown = false;
+});
 
 // ─── Audio Analysis ───
 function setupAudio(): AudioContext {
   if (audioState.audioCtx) return audioState.audioCtx;
 
-  audioState.audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+  audioState.audioCtx = new (
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext })
+      .webkitAudioContext
+  )();
   audioState.analyser = audioState.audioCtx.createAnalyser();
   audioState.analyser.fftSize = 512;
   audioState.analyser.smoothingTimeConstant = 0.7;
@@ -273,7 +322,8 @@ function setupAudio(): AudioContext {
 }
 
 function analyzeAudio(): void {
-  if (!audioState.analyser || !audioState.freqData || !audioState.timeData) return;
+  if (!audioState.analyser || !audioState.freqData || !audioState.timeData)
+    return;
 
   // @ts-expect-error - Uint8Array type compatibility
   audioState.analyser.getByteFrequencyData(audioState.freqData);
@@ -320,7 +370,11 @@ async function startStrudel(code: string): Promise<void> {
 
   // Stop previous instance
   if (strudelRepl) {
-    try { await strudelRepl.stop(); } catch { /* ignore */ }
+    try {
+      await strudelRepl.stop();
+    } catch {
+      /* ignore */
+    }
   }
 
   try {
@@ -397,10 +451,18 @@ function startFallbackAudio(): void {
 async function stopAudio(): Promise<void> {
   audioState.playing = false;
   if (strudelRepl) {
-    try { await strudelRepl.stop(); } catch { /* ignore */ }
+    try {
+      await strudelRepl.stop();
+    } catch {
+      /* ignore */
+    }
   }
   if (audioState.audioCtx) {
-    try { await audioState.audioCtx.suspend(); } catch { /* ignore */ }
+    try {
+      await audioState.audioCtx.suspend();
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -415,11 +477,12 @@ function render(): void {
 
   gl.uniform1f(uniforms.iTime, t);
   gl.uniform3f(uniforms.iResolution, canvas.width, canvas.height, 1.0);
-  gl.uniform4f(uniforms.iMouse,
+  gl.uniform4f(
+    uniforms.iMouse,
     mouseDown ? mouseX : mouseClickX,
     mouseDown ? mouseY : mouseClickY,
     mouseDown ? mouseClickX : -mouseClickX,
-    mouseDown ? mouseClickY : -mouseClickY
+    mouseDown ? mouseClickY : -mouseClickY,
   );
   gl.uniform1f(uniforms.iBeat, audioState.beat);
   gl.uniform1f(uniforms.iAmp, audioState.amp);
@@ -486,7 +549,10 @@ function handleHostContextChanged(ctx: McpUiHostContext): void {
 
   if (ctx.displayMode) {
     currentDisplayMode = ctx.displayMode as "inline" | "fullscreen";
-    document.body.classList.toggle("fullscreen", currentDisplayMode === "fullscreen");
+    document.body.classList.toggle(
+      "fullscreen",
+      currentDisplayMode === "fullscreen",
+    );
   }
 }
 
@@ -496,7 +562,10 @@ async function toggleFullscreen(): Promise<void> {
   try {
     const result = await app.requestDisplayMode({ mode: newMode });
     currentDisplayMode = result.mode as "inline" | "fullscreen";
-    document.body.classList.toggle("fullscreen", currentDisplayMode === "fullscreen");
+    document.body.classList.toggle(
+      "fullscreen",
+      currentDisplayMode === "fullscreen",
+    );
   } catch (err) {
     log.error("Failed to change display mode:", err);
   }
@@ -542,13 +611,19 @@ app.ontoolinput = async (params) => {
   const input = params.arguments;
   currentInput = input;
 
+  // Update code overlay for hover display
+  codeOverlay.textContent = input.code;
+  codeOverlay.classList.add("has-code");
+
   // Set BPM from input
   if (input.bpm) {
     audioState.bpm = input.bpm;
   }
 
   // Build shader
-  const shaderCode = input.shader || `
+  const shaderCode =
+    input.shader ||
+    `
     void mainImage(out vec4 O, in vec2 U) {
       vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
       float r = length(uv);

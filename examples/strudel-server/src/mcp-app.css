@@ -61,8 +61,9 @@ html, body {
 }
 
 .play-btn.playing {
-  background: rgba(120, 255, 180, 0.15);
-  border-color: rgba(120, 255, 180, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
 }
 
 .play-btn.hidden {
@@ -123,6 +124,67 @@ html, body {
 
 .code-preview.visible {
   display: block;
+}
+
+/* Code overlay on hover */
+.code-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  max-height: 60%;
+  margin: 0;
+  padding: 24px;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(120, 255, 180, 0.2);
+  border-radius: 12px;
+  color: #c8e6c0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 50;
+}
+
+.ui-overlay:hover .code-overlay.has-code {
+  opacity: 1;
+}
+
+/* Strudel.cc link */
+.strudel-link {
+  position: absolute;
+  bottom: 16px;
+  right: 70px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  pointer-events: auto;
+  opacity: 0;
+  z-index: 100;
+}
+
+.strudel-link:hover {
+  background: rgba(120, 255, 180, 0.15);
+  border-color: rgba(120, 255, 180, 0.4);
+  color: #78ffb4;
+  opacity: 1;
+}
+
+body:hover .strudel-link {
+  opacity: 0.7;
 }
 
 /* Audio meters bar at bottom */
