@@ -67,16 +67,21 @@ SOUNDS: bd, sd, hh, oh, cp, piano, sawtooth, sine, square
 
 Note: Click play button to start audio (browser security requires user gesture).`;
 
-const DEFAULT_PATTERN = `// Kick + bass pattern with tempo
-stack(
-  s("bd*4").gain(1.2),
-  s("~ hh ~ hh").gain(0.6),
-  s("~ ~ cp ~").gain(0.8),
-  note("c2 ~ eb2 ~")
-    .s("sawtooth")
-    .cutoff(800)
-    .gain(0.5)
-).cpm(135/4)`;
+const DEFAULT_PATTERN = `note("[c eb g <f bb>](3,8,<0 1>)".sub(12))
+.s("<sawtooth>/64")
+.lpf(sine.range(300,2000).slow(16))
+.lpa(0.005)
+.lpd(perlin.range(.02,.2))
+.lps(perlin.range(0,.5).slow(3))
+.lpq(sine.range(2,10).slow(32))
+.release(.5)
+.lpenv(perlin.range(1,8).slow(2))
+.ftype('24db')
+.room(1)
+.juxBy(.5,rev)
+.sometimes(add(note(12)))
+.stack(s("bd*2").bank('RolandTR909'))
+.gain(.5).fast(2)`;
 
 const DEFAULT_SHADER = `void mainImage(out vec4 O, in vec2 U) {
   vec2 uv = (U - .5 * iResolution.xy) / iResolution.y;
@@ -125,22 +130,33 @@ export function createServer(): McpServer {
         code: z
           .string()
           .default(DEFAULT_PATTERN)
-          .describe("Strudel pattern code using mini-notation and pattern functions"),
+          .describe(
+            "Strudel pattern code using mini-notation and pattern functions",
+          ),
         shader: z
           .string()
           .default(DEFAULT_SHADER)
-          .describe("GLSL fragment shader code (mainImage function) for audio-reactive visualization"),
+          .describe(
+            "GLSL fragment shader code (mainImage function) for audio-reactive visualization",
+          ),
         bpm: z
           .number()
           .positive()
           .default(120)
-          .describe("Beats per minute for beat tracking (auto-detected from .cpm() if present)"),
+          .describe(
+            "Beats per minute for beat tracking (auto-detected from .cpm() if present)",
+          ),
       }),
       _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
       return {
-        content: [{ type: "text", text: "Strudel pattern loaded with audio-reactive shader" }],
+        content: [
+          {
+            type: "text",
+            text: "Strudel pattern loaded with audio-reactive shader",
+          },
+        ],
       };
     },
   );
