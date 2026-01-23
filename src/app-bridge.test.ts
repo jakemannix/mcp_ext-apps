@@ -113,7 +113,7 @@ describe("App <-> AppBridge integration", () => {
       const testHostContext = {
         theme: "dark" as const,
         locale: "en-US",
-        viewport: { width: 800, height: 600 },
+        containerDimensions: { width: 800, maxHeight: 600 },
       };
       const newBridge = new AppBridge(
         createMockClient() as Client,
@@ -337,7 +337,7 @@ describe("App <-> AppBridge integration", () => {
       const initialContext = {
         theme: "light" as const,
         locale: "en-US",
-        viewport: { width: 800, height: 600 },
+        containerDimensions: { width: 800, maxHeight: 600 },
       };
       const newBridge = new AppBridge(
         createMockClient() as Client,
@@ -354,20 +354,23 @@ describe("App <-> AppBridge integration", () => {
       newBridge.sendHostContextChange({ theme: "dark" });
       await flush();
 
-      // Send another partial update: only viewport changes
+      // Send another partial update: only containerDimensions change
       newBridge.sendHostContextChange({
-        viewport: { width: 1024, height: 768 },
+        containerDimensions: { width: 1024, maxHeight: 768 },
       });
       await flush();
 
       // getHostContext should have accumulated all updates:
       // - locale from initial (unchanged)
       // - theme from first partial update
-      // - viewport from second partial update
+      // - containerDimensions from second partial update
       const context = newApp.getHostContext();
       expect(context?.theme).toBe("dark");
       expect(context?.locale).toBe("en-US");
-      expect(context?.viewport).toEqual({ width: 1024, height: 768 });
+      expect(context?.containerDimensions).toEqual({
+        width: 1024,
+        maxHeight: 768,
+      });
 
       await newAppTransport.close();
       await newBridgeTransport.close();
@@ -438,6 +441,82 @@ describe("App <-> AppBridge integration", () => {
         data: "Test log message",
         logger: "TestApp",
       });
+    });
+
+    it("app.updateModelContext triggers bridge.onupdatemodelcontext and returns result", async () => {
+      const receivedContexts: unknown[] = [];
+      bridge.onupdatemodelcontext = async (params) => {
+        receivedContexts.push(params);
+        return {};
+      };
+
+      await app.connect(appTransport);
+      const result = await app.updateModelContext({
+        content: [{ type: "text", text: "User selected 3 items" }],
+      });
+
+      expect(receivedContexts).toHaveLength(1);
+      expect(receivedContexts[0]).toMatchObject({
+        content: [{ type: "text", text: "User selected 3 items" }],
+      });
+      expect(result).toEqual({});
+    });
+
+    it("app.updateModelContext works with multiple content blocks", async () => {
+      const receivedContexts: unknown[] = [];
+      bridge.onupdatemodelcontext = async (params) => {
+        receivedContexts.push(params);
+        return {};
+      };
+
+      await app.connect(appTransport);
+      const result = await app.updateModelContext({
+        content: [
+          { type: "text", text: "Filter applied" },
+          { type: "text", text: "Category: electronics" },
+        ],
+      });
+
+      expect(receivedContexts).toHaveLength(1);
+      expect(receivedContexts[0]).toMatchObject({
+        content: [
+          { type: "text", text: "Filter applied" },
+          { type: "text", text: "Category: electronics" },
+        ],
+      });
+      expect(result).toEqual({});
+    });
+
+    it("app.updateModelContext works with structuredContent", async () => {
+      const receivedContexts: unknown[] = [];
+      bridge.onupdatemodelcontext = async (params) => {
+        receivedContexts.push(params);
+        return {};
+      };
+
+      await app.connect(appTransport);
+      const result = await app.updateModelContext({
+        structuredContent: { selectedItems: 3, total: 150.0, currency: "USD" },
+      });
+
+      expect(receivedContexts).toHaveLength(1);
+      expect(receivedContexts[0]).toMatchObject({
+        structuredContent: { selectedItems: 3, total: 150.0, currency: "USD" },
+      });
+      expect(result).toEqual({});
+    });
+
+    it("app.updateModelContext throws when handler throws", async () => {
+      bridge.onupdatemodelcontext = async () => {
+        throw new Error("Context update failed");
+      };
+
+      await app.connect(appTransport);
+      await expect(
+        app.updateModelContext({
+          content: [{ type: "text", text: "Test" }],
+        }),
+      ).rejects.toThrow("Context update failed");
     });
   });
 

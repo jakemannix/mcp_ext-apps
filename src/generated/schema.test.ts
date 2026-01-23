@@ -43,8 +43,12 @@ export type McpUiSandboxProxyReadyNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiSandboxProxyReadyNotificationSchema
 >;
 
-export type McpUiSandboxResourceReadyNotificationSchemaInferredType = z.infer<
-  typeof generated.McpUiSandboxResourceReadyNotificationSchema
+export type McpUiResourceCspSchemaInferredType = z.infer<
+  typeof generated.McpUiResourceCspSchema
+>;
+
+export type McpUiResourcePermissionsSchemaInferredType = z.infer<
+  typeof generated.McpUiResourcePermissionsSchema
 >;
 
 export type McpUiSizeChangedNotificationSchemaInferredType = z.infer<
@@ -79,6 +83,10 @@ export type McpUiResourceTeardownResultSchemaInferredType = z.infer<
   typeof generated.McpUiResourceTeardownResultSchema
 >;
 
+export type McpUiSupportedContentBlockModalitiesSchemaInferredType = z.infer<
+  typeof generated.McpUiSupportedContentBlockModalitiesSchema
+>;
+
 export type McpUiHostCapabilitiesSchemaInferredType = z.infer<
   typeof generated.McpUiHostCapabilitiesSchema
 >;
@@ -89,10 +97,6 @@ export type McpUiAppCapabilitiesSchemaInferredType = z.infer<
 
 export type McpUiInitializedNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiInitializedNotificationSchema
->;
-
-export type McpUiResourceCspSchemaInferredType = z.infer<
-  typeof generated.McpUiResourceCspSchema
 >;
 
 export type McpUiResourceMetaSchemaInferredType = z.infer<
@@ -119,6 +123,10 @@ export type McpUiMessageRequestSchemaInferredType = z.infer<
   typeof generated.McpUiMessageRequestSchema
 >;
 
+export type McpUiSandboxResourceReadyNotificationSchemaInferredType = z.infer<
+  typeof generated.McpUiSandboxResourceReadyNotificationSchema
+>;
+
 export type McpUiToolResultNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiToolResultNotificationSchema
 >;
@@ -129,6 +137,10 @@ export type McpUiHostContextSchemaInferredType = z.infer<
 
 export type McpUiHostContextChangedNotificationSchemaInferredType = z.infer<
   typeof generated.McpUiHostContextChangedNotificationSchema
+>;
+
+export type McpUiUpdateModelContextRequestSchemaInferredType = z.infer<
+  typeof generated.McpUiUpdateModelContextRequestSchema
 >;
 
 export type McpUiInitializeRequestSchemaInferredType = z.infer<
@@ -171,11 +183,13 @@ expectType<spec.McpUiSandboxProxyReadyNotification>(
 expectType<McpUiSandboxProxyReadyNotificationSchemaInferredType>(
   {} as spec.McpUiSandboxProxyReadyNotification,
 );
-expectType<spec.McpUiSandboxResourceReadyNotification>(
-  {} as McpUiSandboxResourceReadyNotificationSchemaInferredType,
+expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
+expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
+expectType<spec.McpUiResourcePermissions>(
+  {} as McpUiResourcePermissionsSchemaInferredType,
 );
-expectType<McpUiSandboxResourceReadyNotificationSchemaInferredType>(
-  {} as spec.McpUiSandboxResourceReadyNotification,
+expectType<McpUiResourcePermissionsSchemaInferredType>(
+  {} as spec.McpUiResourcePermissions,
 );
 expectType<spec.McpUiSizeChangedNotification>(
   {} as McpUiSizeChangedNotificationSchemaInferredType,
@@ -217,6 +231,12 @@ expectType<spec.McpUiResourceTeardownResult>(
 expectType<McpUiResourceTeardownResultSchemaInferredType>(
   {} as spec.McpUiResourceTeardownResult,
 );
+expectType<spec.McpUiSupportedContentBlockModalities>(
+  {} as McpUiSupportedContentBlockModalitiesSchemaInferredType,
+);
+expectType<McpUiSupportedContentBlockModalitiesSchemaInferredType>(
+  {} as spec.McpUiSupportedContentBlockModalities,
+);
 expectType<spec.McpUiHostCapabilities>(
   {} as McpUiHostCapabilitiesSchemaInferredType,
 );
@@ -235,8 +255,6 @@ expectType<spec.McpUiInitializedNotification>(
 expectType<McpUiInitializedNotificationSchemaInferredType>(
   {} as spec.McpUiInitializedNotification,
 );
-expectType<spec.McpUiResourceCsp>({} as McpUiResourceCspSchemaInferredType);
-expectType<McpUiResourceCspSchemaInferredType>({} as spec.McpUiResourceCsp);
 expectType<spec.McpUiResourceMeta>({} as McpUiResourceMetaSchemaInferredType);
 expectType<McpUiResourceMetaSchemaInferredType>({} as spec.McpUiResourceMeta);
 expectType<spec.McpUiRequestDisplayModeRequest>(
@@ -265,6 +283,12 @@ expectType<spec.McpUiMessageRequest>(
 expectType<McpUiMessageRequestSchemaInferredType>(
   {} as spec.McpUiMessageRequest,
 );
+expectType<spec.McpUiSandboxResourceReadyNotification>(
+  {} as McpUiSandboxResourceReadyNotificationSchemaInferredType,
+);
+expectType<McpUiSandboxResourceReadyNotificationSchemaInferredType>(
+  {} as spec.McpUiSandboxResourceReadyNotification,
+);
 expectType<spec.McpUiToolResultNotification>(
   {} as McpUiToolResultNotificationSchemaInferredType,
 );
@@ -278,6 +302,12 @@ expectType<spec.McpUiHostContextChangedNotification>(
 );
 expectType<McpUiHostContextChangedNotificationSchemaInferredType>(
   {} as spec.McpUiHostContextChangedNotification,
+);
+expectType<spec.McpUiUpdateModelContextRequest>(
+  {} as McpUiUpdateModelContextRequestSchemaInferredType,
+);
+expectType<McpUiUpdateModelContextRequestSchemaInferredType>(
+  {} as spec.McpUiUpdateModelContextRequest,
 );
 expectType<spec.McpUiInitializeRequest>(
   {} as McpUiInitializeRequestSchemaInferredType,

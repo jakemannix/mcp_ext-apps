@@ -1,7 +1,14 @@
 /**
- * Server Helpers for MCP Apps.
+ * Utilities for MCP servers to register tools and resources that display interactive UIs.
+ *
+ * Use these helpers instead of the base SDK's `registerTool` and `registerResource` when
+ * your tool should render an {@link app!App `App`} in the client. They handle UI metadata normalization
+ * and provide sensible defaults for the MCP Apps MIME type ({@link RESOURCE_MIME_TYPE `RESOURCE_MIME_TYPE`}).
  *
  * @module server-helpers
+ *
+ * @example
+ * {@includeCode ./index.examples.ts#index_overview}
  */
 
 import {
@@ -11,7 +18,9 @@ import {
   McpUiToolMeta,
 } from "../app.js";
 import type {
+  BaseToolCallback,
   McpServer,
+  RegisteredTool,
   ResourceMetadata,
   ToolCallback,
   ReadResourceCallback,
@@ -27,18 +36,27 @@ export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE };
 export type { ResourceMetadata, ToolCallback, ReadResourceCallback };
 
 /**
- * Tool configuration (same as McpServer.registerTool).
+ * Base tool configuration matching the standard MCP server tool options.
+ * Extended by {@link McpUiAppToolConfig `McpUiAppToolConfig`} to add UI metadata requirements.
  */
 export interface ToolConfig {
   title?: string;
   description?: string;
   inputSchema?: ZodRawShapeCompat | AnySchema;
+  outputSchema?: ZodRawShapeCompat | AnySchema;
   annotations?: ToolAnnotations;
   _meta?: Record<string, unknown>;
 }
 
 /**
- * MCP App Tool configuration for `registerAppTool`.
+ * Configuration for tools that render an interactive UI.
+ *
+ * Extends {@link ToolConfig `ToolConfig`} with a required `_meta` field that specifies UI metadata.
+ * The UI resource can be specified in two ways:
+ * - `_meta.ui.resourceUri` (preferred)
+ * - `_meta["ui/resourceUri"]` (deprecated, for backward compatibility)
+ *
+ * @see {@link registerAppTool `registerAppTool`} for the recommended way to register app tools
  */
 export interface McpUiAppToolConfig extends ToolConfig {
   _meta: {
@@ -52,7 +70,7 @@ export interface McpUiAppToolConfig extends ToolConfig {
          * URI of the UI resource to display for this tool.
          * This is converted to `_meta["ui/resourceUri"]`.
          *
-         * @example "ui://weather/widget.html"
+         * @example "ui://weather/view.html"
          *
          * @deprecated Use `_meta.ui.resourceUri` instead.
          */
@@ -62,11 +80,24 @@ export interface McpUiAppToolConfig extends ToolConfig {
 }
 
 /**
- * MCP App Resource configuration for `registerAppResource`.
+ * MCP App Resource configuration for {@link registerAppResource `registerAppResource`}.
+ *
+ * Extends the base MCP SDK `ResourceMetadata` with optional UI metadata
+ * for configuring security policies and rendering preferences.
+ *
+ * @see {@link registerAppResource `registerAppResource`} for usage
  */
 export interface McpUiAppResourceConfig extends ResourceMetadata {
+  /**
+   * Optional UI metadata for the resource.
+   * Used to configure security policies (CSP) and rendering preferences.
+   */
   _meta?: {
+    /**
+     * UI-specific metadata including CSP configuration and rendering preferences.
+     */
     ui?: McpUiResourceMeta;
+    // Allow additional metadata properties for extensibility.
     [key: string]: unknown;
   };
 }
@@ -74,41 +105,38 @@ export interface McpUiAppResourceConfig extends ResourceMetadata {
 /**
  * Register an app tool with the MCP server.
  *
- * This is a convenience wrapper around `server.registerTool` that will allow more backwards-compatibility.
+ * This is a convenience wrapper around `server.registerTool` that normalizes
+ * UI metadata: if `_meta.ui.resourceUri` is set, the legacy `_meta["ui/resourceUri"]`
+ * key is also populated (and vice versa) for compatibility with older hosts.
  *
  * @param server - The MCP server instance
  * @param name - Tool name/identifier
- * @param config - Tool configuration with required `ui` field
- * @param handler - Tool handler function
+ * @param config - Tool configuration with `_meta` field containing UI metadata
+ * @param cb - Tool handler function
  *
- * @example
- * ```typescript
- * import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
- * import { z } from 'zod';
+ * @example Basic usage
+ * {@includeCode ./index.examples.ts#registerAppTool_basicUsage}
  *
- * registerAppTool(server, "get-weather", {
- *   title: "Get Weather",
- *   description: "Get current weather for a location",
- *   inputSchema: { location: z.string() },
- *   _meta: {
- *     [RESOURCE_URI_META_KEY]: "ui://weather/widget.html",
- *   },
- * }, async (args) => {
- *   const weather = await fetchWeather(args.location);
- *   return { content: [{ type: "text", text: JSON.stringify(weather) }] };
- * });
- * ```
+ * @example Tool visible to model but not callable by UI
+ * {@includeCode ./index.examples.ts#registerAppTool_modelOnlyVisibility}
+ *
+ * @example Tool hidden from model, only callable by UI
+ * {@includeCode ./index.examples.ts#registerAppTool_appOnlyVisibility}
+ *
+ * @see {@link registerAppResource `registerAppResource`} to register the HTML resource referenced by the tool
  */
 export function registerAppTool<
-  TInputSchema extends ZodRawShapeCompat | AnySchema | undefined = undefined,
+  OutputArgs extends ZodRawShapeCompat | AnySchema,
+  InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
 >(
   server: Pick<McpServer, "registerTool">,
   name: string,
-  config: Omit<McpUiAppToolConfig, "inputSchema"> & {
-    inputSchema?: TInputSchema;
+  config: McpUiAppToolConfig & {
+    inputSchema?: InputArgs;
+    outputSchema?: OutputArgs;
   },
-  handler: ToolCallback<TInputSchema>,
-): void {
+  cb: ToolCallback<InputArgs>,
+): RegisteredTool {
   // Normalize metadata for backward compatibility:
   // - If _meta.ui.resourceUri is set, also set the legacy flat key
   // - If the legacy flat key is set, also set _meta.ui.resourceUri
@@ -125,37 +153,29 @@ export function registerAppTool<
     normalizedMeta = { ...meta, ui: { ...uiMeta, resourceUri: legacyUri } };
   }
 
-  server.registerTool(name, { ...config, _meta: normalizedMeta }, handler);
+  return server.registerTool(name, { ...config, _meta: normalizedMeta }, cb);
 }
 
 /**
  * Register an app resource with the MCP server.
  *
  * This is a convenience wrapper around `server.registerResource` that:
- * - Defaults the MIME type to "text/html;profile=mcp-app"
+ * - Defaults the MIME type to {@link RESOURCE_MIME_TYPE `RESOURCE_MIME_TYPE`} (`"text/html;profile=mcp-app"`)
  * - Provides a cleaner API matching the SDK's callback signature
  *
  * @param server - The MCP server instance
  * @param name - Human-readable resource name
- * @param uri - Resource URI (should match the `ui` field in tool config)
+ * @param uri - Resource URI (should match the `_meta.ui` field in tool config)
  * @param config - Resource configuration
  * @param readCallback - Callback that returns the resource contents
  *
- * @example
- * ```typescript
- * import { registerAppResource } from '@modelcontextprotocol/ext-apps/server';
+ * @example Basic usage
+ * {@includeCode ./index.examples.ts#registerAppResource_basicUsage}
  *
- * registerAppResource(server, "Weather Widget", "ui://weather/widget.html", {
- *   description: "Interactive weather display",
- *   mimeType: RESOURCE_MIME_TYPE,
- * }, async () => ({
- *   contents: [{
- *     uri: "ui://weather/widget.html",
- *     mimeType: RESOURCE_MIME_TYPE,
- *     text: await fs.readFile("dist/widget.html", "utf-8"),
- *   }],
- * }));
- * ```
+ * @example With CSP configuration for external domains
+ * {@includeCode ./index.examples.ts#registerAppResource_withCsp}
+ *
+ * @see {@link registerAppTool `registerAppTool`} to register tools that reference this resource
  */
 export function registerAppResource(
   server: Pick<McpServer, "registerResource">,

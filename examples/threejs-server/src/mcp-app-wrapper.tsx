@@ -1,31 +1,33 @@
 /**
- * Three.js Widget - MCP App Wrapper
+ * Three.js view - MCP App Wrapper
  *
  * Generic wrapper that handles MCP App connection and passes all relevant
- * props to the actual widget component.
+ * props to the actual view component.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { StrictMode, useState, useCallback } from "react";
+import { StrictMode, useState, useCallback, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import ThreeJSApp from "./threejs-app.tsx";
 import "./global.css";
 
-const APP_INFO = { name: "Three.js Widget", version: "1.0.0" };
+// =============================================================================
+// Types
+// =============================================================================
 
 /**
- * Props passed to the widget component.
- * This interface can be reused for other widgets.
+ * Props passed to the view component.
+ * This interface can be reused for other views.
  */
-export interface WidgetProps<TToolInput = Record<string, unknown>> {
+export interface ViewProps<TToolInput = Record<string, unknown>> {
   /** Complete tool input (after streaming finishes) */
   toolInputs: TToolInput | null;
   /** Partial tool input (during streaming) */
   toolInputsPartial: TToolInput | null;
   /** Tool execution result from the server */
   toolResult: CallToolResult | null;
-  /** Host context (theme, viewport, locale, etc.) */
+  /** Host context (theme, dimensions, locale, etc.) */
   hostContext: McpUiHostContext | null;
   /** Call a tool on the MCP server */
   callServerTool: App["callServerTool"];
@@ -36,6 +38,10 @@ export interface WidgetProps<TToolInput = Record<string, unknown>> {
   /** Send log messages to the host */
   sendLog: App["sendLog"];
 }
+
+// =============================================================================
+// MCP App Wrapper
+// =============================================================================
 
 function McpAppWrapper() {
   const [toolInputs, setToolInputs] = useState<Record<string, unknown> | null>(
@@ -49,7 +55,7 @@ function McpAppWrapper() {
   const [hostContext, setHostContext] = useState<McpUiHostContext | null>(null);
 
   const { app, error } = useApp({
-    appInfo: APP_INFO,
+    appInfo: { name: "Three.js View", version: "1.0.0" },
     capabilities: {},
     onAppCreated: (app) => {
       // Complete tool input (streaming finished)
@@ -65,12 +71,25 @@ function McpAppWrapper() {
       app.ontoolresult = (params) => {
         setToolResult(params as CallToolResult);
       };
-      // Host context changes (theme, viewport, etc.)
+      // Host context changes (theme, dimensions, etc.)
       app.onhostcontextchanged = (params) => {
-        setHostContext(params);
+        setHostContext((prev) => ({ ...prev, ...params }));
       };
     },
   });
+
+  // Apply host styling (theme, CSS variables, fonts)
+  useHostStyles(app);
+
+  // Get initial host context after connection
+  useEffect(() => {
+    if (app) {
+      const ctx = app.getHostContext();
+      if (ctx) {
+        setHostContext(ctx);
+      }
+    }
+  }, [app]);
 
   // Memoized callbacks that forward to app methods
   const callServerTool = useCallback<App["callServerTool"]>(

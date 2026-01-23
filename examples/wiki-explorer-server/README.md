@@ -10,6 +10,27 @@ Visualizes Wikipedia link graphs using a force-directed layout. Explore how Wiki
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "wiki-explorer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-wiki-explorer",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Force-directed graph visualization**: Interactive graph powered by [`force-graph`](https://github.com/vasturiano/force-graph)

@@ -5,50 +5,41 @@ import { App, McpUiAppCapabilities, PostMessageTransport } from "../app";
 export * from "../app";
 
 /**
- * Options for configuring the useApp hook.
+ * Options for configuring the {@link useApp `useApp`} hook.
  *
- * Note: This interface does NOT expose App options like `autoResize`.
- * The hook creates the App with default options (autoResize: true). If you need
- * custom App options, create the App manually instead of using this hook.
+ * Note: This interface does NOT expose {@link App `App`} options like `autoResize`.
+ * The hook creates the `App` with default options (`autoResize: true`). If you
+ * need custom `App` options, create the `App` manually instead of using this hook.
  *
- * @see {@link useApp} for the hook that uses these options
- * @see {@link useAutoResize} for manual auto-resize control with custom App options
+ * @see {@link useApp `useApp`} for the hook that uses these options
+ * @see {@link useAutoResize `useAutoResize`} for manual auto-resize control with custom `App` options
  */
 export interface UseAppOptions {
   /** App identification (name and version) */
   appInfo: Implementation;
-  /** Features and capabilities this app provides */
+  /**
+   * Declares what features this app supports.
+   */
   capabilities: McpUiAppCapabilities;
   /**
-   * Called after App is created but before connection.
+   * Called after {@link App `App`} is created but before connection.
    *
    * Use this to register request/notification handlers that need to be in place
    * before the initialization handshake completes.
    *
-   * @param app - The newly created App instance
+   * @param app - The newly created `App` instance
    *
-   * @example Register a notification handler
-   * ```typescript
-   * import { McpUiToolInputNotificationSchema } from '@modelcontextprotocol/ext-apps/react';
-   *
-   * onAppCreated: (app) => {
-   *   app.setNotificationHandler(
-   *     McpUiToolInputNotificationSchema,
-   *     (notification) => {
-   *       console.log("Tool input:", notification.params.arguments);
-   *     }
-   *   );
-   * }
-   * ```
+   * @example Register an event handler
+   * {@includeCode ./useApp.examples.tsx#useApp_registerHandler}
    */
   onAppCreated?: (app: App) => void;
 }
 
 /**
- * State returned by the useApp hook.
+ * State returned by the {@link useApp `useApp`} hook.
  */
 export interface AppState {
-  /** The connected App instance, null during initialization */
+  /** The connected {@link App `App`} instance, null during initialization */
   app: App | null;
   /** Whether initialization completed successfully */
   isConnected: boolean;
@@ -59,49 +50,30 @@ export interface AppState {
 /**
  * React hook to create and connect an MCP App.
  *
- * This hook manages the complete lifecycle of an {@link App}: creation, connection,
- * and cleanup. It automatically creates a {@link PostMessageTransport} to window.parent
- * and handles initialization.
+ * This hook manages {@link App `App`} creation and connection. It automatically
+ * creates a {@link PostMessageTransport `PostMessageTransport`} to window.parent and handles
+ * initialization.
+ *
+ * This hook is part of the optional React integration. The core SDK (`App`,
+ * `PostMessageTransport`) is framework-agnostic and can be used with any UI
+ * framework or vanilla JavaScript.
  *
  * **Important**: The hook intentionally does NOT re-run when options change
  * to avoid reconnection loops. Options are only used during the initial mount.
- *
- * **Note**: This is part of the optional React integration. The core SDK
- * (App, PostMessageTransport) is framework-agnostic and can be
- * used with any UI framework or vanilla JavaScript.
+ * Furthermore, the `App` instance is NOT closed on unmount. This avoids cleanup
+ * issues during React Strict Mode's double-mount cycle. If you need to
+ * explicitly close the `App`, call {@link App.close `App.close`} manually.
  *
  * @param options - Configuration for the app
  * @returns Current connection state and app instance. If connection fails during
  *   initialization, the `error` field will contain the error (typically connection
  *   timeouts, initialization handshake failures, or transport errors).
  *
- * @example Basic usage
- * ```typescript
- * import { useApp, McpUiToolInputNotificationSchema } from '@modelcontextprotocol/ext-apps/react';
+ * @example Basic usage of useApp hook with common event handlers
+ * {@includeCode ./useApp.examples.tsx#useApp_basicUsage}
  *
- * function MyApp() {
- *   const { app, isConnected, error } = useApp({
- *     appInfo: { name: "MyApp", version: "1.0.0" },
- *     capabilities: {},
- *     onAppCreated: (app) => {
- *       // Register handlers before connection
- *       app.setNotificationHandler(
- *         McpUiToolInputNotificationSchema,
- *         (notification) => {
- *           console.log("Tool input:", notification.params.arguments);
- *         }
- *       );
- *     },
- *   });
- *
- *   if (error) return <div>Error: {error.message}</div>;
- *   if (!isConnected) return <div>Connecting...</div>;
- *   return <div>Connected!</div>;
- * }
- * ```
- *
- * @see {@link App.connect} for the underlying connection method
- * @see {@link useAutoResize} for manual auto-resize control when using custom App options
+ * @see {@link App.connect `App.connect`} for the underlying connection method
+ * @see {@link useAutoResize `useAutoResize`} for manual auto-resize control when using custom App options
  */
 export function useApp({
   appInfo,
@@ -117,7 +89,10 @@ export function useApp({
 
     async function connect() {
       try {
-        const transport = new PostMessageTransport(window.parent);
+        const transport = new PostMessageTransport(
+          window.parent,
+          window.parent,
+        );
         const app = new App(appInfo, capabilities);
 
         // Register handlers BEFORE connecting

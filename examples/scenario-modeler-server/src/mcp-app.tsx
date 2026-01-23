@@ -1,6 +1,6 @@
+import type { McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp } from "@modelcontextprotocol/ext-apps/react";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { StrictMode, useState, useMemo, useCallback } from "react";
+import { StrictMode, useState, useMemo, useCallback, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { SliderRow } from "./components/SliderRow.tsx";
 import { MetricCard } from "./components/MetricCard.tsx";
@@ -24,19 +24,16 @@ interface CallToolResultData {
   defaultInputs?: ScenarioInputs;
 }
 
-/** Extract templates and defaultInputs from tool result content */
-function extractResultData(result: CallToolResult): CallToolResultData {
-  const text = result
-    .content!.filter(
-      (c): c is { type: "text"; text: string } => c.type === "text",
-    )
-    .map((c) => c.text)
-    .join("");
-  const { templates, defaultInputs } = JSON.parse(text) as CallToolResultData;
-  return { templates, defaultInputs };
-}
-
 const APP_INFO = { name: "SaaS Scenario Modeler", version: "1.0.0" };
+
+function getSafeAreaPaddingStyle(hostContext?: McpUiHostContext) {
+  return {
+    paddingTop: hostContext?.safeAreaInsets?.top,
+    paddingRight: hostContext?.safeAreaInsets?.right,
+    paddingBottom: hostContext?.safeAreaInsets?.bottom,
+    paddingLeft: hostContext?.safeAreaInsets?.left,
+  };
+}
 
 // Local defaults for immediate render (should match server's DEFAULT_INPUTS)
 const FALLBACK_INPUTS: ScenarioInputs = {
@@ -51,22 +48,35 @@ function ScenarioModeler() {
   const [templates, setTemplates] = useState<ScenarioTemplate[]>([]);
   const [defaultInputs, setDefaultInputs] =
     useState<ScenarioInputs>(FALLBACK_INPUTS);
+  const [hostContext, setHostContext] = useState<
+    McpUiHostContext | undefined
+  >();
 
   const { app, error } = useApp({
     appInfo: APP_INFO,
     capabilities: {},
     onAppCreated: (app) => {
       app.ontoolresult = async (result) => {
-        const { templates, defaultInputs } = extractResultData(result);
+        const { templates, defaultInputs } =
+          result.structuredContent as unknown as CallToolResultData;
         if (templates) setTemplates(templates);
         if (defaultInputs) setDefaultInputs(defaultInputs);
+      };
+      app.onhostcontextchanged = (params) => {
+        setHostContext((prev) => ({ ...prev, ...params }));
       };
     },
   });
 
+  useEffect(() => {
+    if (app) {
+      setHostContext(app.getHostContext());
+    }
+  }, [app]);
+
   if (error) {
     return (
-      <main className="main">
+      <main className="main" style={getSafeAreaPaddingStyle(hostContext)}>
         <div className="loading">Error: {error.message}</div>
       </main>
     );
@@ -74,25 +84,31 @@ function ScenarioModeler() {
 
   if (!app) {
     return (
-      <main className="main">
+      <main className="main" style={getSafeAreaPaddingStyle(hostContext)}>
         <div className="loading">Connecting...</div>
       </main>
     );
   }
 
   return (
-    <ScenarioModelerInner templates={templates} defaultInputs={defaultInputs} />
+    <ScenarioModelerInner
+      templates={templates}
+      defaultInputs={defaultInputs}
+      hostContext={hostContext}
+    />
   );
 }
 
 interface ScenarioModelerInnerProps {
   templates: ScenarioTemplate[];
   defaultInputs: ScenarioInputs;
+  hostContext?: McpUiHostContext;
 }
 
 function ScenarioModelerInner({
   templates,
   defaultInputs,
+  hostContext,
 }: ScenarioModelerInnerProps) {
   const [inputs, setInputs] = useState<ScenarioInputs>(FALLBACK_INPUTS);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
@@ -141,7 +157,7 @@ function ScenarioModelerInner({
   }, [selectedTemplate]);
 
   return (
-    <main className="main">
+    <main className="main" style={getSafeAreaPaddingStyle(hostContext)}>
       {/* Header */}
       <header className="header">
         <h1 className="header-title">SaaS Scenario Modeler</h1>
