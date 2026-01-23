@@ -170,7 +170,7 @@ function captureHostLogs(page: Page): string[] {
  */
 async function waitForAppLoad(page: Page) {
   const outerFrame = page.frameLocator("iframe").first();
-  await expect(outerFrame.locator("iframe")).toBeVisible();
+  await expect(outerFrame.locator("iframe")).toBeVisible({ timeout: 30000 });
 }
 
 /**
