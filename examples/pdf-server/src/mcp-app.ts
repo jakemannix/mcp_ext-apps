@@ -247,7 +247,7 @@ function findSelectionInText(
   return undefined;
 }
 
-// Extract text from current page and update model context as markdown
+// Extract text from current page and update model context
 async function updatePageContext() {
   if (!pdfDocument) return;
 
@@ -276,22 +276,24 @@ async function updatePageContext() {
       );
     }
 
-    // Format content with selection and truncation
+    // Format content with selection markers and truncation
     const content = formatPageContent(
       pageText,
       MAX_MODEL_CONTEXT_LENGTH,
       selection,
     );
 
-    const markdown = `---
-title: ${pdfTitle || ""}
-url: ${pdfUrl}
-current-page: ${currentPage}/${totalPages}
----
+    // Build context with widget ID for multi-widget disambiguation
+    const widgetId = app.getHostContext()?.toolInfo?.id;
+    const header = [
+      `PDF viewer${widgetId ? ` (${widgetId})` : ""}`,
+      pdfTitle ? `"${pdfTitle}"` : pdfUrl,
+      `Current Page: ${currentPage}/${totalPages}`,
+    ].join(" | ");
 
-${content}`;
+    const contextText = `${header}\n\nPage content:\n${content}`;
 
-    app.updateModelContext({ content: [{ type: "text", text: markdown }] });
+    app.updateModelContext({ content: [{ type: "text", text: contextText }] });
   } catch (err) {
     log.error("Error updating context:", err);
   }
