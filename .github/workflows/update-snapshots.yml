@@ -7,6 +7,12 @@ on:
         description: 'Branch to update snapshots on'
         required: true
         default: 'main'
+  # Temporary: auto-run on this branch to update snapshots
+  push:
+    branches:
+      - 'ochafik/fix-e2e-flaky-tests'
+    paths:
+      - '.github/workflows/update-snapshots.yml'
 
 permissions:
   contents: write
@@ -17,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.branch || github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
