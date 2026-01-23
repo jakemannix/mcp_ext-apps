@@ -72,7 +72,7 @@ View (App) <--PostMessageTransport--> Host (AppBridge) <--MCP Client--> MCP Serv
 
 1. Host creates iframe with view HTML
 2. View creates `App` instance and calls `connect()` with `PostMessageTransport`
-3. App sends `ui/initialize` request, receives host capabilities and context
+3. View sends `ui/initialize` request, receives host capabilities and context
 4. Host sends `sendToolInput()` with tool arguments after initialization
 5. View can call server tools via `app.callServerTool()` or send messages via `app.sendMessage()`
 6. Host sends `sendToolResult()` when tool execution completes
