@@ -6,7 +6,7 @@
  * - Text selection via PDF.js TextLayer
  * - Page navigation, zoom
  */
-import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
+import { App, type McpUiHostContext, applyDocumentTheme, applyHostStyleVariables } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import * as pdfjsLib from "pdfjs-dist";
 import { TextLayer } from "pdfjs-dist";
@@ -751,6 +751,16 @@ app.onerror = (err) => {
 
 function handleHostContextChanged(ctx: McpUiHostContext) {
   log.info("Host context changed:", ctx);
+
+  // Apply theme from host
+  if (ctx.theme) {
+    applyDocumentTheme(ctx.theme);
+  }
+
+  // Apply host CSS variables
+  if (ctx.styles?.variables) {
+    applyHostStyleVariables(ctx.styles.variables);
+  }
 
   // Apply safe area insets
   if (ctx.safeAreaInsets) {
