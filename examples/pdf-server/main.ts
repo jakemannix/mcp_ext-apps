@@ -4,18 +4,24 @@
  * Or: node dist/index.js [--stdio] [pdf-urls...]
  */
 
-/**
- * Shared utilities for running MCP servers with Streamable HTTP transport.
- */
-
+import fs from "node:fs";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import cors from "cors";
 import type { Request, Response } from "express";
-import { createServer, initializePdfIndex } from "./server.js";
-import { isArxivUrl, toFileUrl, normalizeArxivUrl } from "./src/pdf-indexer.js";
+import {
+  createServer,
+  isArxivUrl,
+  isFileUrl,
+  normalizeArxivUrl,
+  pathToFileUrl,
+  fileUrlToPath,
+  allowedLocalFiles,
+  allowedRemoteOrigins,
+  DEFAULT_PDF,
+} from "./server.js";
 
 export interface ServerOptions {
   port: number;
@@ -24,9 +30,6 @@ export interface ServerOptions {
 
 /**
  * Starts an MCP server with Streamable HTTP transport in stateless mode.
- *
- * @param createServer - Factory function that creates a new McpServer instance per request.
- * @param options - Server configuration options.
  */
 export async function startServer(
   createServer: () => McpServer,
@@ -80,8 +83,6 @@ export async function startServer(
   process.on("SIGTERM", shutdown);
 }
 
-const DEFAULT_PDF = "https://arxiv.org/pdf/1706.03762"; // Attention Is All You Need
-
 function parseArgs(): { urls: string[]; stdio: boolean } {
   const args = process.argv.slice(2);
   const urls: string[] = [];
@@ -98,7 +99,7 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
         !arg.startsWith("https://") &&
         !arg.startsWith("file://")
       ) {
-        url = toFileUrl(arg);
+        url = pathToFileUrl(arg);
       } else if (isArxivUrl(arg)) {
         url = normalizeArxivUrl(arg);
       }
@@ -112,9 +113,23 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
 async function main() {
   const { urls, stdio } = parseArgs();
 
-  console.error(`[pdf-server] Initializing with ${urls.length} PDF(s)...`);
-  await initializePdfIndex(urls);
-  console.error(`[pdf-server] Ready`);
+  // Register local files in whitelist
+  for (const url of urls) {
+    if (isFileUrl(url)) {
+      const filePath = fileUrlToPath(url);
+      if (fs.existsSync(filePath)) {
+        allowedLocalFiles.add(filePath);
+        console.error(`[pdf-server] Registered local file: ${filePath}`);
+      } else {
+        console.error(`[pdf-server] Warning: File not found: ${filePath}`);
+      }
+    }
+  }
+
+  console.error(`[pdf-server] Ready (${urls.length} URL(s) configured)`);
+  console.error(
+    `[pdf-server] Allowed origins: ${[...allowedRemoteOrigins].join(", ")}`,
+  );
 
   if (stdio) {
     await createServer().connect(new StdioServerTransport());

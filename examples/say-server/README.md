@@ -2,18 +2,41 @@
 
 A real-time text-to-speech MCP App with karaoke-style text highlighting, powered by [Kyutai's Pocket TTS](https://github.com/kyutai-labs/pocket-tts).
 
+![Screenshot](screenshot.png)
+
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "say": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--default-index",
+        "https://pypi.org/simple",
+        "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/refs/heads/main/examples/say-server/server.py",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## MCP App Features Demonstrated
 
 This example showcases several MCP App capabilities:
 
 - **Single-file executable**: Python server with embedded React UI - no build step required
-- **Partial tool inputs** (`ontoolinputpartial`): Widget receives streaming text as it's being generated
+- **Partial tool inputs** (`ontoolinputpartial`): The view receives streaming text as it's being generated
 - **Queue-based streaming**: Demonstrates how to stream text out and audio in via a polling tool (adds text to an input queue, retrieves audio chunks from an output queue)
-- **Model context updates**: Widget updates the LLM with playback progress ("Playing: ...snippet...")
+- **Model context updates**: The view updates the LLM with playback progress ("Playing: ...snippet...")
 - **Native theming**: Uses CSS variables for automatic dark/light mode adaptation
 - **Fullscreen mode**: Toggle fullscreen via `requestDisplayMode()` API, press Escape to exit
-- **Multi-widget speak lock**: Coordinates multiple TTS widgets via localStorage so only one plays at a time
-- **Hidden tools** (`visibility: ["app"]`): Private tools only accessible to the widget, not the model
+- **Multi-view speak lock**: Coordinates multiple TTS views via localStorage so only one plays at a time
+- **Hidden tools** (`visibility: ["app"]`): Private tools only accessible to the view, not the model
 - **External links** (`openLink`): Attribution popup uses `app.openLink()` to open external URLs
 - **CSP metadata**: Resource declares required domains (`esm.sh`) for in-browser transpilation
 
@@ -26,34 +49,30 @@ This example showcases several MCP App capabilities:
 
 ## Prerequisites
 
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) - fast Python package manager
-- A CUDA GPU (recommended) or CPU with sufficient RAM (~2GB for model)
+- [uv](https://docs.astral.sh/uv/) - fast Python package manager
 
 ## Quick Start
 
-The server is a single self-contained Python file that can be run directly with `uv`:
+The server is a single self-contained Python file that can be run directly from GitHub:
 
 ```bash
-# Run directly (uv auto-installs dependencies)
-uv run examples/say-server/server.py
+# Run directly from GitHub (uv auto-installs dependencies)
+uv run https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/examples/say-server/server.py
 ```
 
 The server will be available at `http://localhost:3109/mcp`.
 
 ## Running with Docker
 
-Run directly from GitHub using the official `uv` Docker image. Mount your HuggingFace cache to avoid re-downloading the model:
+Run directly from GitHub using the official `uv` Docker image:
 
 ```bash
 docker run --rm -it \
   -p 3109:3109 \
-  -v ~/.cache/huggingface:/root/.cache/huggingface \
-  -e HF_HOME=/root/.cache/huggingface \
+  -v ~/.cache/huggingface-docker-say-server:/root/.cache/huggingface \
   ghcr.io/astral-sh/uv:debian \
   uv run https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/examples/say-server/server.py
 ```
-
-For GPU support, add `--gpus all` (requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)).
 
 ## Usage
 
@@ -66,8 +85,11 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
   "mcpServers": {
     "say": {
       "command": "uv",
-      "args": ["run", "server.py", "--stdio"],
-      "cwd": "/path/to/examples/say-server"
+      "args": [
+        "run",
+        "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/main/examples/say-server/server.py",
+        "--stdio"
+      ]
     }
   }
 }
@@ -110,29 +132,29 @@ See the [kyutai/tts-voices](https://huggingface.co/kyutai/tts-voices) repository
 
 The entire server is contained in a single `server.py` file:
 
-1. **`say` tool**: Public tool that triggers the widget with text to speak
-2. **Private tools** (`create_tts_queue`, `add_tts_text`, `poll_tts_audio`, etc.): Hidden from the model, only callable by the widget
-3. **Embedded React widget**: Uses [Babel standalone](https://babeljs.io/docs/babel-standalone) for in-browser JSX transpilation - no build step needed
+1. **`say` tool**: Public tool that triggers the view with text to speak
+2. **Private tools** (`create_tts_queue`, `add_tts_text`, `poll_tts_audio`, etc.): Hidden from the model, only callable by the view
+3. **Embedded React view**: Uses [Babel standalone](https://babeljs.io/docs/babel-standalone) for in-browser JSX transpilation - no build step needed
 4. **TTS backend**: Manages per-request audio queues using Pocket TTS
 
-The widget communicates with the server via MCP tool calls:
+The view communicates with the server via MCP tool calls:
 
 - Receives streaming text via `ontoolinputpartial` callback
 - Incrementally sends new text to the server as it arrives (via `add_tts_text`)
 - Polls for generated audio chunks while TTS runs in parallel
 - Plays audio via Web Audio API with synchronized text highlighting
 
-## Multi-Widget Speak Lock
+## Multi-view Speak Lock
 
-When multiple TTS widgets exist in the same browser (e.g., multiple chat messages each with their own say widget), they coordinate via localStorage to ensure only one plays at a time:
+When multiple TTS views exist in the same browser (e.g., multiple chat messages each with their own say view), they coordinate via localStorage to ensure only one plays at a time:
 
-1. **Unique Widget IDs**: Each widget receives a UUID via `toolResult._meta.widgetUUID`
-2. **Announce on Play**: When starting, a widget writes `{uuid, timestamp}` to `localStorage["mcp-tts-playing"]`
-3. **Poll for Conflicts**: Every 200ms, playing widgets check if another widget took the lock
-4. **Yield Gracefully**: If another widget started playing, pause and yield
+1. **Unique view IDs**: Each view receives a UUID via `toolResult._meta.viewUUID`
+2. **Announce on Play**: When starting, a view writes `{uuid, timestamp}` to `localStorage["mcp-tts-playing"]`
+3. **Poll for Conflicts**: Every 200ms, playing views check if another view took the lock
+4. **Yield Gracefully**: If another view started playing, pause and yield
 5. **Clean Up**: On pause/finish, clear the lock (only if owned)
 
-This "last writer wins" protocol ensures a seamless experience: clicking play on any widget immediately pauses others, without requiring cross-iframe postMessage coordination.
+This "last writer wins" protocol ensures a seamless experience: clicking play on any view immediately pauses others, without requiring cross-iframe postMessage coordination.
 
 ## TODO
 

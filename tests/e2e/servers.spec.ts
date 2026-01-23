@@ -16,6 +16,7 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
   "basic-vue": ["#server-time"], // Server time display
   "cohort-heatmap": ['[class*="heatmapWrapper"]'], // Heatmap grid (random data)
   "customer-segmentation": [".chart-container"], // Scatter plot (random data)
+  "debug-server": ["#event-log", "#callback-table-body"], // Event log and callback counts (dynamic)
   "say-server": [".playBtn", ".playOverlayBtn"], // Play buttons may have different states
   shadertoy: ["#canvas"], // WebGL shader canvas (animated)
   "system-monitor": [
@@ -38,7 +39,7 @@ const SLOW_SERVERS: Record<string, number> = {
 
 // Servers to skip in CI (require special resources like GPU, large ML models)
 const SKIP_SERVERS = new Set<string>([
-  // None currently - say-server widget works without TTS model for screenshots
+  // None currently - say-server view works without TTS model for screenshots
 ]);
 
 // Optional: filter to a single example via EXAMPLE env var (folder name)
@@ -96,6 +97,7 @@ const ALL_SERVERS = [
     name: "Customer Segmentation Server",
     dir: "customer-segmentation-server",
   },
+  { key: "debug-server", name: "Debug MCP App Server", dir: "debug-server" },
   { key: "map-server", name: "Map Server", dir: "map-server" },
   { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
   { key: "qr-server", name: "QR Code Server", dir: "qr-server" },

@@ -5,6 +5,27 @@ An MCP App example with a vanilla JavaScript UI (no framework).
 > [!TIP]
 > Looking for a React-based example? See [`basic-server-react`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-react)!
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "basic-vanillajs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-basic-vanillajs",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Overview
 
 - Tool registration with a linked UI resource

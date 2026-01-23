@@ -9,6 +9,27 @@ A demo MCP App that renders [ABC notation](https://en.wikipedia.org/wiki/ABC_not
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "sheet-music": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-sheet-music",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Audio Playback**: Built-in audio player with play/pause and loop controls

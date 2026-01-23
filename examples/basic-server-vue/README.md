@@ -5,6 +5,27 @@ An MCP App example with a Vue 3 UI using the Composition API.
 > [!TIP]
 > Looking for a vanilla JavaScript example? See [`basic-server-vanillajs`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vanillajs)!
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "basic-vue": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-basic-vue",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Overview
 
 - Tool registration with a linked UI resource

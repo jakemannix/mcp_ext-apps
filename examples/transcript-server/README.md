@@ -4,6 +4,27 @@
 
 An MCP App Server for live speech transcription using the Web Speech API.
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "transcript": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-transcript",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Live Transcription**: Real-time speech-to-text using browser's Web Speech API

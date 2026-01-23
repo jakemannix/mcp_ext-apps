@@ -10,6 +10,27 @@ A demo MCP App that renders [ShaderToy](https://www.shadertoy.com/)-compatible G
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "shadertoy": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-shadertoy",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Real-time Rendering**: Renders GLSL shaders using WebGL 2.0

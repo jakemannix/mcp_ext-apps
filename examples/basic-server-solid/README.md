@@ -5,6 +5,27 @@ An MCP App example with a Solid UI.
 > [!TIP]
 > Looking for a vanilla JavaScript example? See [`basic-server-vanillajs`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vanillajs)!
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "basic-solid": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-basic-solid",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Overview
 
 - Tool registration with a linked UI resource

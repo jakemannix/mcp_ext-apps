@@ -4,6 +4,27 @@
 
 Interactive 3D scene renderer using Three.js. Demonstrates streaming code preview and full MCP App integration.
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "threejs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-threejs",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Interactive 3D Rendering**: Execute JavaScript code to create and animate Three.js scenes
@@ -113,7 +134,7 @@ React component that:
 
 ### Visibility-Based Pause
 
-Animation automatically pauses when the widget scrolls out of view:
+Animation automatically pauses when the view scrolls out of view:
 
 - Uses `IntersectionObserver` to track visibility (browser-native, no polling)
 - Wraps `requestAnimationFrame` to skip frames when not visible
