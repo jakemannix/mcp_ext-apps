@@ -3,19 +3,47 @@
  *
  * Provides tools for rendering interactive 3D scenes using Three.js.
  */
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
+
+// Default code example for the Three.js widget
+const DEFAULT_THREEJS_CODE = `const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setSize(width, height);
+renderer.setClearColor(0x000000, 0); // Transparent background
+
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshStandardMaterial({ color: 0x00ff88 })
+);
+scene.add(cube);
+
+scene.add(new THREE.DirectionalLight(0xffffff, 1));
+scene.add(new THREE.AmbientLight(0x404040));
+
+camera.position.z = 3;
+
+function animate() {
+  requestAnimationFrame(animate);
+  cube.rotation.x += 0.01;
+  cube.rotation.y += 0.01;
+  renderer.render(scene, camera);
+}
+animate();`;
 
 const THREEJS_DOCUMENTATION = `# Three.js Widget Documentation
 
@@ -26,27 +54,31 @@ const THREEJS_DOCUMENTATION = `# Three.js Widget Documentation
 - \`OrbitControls\` - Interactive camera controls
 - \`EffectComposer\`, \`RenderPass\`, \`UnrealBloomPass\` - Post-processing effects
 
-## Basic Template
+## Basic Template (Transparent Background)
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);  // Dark background
+renderer.setClearColor(0x000000, 0); // Transparent - blends with host UI
 
 // Add objects here...
 
 camera.position.z = 5;
-renderer.render(scene, camera);  // Static render
+renderer.render(scene, camera);
 \`\`\`
 
-## Example: Rotating Cube with Lighting
+## Transparent vs Solid Background
+- **Transparent (default)**: Use \`alpha: true\` and \`setClearColor(0x000000, 0)\`
+- **Solid color**: Use \`setClearColor(0x1a1a2e)\` (omit alpha param)
+
+## Example: Rotating Cube
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x1a1a2e);
+renderer.setClearColor(0x000000, 0);
 
 const cube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
@@ -54,7 +86,6 @@ const cube = new THREE.Mesh(
 );
 scene.add(cube);
 
-// Lighting - keep intensity at 1 or below
 scene.add(new THREE.DirectionalLight(0xffffff, 1));
 scene.add(new THREE.AmbientLight(0x404040));
 
@@ -73,9 +104,9 @@ animate();
 \`\`\`javascript
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(width, height);
-renderer.setClearColor(0x2d2d44);
+renderer.setClearColor(0x000000, 0);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -100,52 +131,62 @@ animate();
 \`\`\`
 
 ## Tips
-- Always set \`renderer.setClearColor()\` to a dark color
+- Use \`alpha: true\` for transparent backgrounds that blend with host UI
 - Keep light intensity ≤ 1 to avoid washed-out scenes
 - Use \`MeshStandardMaterial\` for realistic lighting
 - For animations, use \`requestAnimationFrame\`
 `;
 
-const server = new McpServer({
-  name: "Three.js Server",
-  version: "1.0.0",
-});
+const resourceUri = "ui://threejs/mcp-app.html";
 
-// Register tool and resource
-{
-  const resourceUri = "ui://threejs/mcp-app.html";
+// =============================================================================
+// Server Setup
+// =============================================================================
+
+/**
+ * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
+ */
+export function createServer(): McpServer {
+  const server = new McpServer({
+    name: "Three.js Server",
+    version: "1.0.0",
+  });
 
   // Tool 1: show_threejs_scene
-  server.registerTool(
+  registerAppTool(
+    server,
     "show_threejs_scene",
     {
       title: "Show Three.js Scene",
       description:
-        "Render an interactive 3D scene with custom Three.js code. Available globals: THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, canvas, width, height.",
+        "Render an interactive 3D scene with custom Three.js code. Supports transparent backgrounds (alpha: true) for seamless host UI integration. Available globals: THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, canvas, width, height.",
       inputSchema: {
-        code: z.string().describe("JavaScript code to render the 3D scene"),
+        code: z
+          .string()
+          .default(DEFAULT_THREEJS_CODE)
+          .describe("JavaScript code to render the 3D scene"),
         height: z
           .number()
           .int()
           .positive()
-          .optional()
-          .describe("Height in pixels (default: 400)"),
+          .default(400)
+          .describe("Height in pixels"),
       },
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: z.object({
+        success: z.boolean(),
+      }),
+      _meta: { ui: { resourceUri } },
     },
-    async ({ code, height }) => {
+    async () => {
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ code, height: height || 400 }),
-          },
-        ],
+        content: [{ type: "text", text: "Three.js scene rendered" }],
+        structuredContent: { success: true },
       };
     },
   );
 
-  // Tool 2: learn_threejs
+  // Tool 2: learn_threejs (not a UI tool, just returns documentation)
   server.registerTool(
     "learn_threejs",
     {
@@ -162,10 +203,11 @@ const server = new McpServer({
   );
 
   // Resource registration
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
-    { description: "Three.js Widget UI" },
+    { mimeType: RESOURCE_MIME_TYPE, description: "Three.js Widget UI" },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
@@ -183,58 +225,6 @@ const server = new McpServer({
       };
     },
   );
+
+  return server;
 }
-
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Three.js Server running in stdio mode");
-  } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, () => {
-      console.log(`Three.js Server listening on http://localhost:${PORT}/mcp`);
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-  }
-}
-
-main().catch(console.error);

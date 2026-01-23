@@ -1,12 +1,29 @@
 # Example: Three.js App
 
+![Screenshot](screenshot.png)
+
 Interactive 3D scene renderer using Three.js. Demonstrates streaming code preview and full MCP App integration.
 
-<table>
-  <tr>
-    <td><a href="https://modelcontextprotocol.github.io/ext-apps/screenshots/threejs-server/screenshot.png"><img src="https://modelcontextprotocol.github.io/ext-apps/screenshots/threejs-server/screenshot.png" alt="Three.js scene" width="400"></a></td>
-  </tr>
-</table>
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "threejs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-threejs",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
 
 ## Features
 
@@ -112,3 +129,31 @@ React component that:
 - Displays streaming preview from `toolInputsPartial.code` as code arrives
 - Executes final code from `toolInputs.code` when complete
 - Renders to a pre-created canvas with configurable height
+
+## Performance
+
+### Visibility-Based Pause
+
+Animation automatically pauses when the widget scrolls out of view:
+
+- Uses `IntersectionObserver` to track visibility (browser-native, no polling)
+- Wraps `requestAnimationFrame` to skip frames when not visible
+- Animation loop stops completely → zero CPU usage while hidden
+- Queued callbacks resume instantly when scrolled back into view
+
+This is transparent to user code - just use `requestAnimationFrame` normally.
+
+### Transparent Background
+
+Supports alpha transparency for seamless host UI integration:
+
+```javascript
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: true,
+});
+renderer.setClearColor(0x000000, 0); // Fully transparent
+```
+
+This is the default - 3D objects composite directly over the host background.

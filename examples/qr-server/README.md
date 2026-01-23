@@ -4,26 +4,52 @@ A minimal Python MCP server that generates customizable QR codes with an interac
 
 ![Screenshot](https://modelcontextprotocol.github.io/ext-apps/screenshots/qr-server/screenshot.png)
 
+## MCP Client Configuration
+
+First, clone the repository:
+
+```bash
+git clone https://github.com/modelcontextprotocol/ext-apps.git
+```
+
+Then add to your MCP client configuration (stdio transport), replacing the path with your clone location:
+
+```json
+{
+  "mcpServers": {
+    "qr": {
+      "command": "uv",
+      "args": [
+        "run",
+        "/path/to/ext-apps/examples/qr-server/server.py",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - Generate QR codes from any text or URL
 - Customizable colors, size, and error correction
 - Interactive widget that displays in MCP-UI enabled clients
-- Supports both HTTP (for web clients) and stdio (for Claude Desktop)
+- Supports both HTTP (for web clients) and stdio (for MCP clients)
+
+## Prerequisites
+
+This server uses [uv](https://docs.astral.sh/uv/) for dependency management. Install it first:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Quick Start
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run server (HTTP mode)
-python server.py
-# → QR Server listening on http://localhost:3108/mcp
+# Run server (HTTP mode) - uv handles dependencies automatically
+uv run server.py
+# → QR Code Server listening on http://localhost:3108/mcp
 ```
 
 ## Usage
@@ -31,7 +57,7 @@ python server.py
 ### HTTP Mode (for basic-host / web clients)
 
 ```bash
-python server.py
+uv run server.py
 ```
 
 Connect from basic-host:
@@ -40,24 +66,13 @@ Connect from basic-host:
 SERVERS='["http://localhost:3108/mcp"]' bun serve.ts
 ```
 
-### Stdio Mode (for Claude Desktop)
+### Stdio Mode (for MCP clients)
 
 ```bash
-python server.py --stdio
+uv run server.py --stdio
 ```
 
-Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "qr": {
-      "command": "/path/to/qr-server/.venv/bin/python",
-      "args": ["/path/to/qr-server/server.py", "--stdio"]
-    }
-  }
-}
-```
+See [MCP Client Configuration](#mcp-client-configuration) above for how to add this server to your MCP client.
 
 ### Docker (accessing host server from container)
 
@@ -135,9 +150,8 @@ Generate a QR code with optional customization.
 
 ```
 qr-server/
-├── server.py      # MCP server (FastMCP + uvicorn)
+├── server.py      # MCP server (FastMCP + uvicorn, deps inline via PEP 723)
 ├── widget.html    # Interactive UI widget
-├── requirements.txt
 └── README.md
 ```
 
@@ -153,10 +167,12 @@ The widget uses MCP Apps SDK protocol:
 
 ## Dependencies
 
-- `mcp[cli]` - MCP Python SDK with FastMCP
+Dependencies are declared inline in `server.py` using [PEP 723](https://peps.python.org/pep-0723/) and managed by [uv](https://docs.astral.sh/uv/):
+
+- `mcp` - MCP Python SDK with FastMCP
 - `qrcode[pil]` - QR code generation with Pillow
-- `uvicorn` - ASGI server (included with mcp)
-- `starlette` - CORS middleware (included with mcp)
+- `uvicorn` - ASGI server
+- `starlette` - CORS middleware
 
 ## License
 

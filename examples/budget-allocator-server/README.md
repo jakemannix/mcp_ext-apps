@@ -10,6 +10,27 @@ An interactive budget allocation tool demonstrating real-time data visualization
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "budget-allocator": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-budget-allocator",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Interactive Sliders**: Adjust budget allocation across 5 categories (Marketing, Engineering, Operations, Sales, R&D)
@@ -47,7 +68,7 @@ Exposes a single `get-budget-data` tool that returns:
 - Historical data (~120 data points) - 24 months of allocation history per category
 - Industry benchmarks (~60 data points) - Aggregated percentile data by company stage
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/mcp-app.ts`)
 

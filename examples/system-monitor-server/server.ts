@@ -1,21 +1,18 @@
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-
 // Schemas - types are derived from these using z.infer
 const CpuCoreSchema = z.object({
   idle: z.number(),
@@ -56,7 +53,10 @@ const SystemStatsSchema = z.object({
 type CpuCore = z.infer<typeof CpuCoreSchema>;
 type MemoryStats = z.infer<typeof MemoryStatsSchema>;
 type SystemStats = z.infer<typeof SystemStatsSchema>;
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // Returns raw CPU timing data per core (client calculates usage from deltas)
 function getCpuSnapshots(): CpuCore[] {
@@ -106,57 +106,84 @@ async function getMemoryStats(): Promise<MemoryStats> {
   };
 }
 
-const server = new McpServer({
-  name: "System Monitor Server",
-  version: "1.0.0",
-});
+async function getStats(): Promise<SystemStats> {
+  const cpuSnapshots = getCpuSnapshots();
+  const cpuInfo = os.cpus()[0];
+  const memory = await getMemoryStats();
+  const uptimeSeconds = os.uptime();
 
-// Register the get-system-stats tool and its associated UI resource
-{
+  return {
+    cpu: {
+      cores: cpuSnapshots,
+      model: cpuInfo?.model ?? "Unknown",
+      count: os.cpus().length,
+    },
+    memory,
+    system: {
+      hostname: os.hostname(),
+      platform: `${os.platform()} ${os.arch()}`,
+      arch: os.arch(),
+      uptime: uptimeSeconds,
+      uptimeFormatted: formatUptime(uptimeSeconds),
+    },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function createServer(): McpServer {
+  const server = new McpServer({
+    name: "System Monitor Server",
+    version: "1.0.0",
+  });
+
+  // Register the get-system-stats tool and its associated UI resource
   const resourceUri = "ui://system-monitor/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-system-stats",
     {
       title: "Get System Stats",
       description:
         "Returns current system statistics including per-core CPU usage, memory, and system info.",
       inputSchema: {},
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: SystemStatsSchema.shape,
+      _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
-      const cpuSnapshots = getCpuSnapshots();
-      const cpuInfo = os.cpus()[0];
-      const memory = await getMemoryStats();
-      const uptimeSeconds = os.uptime();
-
-      const stats: SystemStats = {
-        cpu: {
-          cores: cpuSnapshots,
-          model: cpuInfo?.model ?? "Unknown",
-          count: os.cpus().length,
-        },
-        memory,
-        system: {
-          hostname: os.hostname(),
-          platform: `${os.platform()} ${os.arch()}`,
-          arch: os.arch(),
-          uptime: uptimeSeconds,
-          uptimeFormatted: formatUptime(uptimeSeconds),
-        },
-        timestamp: new Date().toISOString(),
-      };
-
+      const stats = await getStats();
       return {
         content: [{ type: "text", text: JSON.stringify(stats) }],
+        structuredContent: stats,
       };
     },
   );
 
-  server.registerResource(
+  // App-only tool for polling - used by the UI for periodic refresh
+  registerAppTool(
+    server,
+    "refresh-stats",
+    {
+      title: "Refresh Stats",
+      description: "Refresh system statistics (app-only, for polling)",
+      inputSchema: {},
+      outputSchema: SystemStatsSchema.shape,
+      _meta: { ui: { visibility: ["app"] } },
+    },
+    async (): Promise<CallToolResult> => {
+      const stats = await getStats();
+      return {
+        content: [{ type: "text", text: JSON.stringify(stats) }],
+        structuredContent: stats,
+      };
+    },
+  );
+
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
-    { description: "System Monitor UI" },
+    { mimeType: RESOURCE_MIME_TYPE, description: "System Monitor UI" },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
@@ -174,64 +201,6 @@ const server = new McpServer({
       };
     },
   );
+
+  return server;
 }
-
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("System Monitor Server running in stdio mode");
-  } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, (err) => {
-      if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-      }
-      console.log(
-        `System Monitor Server listening on http://localhost:${PORT}/mcp`,
-      );
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-  }
-}
-
-main().catch(console.error);

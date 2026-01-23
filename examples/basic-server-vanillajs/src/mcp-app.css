@@ -3,7 +3,9 @@
   --color-primary-hover: #1d4ed8;
   --color-notice-bg: #eff6ff;
 
-  min-width: 425px;
+  width: 100%;
+  max-width: 425px;
+  box-sizing: border-box;
 
   > * {
     margin-top: 0;
@@ -24,6 +26,13 @@
 
   > * + * {
     margin-top: 0.5rem;
+  }
+
+  /* Server time row: flex layout for consistent mask width in E2E tests */
+  > p {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
   }
 
   /* Consistent font for form inputs (inherits from global.css) */

@@ -2,15 +2,19 @@
 /**
  * HTTP servers for the MCP UI example:
  * - Host server (port 8080): serves host HTML files (React and Vanilla examples)
- * - Sandbox server (port 8081): serves sandbox.html with permissive CSP
+ * - Sandbox server (port 8081): serves sandbox.html with CSP headers
  *
  * Running on separate ports ensures proper origin isolation for security.
+ *
+ * Security: CSP is set via HTTP headers based on ?csp= query param.
+ * This ensures content cannot tamper with CSP (unlike meta tags).
  */
 
 import express from "express";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import type { McpUiResourceCsp } from "@modelcontextprotocol/ext-apps";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -50,26 +54,74 @@ hostApp.get("/", (_req, res) => {
 const sandboxApp = express();
 sandboxApp.use(cors());
 
-// Permissive CSP for sandbox content
-sandboxApp.use((_req, res, next) => {
-  const csp = [
-    "default-src 'self'",
-    "img-src * data: blob: 'unsafe-inline'",
-    "style-src * blob: data: 'unsafe-inline'",
-    "script-src * blob: data: 'unsafe-inline' 'unsafe-eval'",
-    "connect-src *",
-    "font-src * blob: data:",
-    "media-src * blob: data:",
-    "frame-src * blob: data:",
-  ].join("; ");
-  res.setHeader("Content-Security-Policy", csp);
+// Validate CSP domain entries to prevent injection attacks.
+// Rejects entries containing characters that could:
+// - `;` or newlines: break out to new CSP directive
+// - quotes: inject CSP keywords like 'unsafe-eval'
+// - space: inject multiple sources in one entry
+function sanitizeCspDomains(domains?: string[]): string[] {
+  if (!domains) return [];
+  return domains.filter((d) => typeof d === "string" && !/[;\r\n'" ]/.test(d));
+}
+
+function buildCspHeader(csp?: McpUiResourceCsp): string {
+  const resourceDomains = sanitizeCspDomains(csp?.resourceDomains).join(" ");
+  const connectDomains = sanitizeCspDomains(csp?.connectDomains).join(" ");
+  const frameDomains = sanitizeCspDomains(csp?.frameDomains).join(" ") || null;
+  const baseUriDomains =
+    sanitizeCspDomains(csp?.baseUriDomains).join(" ") || null;
+
+  const directives = [
+    // Default: allow same-origin + inline styles/scripts (needed for bundled apps)
+    "default-src 'self' 'unsafe-inline'",
+    // Scripts: same-origin + inline + eval (some libs need eval) + blob (workers) + specified domains
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: ${resourceDomains}`.trim(),
+    // Styles: same-origin + inline + specified domains
+    `style-src 'self' 'unsafe-inline' blob: data: ${resourceDomains}`.trim(),
+    // Images: same-origin + data/blob URIs + specified domains
+    `img-src 'self' data: blob: ${resourceDomains}`.trim(),
+    // Fonts: same-origin + data/blob URIs + specified domains
+    `font-src 'self' data: blob: ${resourceDomains}`.trim(),
+    // Network requests: same-origin + specified API/tile domains
+    `connect-src 'self' ${connectDomains}`.trim(),
+    // Workers: same-origin + blob (dynamic workers) + specified domains
+    // This is critical for WebGL apps (CesiumJS, Three.js) that use workers for:
+    // - Tile decoding and terrain processing
+    // - Image processing and texture loading
+    // - Physics and geometry calculations
+    `worker-src 'self' blob: ${resourceDomains}`.trim(),
+    // Nested iframes: use frameDomains if provided, otherwise block all
+    frameDomains ? `frame-src ${frameDomains}` : "frame-src 'none'",
+    // Plugins: always blocked (defense in depth)
+    "object-src 'none'",
+    // Base URI: use baseUriDomains if provided, otherwise block all
+    baseUriDomains ? `base-uri ${baseUriDomains}` : "base-uri 'none'",
+  ];
+
+  return directives.join("; ");
+}
+
+// Serve sandbox.html with CSP from query params
+sandboxApp.get(["/", "/sandbox.html"], (req, res) => {
+  // Parse CSP config from query param: ?csp=<url-encoded-json>
+  let cspConfig: McpUiResourceCsp | undefined;
+  if (typeof req.query.csp === "string") {
+    try {
+      cspConfig = JSON.parse(req.query.csp);
+    } catch (e) {
+      console.warn("[Sandbox] Invalid CSP query param:", e);
+    }
+  }
+
+  // Set CSP via HTTP header - tamper-proof unlike meta tags
+  const cspHeader = buildCspHeader(cspConfig);
+  res.setHeader("Content-Security-Policy", cspHeader);
+
+  // Prevent caching to ensure fresh CSP on each load
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
-  next();
-});
 
-sandboxApp.get(["/", "/sandbox.html"], (_req, res) => {
   res.sendFile(join(DIRECTORY, "sandbox.html"));
 });
 

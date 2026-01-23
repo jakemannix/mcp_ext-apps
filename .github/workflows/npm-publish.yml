@@ -83,3 +83,57 @@ jobs:
       - run: npm publish --provenance --access public ${{ steps.npm-tag.outputs.tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET }}
+
+  publish-examples:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment: Release
+    needs: [publish]
+
+    permissions:
+      contents: read
+      id-token: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - basic-server-preact
+          - basic-server-react
+          - basic-server-solid
+          - basic-server-svelte
+          - basic-server-vanillajs
+          - basic-server-vue
+          - budget-allocator-server
+          - cohort-heatmap-server
+          - customer-segmentation-server
+          - map-server
+          - pdf-server
+          - scenario-modeler-server
+          - shadertoy-server
+          - sheet-music-server
+          - system-monitor-server
+          - threejs-server
+          - transcript-server
+          - video-resource-server
+          - wiki-explorer-server
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+
+      - name: Build example
+        run: npm run build --workspace examples/${{ matrix.example }}
+
+      - name: Publish example
+        run: npm publish --workspace examples/${{ matrix.example }} --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_SECRET }}

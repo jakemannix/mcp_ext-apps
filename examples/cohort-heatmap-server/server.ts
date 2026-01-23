@@ -1,16 +1,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // Schemas - types are derived from these using z.infer
 const GetCohortDataInputSchema = z.object({
@@ -150,23 +151,36 @@ function generateCohortData(
   };
 }
 
-const server = new McpServer({
-  name: "Cohort Heatmap Server",
-  version: "1.0.0",
-});
+function formatCohortSummary(data: CohortData): string {
+  const avgRetention = data.cohorts
+    .flatMap((c) => c.cells)
+    .filter((cell) => cell.periodIndex > 0)
+    .reduce((sum, cell, _, arr) => sum + cell.retention / arr.length, 0);
 
-// Register tool and resource
-{
+  return `Cohort Analysis: ${data.cohorts.length} cohorts, ${data.periods.length} periods
+Average retention: ${(avgRetention * 100).toFixed(1)}%
+Metric: ${data.metric}, Period: ${data.periodType}`;
+}
+
+export function createServer(): McpServer {
+  const server = new McpServer({
+    name: "Cohort Heatmap Server",
+    version: "1.0.0",
+  });
+
+  // Register tool and resource
   const resourceUri = "ui://get-cohort-data/mcp-app.html";
 
-  server.registerTool(
+  registerAppTool(
+    server,
     "get-cohort-data",
     {
       title: "Get Cohort Retention Data",
       description:
         "Returns cohort retention heatmap data showing customer retention over time by signup month",
       inputSchema: GetCohortDataInputSchema.shape,
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: CohortDataSchema.shape,
+      _meta: { ui: { resourceUri } },
     },
     async ({ metric, periodType, cohortCount, maxPeriods }) => {
       const data = generateCohortData(
@@ -177,15 +191,17 @@ const server = new McpServer({
       );
 
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
+        content: [{ type: "text", text: formatCohortSummary(data) }],
+        structuredContent: data,
       };
     },
   );
 
-  server.registerResource(
+  registerAppResource(
+    server,
     resourceUri,
     resourceUri,
-    {},
+    { mimeType: RESOURCE_MIME_TYPE },
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
@@ -203,64 +219,6 @@ const server = new McpServer({
       };
     },
   );
+
+  return server;
 }
-
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Cohort Heatmap Server running in stdio mode");
-  } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, (err) => {
-      if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-      }
-      console.log(
-        `Cohort Heatmap Server listening on http://localhost:${PORT}/mcp`,
-      );
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-  }
-}
-
-main().catch(console.error);

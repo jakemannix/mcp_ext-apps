@@ -1,24 +1,38 @@
 {
-  "name": "cohort-heatmap-server",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@modelcontextprotocol/server-cohort-heatmap",
+  "version": "0.4.1",
   "type": "module",
+  "description": "Cohort heatmap MCP App Server for retention analysis",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modelcontextprotocol/ext-apps",
+    "directory": "examples/cohort-heatmap-server"
+  },
+  "license": "MIT",
+  "main": "dist/server.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "INPUT=mcp-app.html vite build",
-    "watch": "INPUT=mcp-app.html vite build --watch",
-    "serve:http": "bun server.ts",
+    "build": "tsc --noEmit && cross-env INPUT=mcp-app.html vite build && tsc -p tsconfig.server.json && bun build server.ts --outdir dist --target node && bun build main.ts --outfile dist/index.js --target node --external \"./server.js\" --banner \"#!/usr/bin/env node\"",
+    "watch": "cross-env INPUT=mcp-app.html vite build --watch",
+    "serve:http": "bun --watch main.ts",
     "serve:stdio": "bun server.ts --stdio",
     "start": "npm run start:http",
-    "start:http": "NODE_ENV=development npm run build && npm run serve:http",
-    "start:stdio": "NODE_ENV=development npm run build && npm run serve:stdio",
-    "dev": "NODE_ENV=development concurrently 'npm run watch' 'npm run serve:http'"
+    "start:http": "cross-env NODE_ENV=development npm run build && npm run serve:http",
+    "start:stdio": "cross-env NODE_ENV=development npm run build && npm run serve:stdio",
+    "dev": "cross-env NODE_ENV=development concurrently 'npm run watch' 'npm run serve:http'",
+    "prepublishOnly": "npm run build",
+    "serve": "bun --watch main.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "../..",
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@modelcontextprotocol/ext-apps": "^0.4.1",
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^3.25.0"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -27,12 +41,20 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^4.3.4",
-    "bun": "^1.3.2",
     "concurrently": "^9.2.1",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
+    "cross-env": "^10.1.0",
     "typescript": "^5.9.3",
     "vite": "^6.0.0",
     "vite-plugin-singlefile": "^2.3.0"
+  },
+  "types": "dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "bin": {
+    "mcp-cohort-heatmap-server": "dist/index.js"
   }
 }

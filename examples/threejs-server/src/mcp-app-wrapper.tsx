@@ -5,14 +5,16 @@
  * props to the actual widget component.
  */
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
-import { useApp } from "@modelcontextprotocol/ext-apps/react";
+import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { StrictMode, useState, useCallback } from "react";
+import { StrictMode, useState, useCallback, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import ThreeJSApp from "./threejs-app.tsx";
 import "./global.css";
 
-const APP_INFO = { name: "Three.js Widget", version: "1.0.0" };
+// =============================================================================
+// Types
+// =============================================================================
 
 /**
  * Props passed to the widget component.
@@ -25,17 +27,21 @@ export interface WidgetProps<TToolInput = Record<string, unknown>> {
   toolInputsPartial: TToolInput | null;
   /** Tool execution result from the server */
   toolResult: CallToolResult | null;
-  /** Host context (theme, viewport, locale, etc.) */
+  /** Host context (theme, dimensions, locale, etc.) */
   hostContext: McpUiHostContext | null;
   /** Call a tool on the MCP server */
   callServerTool: App["callServerTool"];
   /** Send a message to the host's chat */
   sendMessage: App["sendMessage"];
   /** Request the host to open a URL */
-  sendOpenLink: App["sendOpenLink"];
+  openLink: App["openLink"];
   /** Send log messages to the host */
   sendLog: App["sendLog"];
 }
+
+// =============================================================================
+// MCP App Wrapper
+// =============================================================================
 
 function McpAppWrapper() {
   const [toolInputs, setToolInputs] = useState<Record<string, unknown> | null>(
@@ -49,7 +55,7 @@ function McpAppWrapper() {
   const [hostContext, setHostContext] = useState<McpUiHostContext | null>(null);
 
   const { app, error } = useApp({
-    appInfo: APP_INFO,
+    appInfo: { name: "Three.js Widget", version: "1.0.0" },
     capabilities: {},
     onAppCreated: (app) => {
       // Complete tool input (streaming finished)
@@ -65,12 +71,25 @@ function McpAppWrapper() {
       app.ontoolresult = (params) => {
         setToolResult(params as CallToolResult);
       };
-      // Host context changes (theme, viewport, etc.)
+      // Host context changes (theme, dimensions, etc.)
       app.onhostcontextchanged = (params) => {
-        setHostContext(params);
+        setHostContext((prev) => ({ ...prev, ...params }));
       };
     },
   });
+
+  // Apply host styling (theme, CSS variables, fonts)
+  useHostStyles(app);
+
+  // Get initial host context after connection
+  useEffect(() => {
+    if (app) {
+      const ctx = app.getHostContext();
+      if (ctx) {
+        setHostContext(ctx);
+      }
+    }
+  }, [app]);
 
   // Memoized callbacks that forward to app methods
   const callServerTool = useCallback<App["callServerTool"]>(
@@ -81,8 +100,8 @@ function McpAppWrapper() {
     (params, options) => app!.sendMessage(params, options),
     [app],
   );
-  const sendOpenLink = useCallback<App["sendOpenLink"]>(
-    (params, options) => app!.sendOpenLink(params, options),
+  const openLink = useCallback<App["openLink"]>(
+    (params, options) => app!.openLink(params, options),
     [app],
   );
   const sendLog = useCallback<App["sendLog"]>(
@@ -106,7 +125,7 @@ function McpAppWrapper() {
       hostContext={hostContext}
       callServerTool={callServerTool}
       sendMessage={sendMessage}
-      sendOpenLink={sendOpenLink}
+      openLink={openLink}
       sendLog={sendLog}
     />
   );

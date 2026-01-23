@@ -1,19 +1,20 @@
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import cors from "cors";
-import express, { type Request, type Response } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "../../dist/src/app";
-
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // ============================================================================
 // Schemas - types are derived from these using z.infer
@@ -60,6 +61,13 @@ const GetScenarioDataInputSchema = z.object({
   customInputs: ScenarioInputsSchema.optional().describe(
     "Custom scenario parameters to compute projections for",
   ),
+});
+
+const GetScenarioDataOutputSchema = z.object({
+  templates: z.array(ScenarioTemplateSchema),
+  defaultInputs: ScenarioInputsSchema,
+  customProjections: z.array(MonthlyProjectionSchema).optional(),
+  customSummary: ScenarioSummarySchema.optional(),
 });
 
 // Types derived from schemas
@@ -242,131 +250,124 @@ const DEFAULT_INPUTS: ScenarioInputs = {
 };
 
 // ============================================================================
+// Formatters for text output
+// ============================================================================
+
+function formatCurrency(value: number): string {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (absValue >= 1_000_000) {
+    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
+  }
+  if (absValue >= 1_000) {
+    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
+  }
+  return `${sign}$${Math.round(absValue)}`;
+}
+
+function formatScenarioSummary(
+  summary: ScenarioSummary,
+  label: string,
+): string {
+  return [
+    `${label}:`,
+    `  Ending MRR: ${formatCurrency(summary.endingMRR)}`,
+    `  ARR: ${formatCurrency(summary.arr)}`,
+    `  Total Revenue: ${formatCurrency(summary.totalRevenue)}`,
+    `  Total Profit: ${formatCurrency(summary.totalProfit)}`,
+    `  MRR Growth: ${summary.mrrGrowthPct.toFixed(1)}%`,
+    `  Break-even: ${summary.breakEvenMonth ? `Month ${summary.breakEvenMonth}` : "Not achieved"}`,
+  ].join("\n");
+}
+
+// ============================================================================
 // MCP Server
 // ============================================================================
 
-const server = new McpServer({
-  name: "SaaS Scenario Modeler",
-  version: "1.0.0",
-});
+/**
+ * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
+ */
+export function createServer(): McpServer {
+  const server = new McpServer({
+    name: "SaaS Scenario Modeler",
+    version: "1.0.0",
+  });
 
-// Register tool and resource
-{
-  const resourceUri = "ui://scenario-modeler/mcp-app.html";
+  // Register tool and resource
+  {
+    const resourceUri = "ui://scenario-modeler/mcp-app.html";
 
-  server.registerTool(
-    "get-scenario-data",
-    {
-      title: "Get Scenario Data",
-      description:
-        "Returns SaaS scenario templates and optionally computes custom projections for given inputs",
-      inputSchema: GetScenarioDataInputSchema.shape,
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
-    },
-    async (args: {
-      customInputs?: ScenarioInputs;
-    }): Promise<CallToolResult> => {
-      const customScenario = args.customInputs
-        ? calculateScenario(args.customInputs)
-        : undefined;
+    registerAppTool(
+      server,
+      "get-scenario-data",
+      {
+        title: "Get Scenario Data",
+        description:
+          "Returns SaaS scenario templates and optionally computes custom projections for given inputs",
+        inputSchema: GetScenarioDataInputSchema.shape,
+        outputSchema: GetScenarioDataOutputSchema.shape,
+        _meta: { ui: { resourceUri } },
+      },
+      async (args: {
+        customInputs?: ScenarioInputs;
+      }): Promise<CallToolResult> => {
+        const customScenario = args.customInputs
+          ? calculateScenario(args.customInputs)
+          : undefined;
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              templates: SCENARIO_TEMPLATES,
-              defaultInputs: DEFAULT_INPUTS,
-              customProjections: customScenario?.projections,
-              customSummary: customScenario?.summary,
-            }),
+        const text = [
+          "SaaS Scenario Modeler",
+          "=".repeat(40),
+          "",
+          "Available Templates:",
+          ...SCENARIO_TEMPLATES.map(
+            (t) => `  ${t.icon} ${t.name}: ${t.description}`,
+          ),
+          "",
+          customScenario
+            ? formatScenarioSummary(customScenario.summary, "Custom Scenario")
+            : "Use customInputs parameter to compute projections for a specific scenario.",
+        ].join("\n");
+
+        return {
+          content: [{ type: "text", text }],
+          structuredContent: {
+            templates: SCENARIO_TEMPLATES,
+            defaultInputs: DEFAULT_INPUTS,
+            customProjections: customScenario?.projections,
+            customSummary: customScenario?.summary,
           },
-        ],
-      };
-    },
-  );
+        };
+      },
+    );
 
-  server.registerResource(
-    resourceUri,
-    resourceUri,
-    { description: "SaaS Scenario Modeler UI" },
-    async (): Promise<ReadResourceResult> => {
-      const html = await fs.readFile(
-        path.join(DIST_DIR, "mcp-app.html"),
-        "utf-8",
-      );
-      return {
-        contents: [
-          {
-            uri: resourceUri,
-            mimeType: RESOURCE_MIME_TYPE,
-            text: html,
-          },
-        ],
-      };
-    },
-  );
+    registerAppResource(
+      server,
+      resourceUri,
+      resourceUri,
+      { mimeType: RESOURCE_MIME_TYPE, description: "SaaS Scenario Modeler UI" },
+      async (): Promise<ReadResourceResult> => {
+        const html = await fs.readFile(
+          path.join(DIST_DIR, "mcp-app.html"),
+          "utf-8",
+        );
+        return {
+          contents: [
+            {
+              uri: resourceUri,
+              mimeType: RESOURCE_MIME_TYPE,
+              text: html,
+            },
+          ],
+        };
+      },
+    );
+  }
+
+  return server;
 }
 
 // ============================================================================
 // Server Startup
 // ============================================================================
-
-async function main() {
-  if (process.argv.includes("--stdio")) {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("SaaS Scenario Modeler Server running in stdio mode");
-  } else {
-    const app = express();
-    app.use(cors());
-    app.use(express.json());
-
-    app.post("/mcp", async (req: Request, res: Response) => {
-      try {
-        const transport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: undefined,
-          enableJsonResponse: true,
-        });
-        res.on("close", () => {
-          transport.close();
-        });
-
-        await server.connect(transport);
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        console.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Internal server error" },
-            id: null,
-          });
-        }
-      }
-    });
-
-    const httpServer = app.listen(PORT, (err) => {
-      if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-      }
-      console.log(
-        `SaaS Scenario Modeler Server listening on http://localhost:${PORT}/mcp`,
-      );
-    });
-
-    function shutdown() {
-      console.log("\nShutting down...");
-      httpServer.close(() => {
-        console.log("Server closed");
-        process.exit(0);
-      });
-    }
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
-  }
-}
-
-main().catch(console.error);

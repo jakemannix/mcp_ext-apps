@@ -10,6 +10,27 @@ A React-based demo MCP App that lets users adjust SaaS business parameters and s
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "scenario-modeler": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-scenario-modeler",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Interactive Parameters**: 5 sliders for Starting MRR, Growth Rate, Churn Rate, Gross Margin, and Fixed Costs
@@ -47,7 +68,7 @@ Exposes a single `get-scenario-data` tool that returns:
 - Default input values for the sliders
 - Optionally computes custom projections when `customInputs` are provided
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/`)
 

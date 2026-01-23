@@ -1,2 +1,0 @@
-mcp[cli]>=1.23.3
-qrcode[pil]>=7.4

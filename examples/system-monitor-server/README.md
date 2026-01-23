@@ -10,6 +10,27 @@ A demo MCP App that displays real-time OS metrics with a stacked area chart for 
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "system-monitor": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-system-monitor",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Per-Core CPU Monitoring**: Stacked area chart showing individual CPU core utilization over a 1-minute sliding window
@@ -46,7 +67,7 @@ Exposes a single `get-system-stats` tool that returns:
 - Memory usage (used/total/percentage)
 - System info (hostname, platform, uptime)
 
-The tool is linked to a UI resource via `_meta[RESOURCE_URI_META_KEY]`.
+The tool is linked to a UI resource via `_meta.ui.resourceUri`.
 
 ### App (`src/mcp-app.ts`)
 

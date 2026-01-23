@@ -2,8 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <!-- CSP is set by serve.ts HTTP header - no meta tag needed here
-         The inner iframe's CSP is dynamically injected based on resource metadata -->
+    <meta name="color-scheme" content="light dark">
+    <!-- CSP is set via HTTP headers by serve.ts (based on ?csp= query param).
+         The inner iframe inherits this CSP since we use document.write(). -->
     <title>MCP-UI Proxy</title>
     <style>
       html,
