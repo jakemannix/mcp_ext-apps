@@ -1,13 +1,16 @@
 /**
- * PDF MCP Server - CLI Entry Point
+ * Entry point for running the MCP server.
+ * Run with: npx mcp-pdf-server
+ * Or: node dist/index.js [--stdio] [pdf-urls...]
  */
 
 import fs from "node:fs";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
 import cors from "cors";
-
+import type { Request, Response } from "express";
 import {
   createServer,
   isArxivUrl,
@@ -20,20 +23,28 @@ import {
   DEFAULT_PDF,
 } from "./server.js";
 
-// =============================================================================
-// Server Startup
-// =============================================================================
+export interface ServerOptions {
+  port: number;
+  name?: string;
+}
 
-async function startHttpServer(port: number): Promise<void> {
+/**
+ * Starts an MCP server with Streamable HTTP transport in stateless mode.
+ */
+export async function startServer(
+  createServer: () => McpServer,
+  options: ServerOptions,
+): Promise<void> {
+  const { port, name = "MCP Server" } = options;
+
   const app = express();
   app.use(cors());
   app.use(express.json());
 
-  // Stateless mode - no session management needed!
-  app.all("/mcp", async (req, res) => {
+  app.all("/mcp", async (req: Request, res: Response) => {
     const server = createServer();
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined, // Stateless is fine now - no shared state!
+      sessionIdGenerator: undefined,
     });
 
     res.on("close", () => {
@@ -56,25 +67,18 @@ async function startHttpServer(port: number): Promise<void> {
     }
   });
 
-  return new Promise((resolve) => {
-    const httpServer = app.listen(port, () => {
-      console.log(`PDF Server (range-based) listening on http://localhost:${port}/mcp`);
-      resolve();
-    });
-
-    const shutdown = () => {
-      console.log("\nShutting down...");
-      httpServer.close(() => process.exit(0));
-    };
-
-    process.on("SIGINT", shutdown);
-    process.on("SIGTERM", shutdown);
+  const httpServer = app.listen(port, () => {
+    console.log(`${name} listening on http://localhost:${port}/mcp`);
   });
-}
 
-// =============================================================================
-// CLI Argument Parsing
-// =============================================================================
+  const shutdown = () => {
+    console.log("\nShutting down...");
+    httpServer.close(() => process.exit(0));
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
 
 function parseArgs(): { urls: string[]; stdio: boolean } {
   const args = process.argv.slice(2);
@@ -85,9 +89,13 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
     if (arg === "--stdio") {
       stdio = true;
     } else if (!arg.startsWith("-")) {
+      // Convert local paths to file:// URLs, normalize arxiv URLs
       let url = arg;
-      if (!arg.startsWith("http://") && !arg.startsWith("https://") && !arg.startsWith("file://")) {
-        // Convert local path to file:// URL
+      if (
+        !arg.startsWith("http://") &&
+        !arg.startsWith("https://") &&
+        !arg.startsWith("file://")
+      ) {
         url = pathToFileUrl(arg);
       } else if (isArxivUrl(arg)) {
         url = normalizeArxivUrl(arg);
@@ -98,10 +106,6 @@ function parseArgs(): { urls: string[]; stdio: boolean } {
 
   return { urls: urls.length > 0 ? urls : [DEFAULT_PDF], stdio };
 }
-
-// =============================================================================
-// Main
-// =============================================================================
 
 async function main() {
   const { urls, stdio } = parseArgs();
@@ -126,7 +130,7 @@ async function main() {
     await createServer().connect(new StdioServerTransport());
   } else {
     const port = parseInt(process.env.PORT ?? "3120", 10);
-    await startHttpServer(port);
+    await startServer(createServer, { port, name: "PDF Server" });
   }
 }
 

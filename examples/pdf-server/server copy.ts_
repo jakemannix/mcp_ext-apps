@@ -1,0 +1,223 @@
+/**
+ * PDF MCP Server - Didactic Example
+ *
+ * Demonstrates:
+ * - Chunked data through size-limited tool responses
+ * - Model context updates (current page text + selection)
+ * - Display modes: fullscreen with scrolling vs inline with resize
+ * - External link opening (openLink)
+ */
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type {
+  CallToolResult,
+  ReadResourceResult,
+} from "@modelcontextprotocol/sdk/types.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
+import { randomUUID } from "crypto";
+
+import {
+  addUrlsToPdfIndex,
+  findEntryByUrl,
+  isArxivUrl,
+  isFileUrl,
+  normalizeArxivUrl,
+} from "./src/pdf-indexer.js";
+import { loadPdfBytesChunk } from "./src/pdf-loader.js";
+import {
+  ReadPdfBytesInputSchema,
+  PdfBytesChunkSchema,
+  type PdfEntry,
+  type PdfIndex,
+} from "./src/types.js";
+
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
+const RESOURCE_URI = "ui://pdf-viewer/mcp-app.html";
+const DEFAULT_PDF = "https://arxiv.org/pdf/1706.03762"; // Attention Is All You Need
+
+export const pdfIndex: PdfIndex = {
+  entries: [],
+}
+
+/**
+ * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
+ */
+export function createServer(): McpServer {
+  const server = new McpServer({ name: "PDF Server", version: "1.0.0" });
+
+  // Tool: list_pdfs
+  if (pdfIndex.entries.length > 0) {
+    server.tool(
+      "list_preindexed_pdfs",
+      "List preindexed PDFs",
+      {},
+      async (): Promise<CallToolResult> => {
+        return {
+          content: [
+            { type: "text", text: JSON.stringify(pdfIndex.entries, null, 2) },
+          ],
+          structuredContent: { entries: pdfIndex.entries },
+        };
+      },
+    );
+  }
+
+  const getCachedEntry = async (rawUrl: string): Promise<PdfEntry> => {
+    const url = isArxivUrl(rawUrl) ? normalizeArxivUrl(rawUrl) : rawUrl;
+      
+    let entry = findEntryByUrl(pdfIndex, url);
+
+    if (!entry) {
+      if (isFileUrl(url)) {
+        throw new Error("File URLs must be in the initial list");
+      }
+      if (!isArxivUrl(url)) {
+        throw new Error(`Only arxiv.org URLs can be loaded dynamically`);
+      }
+      
+      await addUrlsToPdfIndex([url], pdfIndex);
+      entry = findEntryByUrl(pdfIndex, url);
+      if (!entry) {
+        throw new Error(`Failed to load PDF: ${url}`);
+      }
+    }
+    return entry;
+  };
+
+
+  // Tool: read_pdf_bytes (app-only) - Chunked binary loading
+  registerAppTool(
+    server,
+    "read_pdf_bytes",
+    {
+      title: "Read PDF Bytes",
+      description: "Load binary data in chunks",
+      inputSchema: ReadPdfBytesInputSchema,
+      outputSchema: PdfBytesChunkSchema,
+      _meta: { ui: { visibility: ["app"] } },
+    },
+    async ({ url, offset, byteCount }): Promise<CallToolResult> => {
+      try {
+        const entry = await getCachedEntry(url);
+        const chunk = await loadPdfBytesChunk(entry, offset, byteCount);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${chunk.byteCount} bytes at ${chunk.offset}/${chunk.totalBytes}`,
+            },
+          ],
+          structuredContent: chunk,
+        };
+      } catch (err) {
+        console.error(`Error in read_pdf_bytes for URL ${url}:`, err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error loading PDF bytes: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // Tool: display_pdf - Interactive viewer with UI
+  registerAppTool(
+    server,
+    "display_pdf",
+    {
+      title: "Display PDF",
+      description: `Display an interactive PDF viewer in the chat.
+
+Use this tool when the user asks to view, display, read, or open a PDF. Accepts:
+- URLs from list_pdfs (preloaded PDFs)
+- Any arxiv.org URL (loaded dynamically)
+
+The viewer supports zoom, navigation, text selection, and fullscreen mode.`,
+      inputSchema: {
+        url: z
+          .string()
+          .default(DEFAULT_PDF)
+          .describe("PDF URL (arxiv.org for dynamic loading)"),
+        page: z.number().min(1).default(1).describe("Initial page"),
+      },
+      outputSchema: z.object({
+        url: z.string(),
+        title: z.string().optional(),
+        pageCount: z.number(),
+        initialPage: z.number(),
+      }),
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
+    },
+    async ({ url, page }): Promise<CallToolResult> => {
+      try {
+        const entry = await getCachedEntry(url);
+
+        const result = {
+          url: entry.url,
+          title: entry.metadata.title,
+          pageCount: entry.metadata.pageCount,
+          initialPage: Math.min(page, entry.metadata.pageCount),
+        };
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Displaying interactive PDF viewer${entry.metadata.title ? ` for "${entry.metadata.title}"` : ""} (${entry.url}, ${entry.metadata.pageCount} pages)`,
+            },
+          ],
+          structuredContent: result,
+          _meta: {
+            viewUUID: randomUUID(),
+          },
+        };
+      } catch (err) {
+        console.error(`Error in display_pdf for URL ${url}:`, err);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error displaying PDF: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // Resource: UI HTML
+  registerAppResource(
+    server,
+    RESOURCE_URI,
+    RESOURCE_URI,
+    { mimeType: RESOURCE_MIME_TYPE },
+    async (): Promise<ReadResourceResult> => {
+      const html = await fs.readFile(
+        path.join(DIST_DIR, "mcp-app.html"),
+        "utf-8",
+      );
+      return {
+        contents: [
+          { uri: RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: html },
+        ],
+      };
+    },
+  );
+
+  return server;
+}

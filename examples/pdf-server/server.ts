@@ -1,9 +1,14 @@
 /**
- * PDF MCP Server - Range Query Based (Library Entry Point)
+ * PDF MCP Server
  *
- * No caching, no indexing, no sessions - just proxies range requests.
- * - Remote URLs (arxiv): HTTP Range requests
- * - Local files: fs.createReadStream with start/end
+ * An MCP server that displays PDFs in an interactive viewer.
+ * Supports local files and remote URLs from academic sources (arxiv, biorxiv, etc).
+ *
+ * Tools:
+ * - list_pdfs: List available PDFs
+ * - display_pdf: Show interactive PDF viewer
+ * - get_pdf_info: Get PDF metadata (size)
+ * - read_pdf_bytes: Stream PDF data in chunks (used by viewer)
  */
 
 import { randomUUID } from "crypto";
