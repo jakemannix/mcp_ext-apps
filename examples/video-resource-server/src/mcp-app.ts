@@ -4,18 +4,17 @@
  * Demonstrates fetching binary content (video) via MCP resources.
  * The video is served as a base64 blob and converted to a data URI for playback.
  */
-import { App } from "@modelcontextprotocol/ext-apps";
+import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ReadResourceResultSchema } from "@modelcontextprotocol/sdk/types.js";
 import "./global.css";
 import "./mcp-app.css";
 
-const log = {
-  info: console.log.bind(console, "[VIDEO]"),
-  error: console.error.bind(console, "[VIDEO]"),
-};
+// =============================================================================
+// DOM References
+// =============================================================================
 
-// Get element references
+const mainEl = document.querySelector(".main") as HTMLElement;
 const loadingEl = document.getElementById("loading")!;
 const loadingTextEl = document.getElementById("loading-text")!;
 const errorEl = document.getElementById("error")!;
@@ -24,22 +23,17 @@ const playerEl = document.getElementById("player")!;
 const videoEl = document.getElementById("video") as HTMLVideoElement;
 const videoInfoEl = document.getElementById("video-info")!;
 
-// Parse tool result to get video URI
+// =============================================================================
+// UI State Helpers
+// =============================================================================
+
 function parseToolResult(
   result: CallToolResult,
 ): { videoUri: string; description: string } | null {
-  const text = result.content
-    ?.filter((c): c is { type: "text"; text: string } => c.type === "text")
-    .map((c) => c.text)
-    .join("");
-
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text) as { videoUri: string; description: string };
-  } catch {
-    return null;
-  }
+  return result.structuredContent as {
+    videoUri: string;
+    description: string;
+  } | null;
 }
 
 // Show states
@@ -65,12 +59,16 @@ function showPlayer(dataUri: string, info: string) {
   playerEl.style.display = "block";
 }
 
-// Create app instance
+// =============================================================================
+// MCP Apps SDK Integration
+// =============================================================================
+
 const app = new App({ name: "Video Resource Player", version: "1.0.0" });
 
-// Handle tool result - this is called when the tool execution completes
+// Handle tool result - Requests a resource via resources/read and converts the
+// base64 blob to a data URI for use in the browser.
 app.ontoolresult = async (result) => {
-  log.info("Received tool result:", result);
+  console.info("Received tool result:", result);
 
   const parsed = parseToolResult(result);
   if (!parsed) {
@@ -79,46 +77,58 @@ app.ontoolresult = async (result) => {
   }
 
   const { videoUri, description } = parsed;
-  log.info("Video URI:", videoUri, "Description:", description);
+  console.info("Video URI:", videoUri, "Description:", description);
 
   showLoading("Fetching video from MCP resource...");
 
   try {
-    log.info("Requesting resource:", videoUri);
+    console.info("Requesting resource:", videoUri);
 
     const resourceResult = await app.request(
       { method: "resources/read", params: { uri: videoUri } },
       ReadResourceResultSchema,
     );
 
-    log.info(
-      "Resource received, blob size:",
-      resourceResult.contents[0]?.blob?.length,
-    );
-
     const content = resourceResult.contents[0];
-    if (!content?.blob) {
+    if (!content || !("blob" in content)) {
       throw new Error("Resource response did not contain blob data");
     }
+
+    console.info("Resource received, blob size:", content.blob.length);
 
     showLoading("Converting to data URI...");
 
     const mimeType = content.mimeType || "video/mp4";
     const dataUri = `data:${mimeType};base64,${content.blob}`;
 
-    log.info("Data URI created, length:", dataUri.length);
+    console.info("Data URI created, length:", dataUri.length);
 
     showPlayer(dataUri, `Loaded via MCP resource (${description})`);
   } catch (err) {
-    log.error("Error fetching resource:", err);
+    console.error("Error fetching resource:", err);
     showError(err instanceof Error ? err.message : String(err));
   }
 };
 
 app.onerror = (err) => {
-  log.error("App error:", err);
+  console.error("App error:", err);
   showError(err instanceof Error ? err.message : String(err));
 };
 
-// Connect to host
-app.connect();
+function handleHostContextChanged(ctx: McpUiHostContext) {
+  if (ctx.safeAreaInsets) {
+    mainEl.style.paddingTop = `${ctx.safeAreaInsets.top}px`;
+    mainEl.style.paddingRight = `${ctx.safeAreaInsets.right}px`;
+    mainEl.style.paddingBottom = `${ctx.safeAreaInsets.bottom}px`;
+    mainEl.style.paddingLeft = `${ctx.safeAreaInsets.left}px`;
+  }
+}
+
+app.onhostcontextchanged = handleHostContextChanged;
+
+app.connect().then(() => {
+  const ctx = app.getHostContext();
+  if (ctx) {
+    handleHostContextChanged(ctx);
+  }
+});

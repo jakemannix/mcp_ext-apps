@@ -5,6 +5,11 @@
  * The server fetches videos from CDN and serves them as base64 blobs.
  */
 import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server";
+import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -12,18 +17,13 @@ import type {
   CallToolResult,
   ReadResourceResult,
 } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  registerAppTool,
-  registerAppResource,
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-} from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
-
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+import { z } from "zod";
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 const RESOURCE_URI = "ui://video-player/mcp-app.html";
 
 /**
@@ -56,14 +56,17 @@ const VIDEO_LIBRARY: Record<string, { url: string; description: string }> = {
   },
 };
 
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Video Resource Server",
     version: "1.0.0",
   });
 
-  // Register video resource template
-  // This fetches video from CDN and returns as base64 blob
+  // ===========================================================================
+  // Binary Blob Resource - Binary content is fetched and returned as a
+  // base64-encoded blob.
+  // ===========================================================================
+
   server.registerResource(
     "video",
     new ResourceTemplate("videos://{id}", { list: undefined }),
@@ -109,7 +112,10 @@ function createServer(): McpServer {
     },
   );
 
-  // Register the video player tool
+  // ===========================================================================
+  // Tool Registration
+  // ===========================================================================
+
   registerAppTool(
     server,
     "play_video",
@@ -123,29 +129,34 @@ ${Object.entries(VIDEO_LIBRARY)
       inputSchema: {
         videoId: z
           .enum(Object.keys(VIDEO_LIBRARY) as [string, ...string[]])
+          .default("bunny-1mb")
           .describe(
             `Video ID to play. Available: ${Object.keys(VIDEO_LIBRARY).join(", ")}`,
           ),
       },
-      _meta: { [RESOURCE_URI_META_KEY]: RESOURCE_URI },
+      outputSchema: z.object({
+        videoUri: z.string(),
+        description: z.string(),
+      }),
+      _meta: { ui: { resourceUri: RESOURCE_URI } },
     },
     async ({ videoId }): Promise<CallToolResult> => {
       const video = VIDEO_LIBRARY[videoId];
+      const data = {
+        videoUri: `videos://${videoId}`,
+        description: video.description,
+      };
       return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              videoUri: `videos://${videoId}`,
-              description: video.description,
-            }),
-          },
-        ],
+        content: [{ type: "text", text: JSON.stringify(data) }],
+        structuredContent: data,
       };
     },
   );
 
-  // Register the MCP App resource (the UI)
+  // ===========================================================================
+  // UI Resource Registration
+  // ===========================================================================
+
   registerAppResource(
     server,
     RESOURCE_URI,
@@ -166,12 +177,3 @@ ${Object.entries(VIDEO_LIBRARY)
 
   return server;
 }
-
-async function main() {
-  await startServer(createServer);
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});

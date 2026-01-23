@@ -1,4 +1,5 @@
 import type { McpUiSandboxProxyReadyNotification, McpUiSandboxResourceReadyNotification } from "../../../dist/src/types";
+import { buildAllowAttribute } from "../../../dist/src/app-bridge";
 
 const ALLOWED_REFERRER_PATTERN = /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/;
 
@@ -43,6 +44,8 @@ try {
 const inner = document.createElement("iframe");
 inner.style = "width:100%; height:100%; border:none;";
 inner.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
+// Note: allow attribute is set later when receiving sandbox-resource-ready notification
+// based on the permissions requested by the app
 document.body.appendChild(inner);
 
 const RESOURCE_READY_NOTIFICATION: McpUiSandboxResourceReadyNotification["method"] =
@@ -53,7 +56,7 @@ const PROXY_READY_NOTIFICATION: McpUiSandboxProxyReadyNotification["method"] =
 // Message relay: This Sandbox (outer iframe) acts as a bidirectional bridge,
 // forwarding messages between:
 //
-//   Host (parent window) ↔ Sandbox (outer frame) ↔ Guest UI (inner iframe)
+//   Host (parent window) ↔ Sandbox (outer frame) ↔ View (inner iframe)
 //
 // Reason: the parent window and inner iframe have different origins and can't
 // communicate directly, so the outer iframe forwards messages in both
@@ -61,27 +64,10 @@ const PROXY_READY_NOTIFICATION: McpUiSandboxProxyReadyNotification["method"] =
 //
 // Special case: The "ui/notifications/sandbox-proxy-ready" message is
 // intercepted here (not relayed) because the Sandbox uses it to configure and
-// load the inner iframe with the Guest UI HTML content.
-// Build CSP meta tag from domains
-function buildCspMetaTag(csp?: { connectDomains?: string[]; resourceDomains?: string[] }): string {
-  const resourceDomains = csp?.resourceDomains?.join(" ") ?? "";
-  const connectDomains = csp?.connectDomains?.join(" ") ?? "";
-
-  // Base CSP directives
-  const directives = [
-    "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: ${resourceDomains}`.trim(),
-    `style-src 'self' 'unsafe-inline' blob: data: ${resourceDomains}`.trim(),
-    `img-src 'self' data: blob: ${resourceDomains}`.trim(),
-    `font-src 'self' data: blob: ${resourceDomains}`.trim(),
-    `connect-src 'self' ${connectDomains}`.trim(),
-    "frame-src 'none'",
-    "object-src 'none'",
-    "base-uri 'self'",
-  ];
-
-  return `<meta http-equiv="Content-Security-Policy" content="${directives.join("; ")}">`;
-}
+// load the inner iframe with the view HTML content.
+//
+// Security: CSP is enforced via HTTP headers on sandbox.html (set by serve.ts
+// based on ?csp= query param). This is tamper-proof unlike meta tags.
 
 window.addEventListener("message", async (event) => {
   if (event.source === window.parent) {
@@ -98,29 +84,28 @@ window.addEventListener("message", async (event) => {
     }
 
     if (event.data && event.data.method === RESOURCE_READY_NOTIFICATION) {
-      const { html, sandbox, csp } = event.data.params;
+      const { html, sandbox, permissions } = event.data.params;
       if (typeof sandbox === "string") {
         inner.setAttribute("sandbox", sandbox);
       }
+      // Set Permission Policy allow attribute if permissions are requested
+      const allowAttribute = buildAllowAttribute(permissions);
+      if (allowAttribute) {
+        console.log("[Sandbox] Setting allow attribute:", allowAttribute);
+        inner.setAttribute("allow", allowAttribute);
+      }
       if (typeof html === "string") {
-        // Inject CSP meta tag at the start of <head> if CSP is provided
-        console.log("[Sandbox] Received CSP:", csp);
-        let modifiedHtml = html;
-        if (csp) {
-          const cspMetaTag = buildCspMetaTag(csp);
-          console.log("[Sandbox] Injecting CSP meta tag:", cspMetaTag);
-          // Insert after <head> tag if present, otherwise prepend
-          if (modifiedHtml.includes("<head>")) {
-            modifiedHtml = modifiedHtml.replace("<head>", `<head>\n${cspMetaTag}`);
-          } else if (modifiedHtml.includes("<head ")) {
-            modifiedHtml = modifiedHtml.replace(/<head[^>]*>/, `$&\n${cspMetaTag}`);
-          } else {
-            modifiedHtml = cspMetaTag + modifiedHtml;
-          }
+        // Use document.write instead of srcdoc (which the CesiumJS Map won't work with)
+        const doc = inner.contentDocument || inner.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
         } else {
-          console.log("[Sandbox] No CSP provided, using default");
+          // Fallback to srcdoc if document is not accessible
+          console.warn("[Sandbox] document.write not available, falling back to srcdoc");
+          inner.srcdoc = html;
         }
-        inner.srcdoc = modifiedHtml;
       }
     } else {
       if (inner && inner.contentWindow) {
@@ -143,7 +128,7 @@ window.addEventListener("message", async (event) => {
   }
 });
 
-// Notify the Host that the Sandbox is ready to receive Guest UI HTML.
+// Notify the Host that the Sandbox is ready to receive view HTML.
 // Use specific origin instead of "*" to ensure only the expected host receives this.
 window.parent.postMessage({
   jsonrpc: "2.0",

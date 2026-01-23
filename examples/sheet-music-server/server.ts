@@ -9,13 +9,13 @@ import { z } from "zod";
 import ABCJS from "abcjs";
 import {
   RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
-
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 const DEFAULT_ABC_NOTATION_INPUT = `X:1
 T:Twinkle, Twinkle Little Star
@@ -29,7 +29,7 @@ C C G G | A A G2 | F F E E | D D C2 |`;
 /**
  * Creates a new MCP server instance with the sheet music tool and resource.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Sheet Music Server",
     version: "1.0.0",
@@ -58,7 +58,7 @@ function createServer(): McpServer {
             "ABC notation string to render as sheet music with audio playback",
           ),
       }),
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      _meta: { ui: { resourceUri } },
     },
     async ({ abcNotation }): Promise<CallToolResult> => {
       // Validate ABC notation using abcjs parser
@@ -115,5 +115,3 @@ function createServer(): McpServer {
 
   return server;
 }
-
-startServer(createServer);

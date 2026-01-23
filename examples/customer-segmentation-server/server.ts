@@ -8,18 +8,19 @@ import path from "node:path";
 import { z } from "zod";
 import {
   RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
 import {
   generateCustomers,
   generateSegmentSummaries,
-} from "./src/data-generator.ts";
-import { SEGMENTS, type Customer, type SegmentSummary } from "./src/types.ts";
+} from "./src/data-generator.js";
+import { SEGMENTS, type Customer, type SegmentSummary } from "./src/types.js";
 
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // Schemas - types are derived from these using z.infer
 const GetCustomerDataInputSchema = z.object({
@@ -29,7 +30,30 @@ const GetCustomerDataInputSchema = z.object({
     .describe("Filter by segment (default: All)"),
 });
 
-// Cache generated data for consistency across requests
+const CustomerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  segment: z.string(),
+  annualRevenue: z.number(),
+  employeeCount: z.number(),
+  accountAge: z.number(),
+  engagementScore: z.number(),
+  supportTickets: z.number(),
+  nps: z.number(),
+});
+
+const SegmentSummarySchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  color: z.string(),
+});
+
+const GetCustomerDataOutputSchema = z.object({
+  customers: z.array(CustomerSchema),
+  segments: z.array(SegmentSummarySchema),
+});
+
+// Cache generated data for session consistency
 let cachedCustomers: Customer[] | null = null;
 let cachedSegments: SegmentSummary[] | null = null;
 
@@ -57,8 +81,9 @@ function getCustomerData(segmentFilter?: string): {
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Customer Segmentation Server",
     version: "1.0.0",
@@ -76,13 +101,15 @@ function createServer(): McpServer {
         description:
           "Returns customer data with segment information for visualization. Optionally filter by segment.",
         inputSchema: GetCustomerDataInputSchema.shape,
-        _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+        outputSchema: GetCustomerDataOutputSchema.shape,
+        _meta: { ui: { resourceUri } },
       },
       async ({ segment }): Promise<CallToolResult> => {
         const data = getCustomerData(segment);
 
         return {
           content: [{ type: "text", text: JSON.stringify(data) }],
+          structuredContent: data,
         };
       },
     );
@@ -116,5 +143,3 @@ function createServer(): McpServer {
 
   return server;
 }
-
-startServer(createServer);

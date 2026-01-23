@@ -1,3 +1,8 @@
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+  registerAppTool,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
   CallToolResult,
@@ -8,14 +13,6 @@ import os from "node:os";
 import path from "node:path";
 import si from "systeminformation";
 import { z } from "zod";
-import {
-  RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
-  registerAppResource,
-  registerAppTool,
-} from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
-
 // Schemas - types are derived from these using z.infer
 const CpuCoreSchema = z.object({
   idle: z.number(),
@@ -56,7 +53,10 @@ const SystemStatsSchema = z.object({
 type CpuCore = z.infer<typeof CpuCoreSchema>;
 type MemoryStats = z.infer<typeof MemoryStatsSchema>;
 type SystemStats = z.infer<typeof SystemStatsSchema>;
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // Returns raw CPU timing data per core (client calculates usage from deltas)
 function getCpuSnapshots(): CpuCore[] {
@@ -106,7 +106,31 @@ async function getMemoryStats(): Promise<MemoryStats> {
   };
 }
 
-function createServer(): McpServer {
+async function getStats(): Promise<SystemStats> {
+  const cpuSnapshots = getCpuSnapshots();
+  const cpuInfo = os.cpus()[0];
+  const memory = await getMemoryStats();
+  const uptimeSeconds = os.uptime();
+
+  return {
+    cpu: {
+      cores: cpuSnapshots,
+      model: cpuInfo?.model ?? "Unknown",
+      count: os.cpus().length,
+    },
+    memory,
+    system: {
+      hostname: os.hostname(),
+      platform: `${os.platform()} ${os.arch()}`,
+      arch: os.arch(),
+      uptime: uptimeSeconds,
+      uptimeFormatted: formatUptime(uptimeSeconds),
+    },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "System Monitor Server",
     version: "1.0.0",
@@ -123,33 +147,34 @@ function createServer(): McpServer {
       description:
         "Returns current system statistics including per-core CPU usage, memory, and system info.",
       inputSchema: {},
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: SystemStatsSchema.shape,
+      _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
-      const cpuSnapshots = getCpuSnapshots();
-      const cpuInfo = os.cpus()[0];
-      const memory = await getMemoryStats();
-      const uptimeSeconds = os.uptime();
-
-      const stats: SystemStats = {
-        cpu: {
-          cores: cpuSnapshots,
-          model: cpuInfo?.model ?? "Unknown",
-          count: os.cpus().length,
-        },
-        memory,
-        system: {
-          hostname: os.hostname(),
-          platform: `${os.platform()} ${os.arch()}`,
-          arch: os.arch(),
-          uptime: uptimeSeconds,
-          uptimeFormatted: formatUptime(uptimeSeconds),
-        },
-        timestamp: new Date().toISOString(),
-      };
-
+      const stats = await getStats();
       return {
         content: [{ type: "text", text: JSON.stringify(stats) }],
+        structuredContent: stats,
+      };
+    },
+  );
+
+  // App-only tool for polling - used by the UI for periodic refresh
+  registerAppTool(
+    server,
+    "refresh-stats",
+    {
+      title: "Refresh Stats",
+      description: "Refresh system statistics (app-only, for polling)",
+      inputSchema: {},
+      outputSchema: SystemStatsSchema.shape,
+      _meta: { ui: { visibility: ["app"] } },
+    },
+    async (): Promise<CallToolResult> => {
+      const stats = await getStats();
+      return {
+        content: [{ type: "text", text: JSON.stringify(stats) }],
+        structuredContent: stats,
       };
     },
   );
@@ -179,5 +204,3 @@ function createServer(): McpServer {
 
   return server;
 }
-
-startServer(createServer);

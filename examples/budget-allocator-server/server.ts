@@ -14,13 +14,13 @@ import path from "node:path";
 import { z } from "zod";
 import {
   RESOURCE_MIME_TYPE,
-  RESOURCE_URI_META_KEY,
   registerAppResource,
   registerAppTool,
 } from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
-
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 // ---------------------------------------------------------------------------
 // Schemas - types are derived from these using z.infer
@@ -224,6 +224,30 @@ function generateHistory(
 }
 
 // ---------------------------------------------------------------------------
+// Response Formatting
+// ---------------------------------------------------------------------------
+
+function formatBudgetSummary(data: BudgetDataResponse): string {
+  const lines: string[] = [
+    "Budget Allocator Configuration",
+    "==============================",
+    "",
+    `Default Budget: ${data.config.currencySymbol}${data.config.defaultBudget.toLocaleString()}`,
+    `Available Presets: ${data.config.presetBudgets.map((b) => `${data.config.currencySymbol}${b.toLocaleString()}`).join(", ")}`,
+    "",
+    "Categories:",
+    ...data.config.categories.map(
+      (c) => `  - ${c.name}: ${c.defaultPercent}% default`,
+    ),
+    "",
+    `Historical Data: ${data.analytics.history.length} months`,
+    `Benchmark Stages: ${data.analytics.stages.join(", ")}`,
+    `Default Stage: ${data.analytics.defaultStage}`,
+  ];
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // MCP Server Setup
 // ---------------------------------------------------------------------------
 
@@ -231,8 +255,9 @@ const resourceUri = "ui://budget-allocator/mcp-app.html";
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
+ * Each HTTP session needs its own server instance because McpServer only supports one transport.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Budget Allocator Server",
     version: "1.0.0",
@@ -246,7 +271,8 @@ function createServer(): McpServer {
       description:
         "Returns budget configuration with 24 months of historical allocations and industry benchmarks by company stage",
       inputSchema: {},
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: BudgetDataResponseSchema,
+      _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
       const response: BudgetDataResponse = {
@@ -274,9 +300,10 @@ function createServer(): McpServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(response),
+            text: formatBudgetSummary(response),
           },
         ],
+        structuredContent: response,
       };
     },
   );
@@ -305,4 +332,6 @@ function createServer(): McpServer {
   return server;
 }
 
-startServer(createServer);
+// ---------------------------------------------------------------------------
+// Server Startup
+// ---------------------------------------------------------------------------

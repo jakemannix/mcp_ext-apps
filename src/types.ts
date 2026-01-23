@@ -1,17 +1,31 @@
 /**
  * MCP Apps Protocol Types and Schemas
  *
- * This file re-exports types from spec.types.ts and schemas from generated/schema.ts.
- * Compile-time verification is handled by generated/schema.test.ts.
+ * This file re-exports types from `spec.types.ts` and schemas from `generated/schema.ts`.
+ * Compile-time verification is handled by `generated/schema.test.ts`.
  *
- * @see spec.types.ts for the source of truth TypeScript interfaces
- * @see generated/schema.ts for auto-generated Zod schemas
- * @see generated/schema.test.ts for compile-time verification
+ * @see `spec.types.ts` for the source of truth TypeScript interfaces
+ * @see `generated/schema.ts` for auto-generated Zod schemas
+ * @see `generated/schema.test.ts` for compile-time verification
  */
 
 // Re-export all types from spec.types.ts
 export {
   LATEST_PROTOCOL_VERSION,
+  OPEN_LINK_METHOD,
+  MESSAGE_METHOD,
+  SANDBOX_PROXY_READY_METHOD,
+  SANDBOX_RESOURCE_READY_METHOD,
+  SIZE_CHANGED_METHOD,
+  TOOL_INPUT_METHOD,
+  TOOL_INPUT_PARTIAL_METHOD,
+  TOOL_RESULT_METHOD,
+  TOOL_CANCELLED_METHOD,
+  HOST_CONTEXT_CHANGED_METHOD,
+  RESOURCE_TEARDOWN_METHOD,
+  INITIALIZE_METHOD,
+  INITIALIZED_METHOD,
+  REQUEST_DISPLAY_MODE_METHOD,
   type McpUiTheme,
   type McpUiDisplayMode,
   type McpUiStyleVariableKey,
@@ -22,6 +36,8 @@ export {
   type McpUiOpenLinkResult,
   type McpUiMessageRequest,
   type McpUiMessageResult,
+  type McpUiUpdateModelContextRequest,
+  type McpUiSupportedContentBlockModalities,
   type McpUiSandboxProxyReadyNotification,
   type McpUiSandboxResourceReadyNotification,
   type McpUiSizeChangedNotification,
@@ -39,11 +55,13 @@ export {
   type McpUiInitializeResult,
   type McpUiInitializedNotification,
   type McpUiResourceCsp,
+  type McpUiResourcePermissions,
   type McpUiResourceMeta,
   type McpUiRequestDisplayModeRequest,
   type McpUiRequestDisplayModeResult,
   type McpUiToolVisibility,
   type McpUiToolMeta,
+  type McpUiClientCapabilities,
 } from "./spec.types.js";
 
 // Import types needed for protocol type unions (not re-exported, just used internally)
@@ -51,6 +69,7 @@ import type {
   McpUiInitializeRequest,
   McpUiOpenLinkRequest,
   McpUiMessageRequest,
+  McpUiUpdateModelContextRequest,
   McpUiResourceTeardownRequest,
   McpUiRequestDisplayModeRequest,
   McpUiHostContextChangedNotification,
@@ -79,6 +98,8 @@ export {
   McpUiOpenLinkResultSchema,
   McpUiMessageRequestSchema,
   McpUiMessageResultSchema,
+  McpUiUpdateModelContextRequestSchema,
+  McpUiSupportedContentBlockModalitiesSchema,
   McpUiSandboxProxyReadyNotificationSchema,
   McpUiSandboxResourceReadyNotificationSchema,
   McpUiSizeChangedNotificationSchema,
@@ -96,6 +117,7 @@ export {
   McpUiInitializeResultSchema,
   McpUiInitializedNotificationSchema,
   McpUiResourceCspSchema,
+  McpUiResourcePermissionsSchema,
   McpUiResourceMetaSchema,
   McpUiRequestDisplayModeRequestSchema,
   McpUiRequestDisplayModeResultSchema,
@@ -130,13 +152,15 @@ import {
  *
  * Includes:
  * - MCP UI requests (initialize, open-link, message, resource-teardown, request-display-mode)
- * - MCP server requests forwarded from the app (tools/call, resources/*, prompts/list)
+ * - MCP server requests forwarded from the app (tools/call, tools/list, resources/list,
+ *   resources/templates/list, resources/read, prompts/list)
  * - Protocol requests (ping)
  */
 export type AppRequest =
   | McpUiInitializeRequest
   | McpUiOpenLinkRequest
   | McpUiMessageRequest
+  | McpUiUpdateModelContextRequest
   | McpUiResourceTeardownRequest
   | McpUiRequestDisplayModeRequest
   | CallToolRequest

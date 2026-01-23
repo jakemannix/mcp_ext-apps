@@ -1,16 +1,18 @@
+import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult, ReadResourceResult } from "@modelcontextprotocol/sdk/types.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } from "@modelcontextprotocol/ext-apps/server";
-import { startServer } from "./src/server-utils.js";
-
-const DIST_DIR = path.join(import.meta.dirname, "dist");
+import { z } from "zod";
+// Works both from source (server.ts) and compiled (dist/server.js)
+const DIST_DIR = import.meta.filename.endsWith(".ts")
+  ? path.join(import.meta.dirname, "dist")
+  : import.meta.dirname;
 
 /**
  * Creates a new MCP server instance with tools and resources registered.
  */
-function createServer(): McpServer {
+export function createServer(): McpServer {
   const server = new McpServer({
     name: "Basic MCP App Server (Vanilla JS)",
     version: "1.0.0",
@@ -20,19 +22,25 @@ function createServer(): McpServer {
   const resourceUri = "ui://get-time/mcp-app.html";
 
   // Register a tool with UI metadata. When the host calls this tool, it reads
-  // `_meta[RESOURCE_URI_META_KEY]` to know which resource to fetch and render
-  // as an interactive UI.
+  // `_meta.ui.resourceUri` to know which resource to fetch and render as an
+  // interactive UI.
   registerAppTool(server,
     "get-time",
     {
       title: "Get Time",
       description: "Returns the current server time as an ISO 8601 string.",
       inputSchema: {},
-      _meta: { [RESOURCE_URI_META_KEY]: resourceUri },
+      outputSchema: z.object({
+        time: z.string(),
+      }),
+      _meta: { ui: { resourceUri } },
     },
     async (): Promise<CallToolResult> => {
       const time = new Date().toISOString();
-      return { content: [{ type: "text", text: time }] };
+      return {
+        content: [{ type: "text", text: time }],
+        structuredContent: { time },
+      };
     },
   );
 
@@ -54,5 +62,3 @@ function createServer(): McpServer {
 
   return server;
 }
-
-startServer(createServer);

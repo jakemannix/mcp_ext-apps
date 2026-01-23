@@ -1,7 +1,7 @@
 /**
  * Budget Allocator App - Interactive budget allocation with real-time visualization
  */
-import { App } from "@modelcontextprotocol/ext-apps";
+import { App, type McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { Chart, registerables } from "chart.js";
 import "./global.css";
 import "./mcp-app.css";
@@ -87,6 +87,7 @@ const state: AppState = {
 // DOM References
 // ---------------------------------------------------------------------------
 
+const appContainer = document.querySelector(".app-container") as HTMLElement;
 const budgetSelector = document.getElementById(
   "budget-selector",
 ) as HTMLSelectElement;
@@ -606,19 +607,24 @@ const app = new App({ name: "Budget Allocator", version: "1.0.0" });
 
 app.ontoolresult = (result) => {
   log.info("Received tool result:", result);
-  const text = result
-    .content!.filter(
-      (c): c is { type: "text"; text: string } => c.type === "text",
-    )
-    .map((c) => c.text)
-    .join("");
-  const data = JSON.parse(text) as BudgetDataResponse;
+  const data = result.structuredContent as unknown as BudgetDataResponse;
   if (data?.config && data?.analytics) {
     initializeUI(data.config, data.analytics);
   }
 };
 
 app.onerror = log.error;
+
+function handleHostContextChanged(ctx: McpUiHostContext) {
+  if (ctx.safeAreaInsets) {
+    appContainer.style.paddingTop = `${ctx.safeAreaInsets.top}px`;
+    appContainer.style.paddingRight = `${ctx.safeAreaInsets.right}px`;
+    appContainer.style.paddingBottom = `${ctx.safeAreaInsets.bottom}px`;
+    appContainer.style.paddingLeft = `${ctx.safeAreaInsets.left}px`;
+  }
+}
+
+app.onhostcontextchanged = handleHostContextChanged;
 
 // Handle theme changes
 window
@@ -631,4 +637,9 @@ window
   });
 
 // Connect to host
-app.connect();
+app.connect().then(() => {
+  const ctx = app.getHostContext();
+  if (ctx) {
+    handleHostContextChanged(ctx);
+  }
+});

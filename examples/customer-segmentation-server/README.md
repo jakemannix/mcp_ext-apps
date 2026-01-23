@@ -10,6 +10,27 @@ A demo MCP App that displays customer data as an interactive scatter/bubble char
   </tr>
 </table>
 
+## MCP Client Configuration
+
+Add to your MCP client configuration (stdio transport):
+
+```json
+{
+  "mcpServers": {
+    "customer-segmentation": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--silent",
+        "--registry=https://registry.npmjs.org/",
+        "@modelcontextprotocol/server-customer-segmentation",
+        "--stdio"
+      ]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Interactive Scatter Plot**: Bubble chart visualization using Chart.js with configurable X/Y axes
