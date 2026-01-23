@@ -283,10 +283,10 @@ async function updatePageContext() {
       selection,
     );
 
-    // Build context with widget ID for multi-widget disambiguation
-    const widgetId = app.getHostContext()?.toolInfo?.id;
+    // Build context with tool ID for multi-tool disambiguation
+    const toolId = app.getHostContext()?.toolInfo?.id;
     const header = [
-      `PDF viewer${widgetId ? ` (${widgetId})` : ""}`,
+      `PDF viewer${toolId ? ` (${toolId})` : ""}`,
       pdfTitle ? `"${pdfTitle}"` : pdfUrl,
       `Current Page: ${currentPage}/${totalPages}`,
     ].join(" | ");
