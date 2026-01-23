@@ -352,7 +352,11 @@ export function createServer(): McpServer {
     "display_pdf",
     {
       title: "Display PDF",
-      description: `Display an interactive PDF viewer. Accepts arxiv.org URLs or pre-registered local files.`,
+      description: `Display an interactive PDF viewer.
+
+Accepts:
+- Local files explicitly added to the server (use list_pdfs to see available files)
+- Remote PDFs from allowed services: arxiv.org, ssrn.com, biorxiv.org, medrxiv.org, chemrxiv.org, zenodo.org, osf.io, hal.science, researchsquare.com, preprints.org, eartharxiv.org, psyarxiv.com, engrxiv.org, sportarxiv.org, agrirxiv.org, edarxiv.org`,
       inputSchema: {
         url: z.string().default(DEFAULT_PDF).describe("PDF URL"),
         page: z.number().min(1).default(1).describe("Initial page"),

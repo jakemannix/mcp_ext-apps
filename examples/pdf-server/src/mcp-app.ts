@@ -13,9 +13,9 @@ import { TextLayer } from "pdfjs-dist";
 import "./global.css";
 import "./mcp-app.css";
 
-// const MAX_MODEL_CONTEXT_LENGTH = 5000;
-const MAX_MODEL_CONTEXT_LENGTH = 1500;
-
+const MAX_MODEL_CONTEXT_LENGTH = 15000;
+const CHUNK_SIZE = 500 * 1024; // 500KB chunks
+  
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -635,7 +635,6 @@ function updateProgress(loaded: number, total: number) {
 
 // Load PDF in chunks with progress
 async function loadPdfInChunks(urlToLoad: string): Promise<Uint8Array> {
-  const CHUNK_SIZE = 500 * 1024; // 500KB chunks
   const chunks: Uint8Array[] = [];
   let offset = 0;
   let totalBytes = 0;
