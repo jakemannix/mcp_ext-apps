@@ -10,8 +10,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "uv run server.py",
-    "dev": "uv run server.py",
+    "start": "uv run --index https://pypi.org/simple server.py",
+    "dev": "uv run --index https://pypi.org/simple server.py",
     "build": "echo 'No build step needed for Python server'"
   },
   "dependencies": {
