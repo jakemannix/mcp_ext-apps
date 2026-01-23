@@ -784,7 +784,6 @@ Hosts notify views of display mode changes via `ui/notifications/host-context-ch
 - Host MUST NOT switch the View to a display mode that does not appear in its `appCapabilities.availableDisplayModes`, if set.
 - Host MUST return the resulting mode (whether updated or not) in the response to `ui/request-display-mode`.
 - If the requested mode is not available, Host SHOULD return the current display mode in the response.
-- Host MAY coerce modes on certain platforms (e.g., "pip" to "fullscreen" on mobile).
 - Host MAY decline display mode requests from Views that did not declare said modes in their capabilities.
 
 ### Theming
