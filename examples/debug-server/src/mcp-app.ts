@@ -475,7 +475,9 @@ sendMessageImageBtn.addEventListener("click", async () => {
 // Logging Actions
 // ============================================================================
 
-async function sendLog(level: "debug" | "info" | "warning" | "error"): Promise<void> {
+async function sendLog(
+  level: "debug" | "info" | "warning" | "error",
+): Promise<void> {
   try {
     await app.sendLog({ level, data: logDataEl.value });
     logEvent("send-log", { level, data: logDataEl.value });
