@@ -7,7 +7,6 @@
  * Tools:
  * - list_pdfs: List available PDFs
  * - display_pdf: Show interactive PDF viewer
- * - get_pdf_info: Get PDF metadata (size)
  * - read_pdf_bytes: Stream PDF data in chunks (used by viewer)
  */
 
@@ -121,43 +120,6 @@ export function validateUrl(url: string): { valid: boolean; error?: string } {
 // Range Request Helpers
 // =============================================================================
 
-export interface PdfInfo {
-  url: string;
-  totalBytes: number;
-  contentType: string;
-}
-
-export async function getPdfInfo(url: string): Promise<PdfInfo> {
-  const normalized = isArxivUrl(url) ? normalizeArxivUrl(url) : url;
-
-  if (isFileUrl(normalized)) {
-    const filePath = fileUrlToPath(normalized);
-    const stats = await fs.promises.stat(filePath);
-    return {
-      url: normalized,
-      totalBytes: stats.size,
-      contentType: "application/pdf",
-    };
-  }
-
-  // Remote URL - HEAD request
-  const response = await fetch(normalized, { method: "HEAD" });
-  if (!response.ok) {
-    throw new Error(`HEAD request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const contentLength = response.headers.get("content-length");
-  if (!contentLength) {
-    throw new Error("Server did not return Content-Length");
-  }
-
-  return {
-    url: normalized,
-    totalBytes: parseInt(contentLength, 10),
-    contentType: response.headers.get("content-type") || "application/pdf",
-  };
-}
-
 export async function readPdfRange(
   url: string,
   offset: number,
@@ -248,37 +210,6 @@ export function createServer(): McpServer {
           allowedOrigins: [...allowedRemoteOrigins],
         },
       };
-    },
-  );
-
-  // Tool: get_pdf_info - HEAD request to get size
-  server.tool(
-    "get_pdf_info",
-    "Get PDF file information (size, type) without downloading",
-    {
-      url: z.string().describe("PDF URL (https:// or file://)"),
-    },
-    async ({ url }): Promise<CallToolResult> => {
-      const validation = validateUrl(url);
-      if (!validation.valid) {
-        return {
-          content: [{ type: "text", text: validation.error! }],
-          isError: true,
-        };
-      }
-
-      try {
-        const info = await getPdfInfo(url);
-        return {
-          content: [{ type: "text", text: `PDF: ${info.totalBytes} bytes` }],
-          structuredContent: { ...info },
-        };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
     },
   );
 
