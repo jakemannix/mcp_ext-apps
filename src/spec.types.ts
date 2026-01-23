@@ -321,7 +321,7 @@ export interface McpUiHostContext {
   /** @description How the UI is currently displayed. */
   displayMode?: McpUiDisplayMode;
   /** @description Display modes the host supports. */
-  availableDisplayModes?: string[];
+  availableDisplayModes?: McpUiDisplayMode[];
   /**
    * @description Container dimensions. Represents the dimensions of the iframe or other
    * container holding the app. Specify either width or maxWidth, and either height or maxHeight.
@@ -487,6 +487,8 @@ export interface McpUiAppCapabilities {
     /** @description App supports tools/list_changed notifications. */
     listChanged?: boolean;
   };
+  /** @description Display modes the app supports. */
+  availableDisplayModes?: McpUiDisplayMode[];
 }
 
 /**
