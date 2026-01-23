@@ -32,23 +32,22 @@ export const RESOURCE_URI = "ui://pdf-viewer/mcp-app.html";
 
 /** Allowed remote origins (security allowlist) */
 export const allowedRemoteOrigins = new Set([
-  "https://arxiv.org",
-  "https://ssrn.com",
-  "https://www.researchsquare.com",
-  "https://www.preprints.org",
-  "https://osf.io",
-  "https://zenodo.org",
-  "https://www.biorxiv.org",
-  "https://www.medrxiv.org",
-  "https://chemrxiv.org",
-  "https://www.eartharxiv.org",
-  "https://psyarxiv.com",
-  "https://osf.io/preprints/socarxiv",
-  "https://engrxiv.org",
-  "https://www.sportarxiv.org",
   "https://agrirxiv.org",
+  "https://arxiv.org",
+  "https://chemrxiv.org",
   "https://edarxiv.org",
+  "https://engrxiv.org",
   "https://hal.science",
+  "https://osf.io",
+  "https://psyarxiv.com",
+  "https://ssrn.com",
+  "https://www.biorxiv.org",
+  "https://www.eartharxiv.org",
+  "https://www.medrxiv.org",
+  "https://www.preprints.org",
+  "https://www.researchsquare.com",
+  "https://www.sportarxiv.org",
+  "https://zenodo.org",
 ]);
 
 /** Allowed local file paths (populated from CLI args) */

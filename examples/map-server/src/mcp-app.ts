@@ -404,8 +404,8 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
     const center = getCameraCenter(cesiumViewer);
     const extent = getVisibleExtent(cesiumViewer);
 
-    if (!extent) {
-      log.info("No visible extent (camera looking at sky?)");
+    if (!extent || !center) {
+      log.info("No visible extent or center (camera looking at sky?)");
       return;
     }
 
