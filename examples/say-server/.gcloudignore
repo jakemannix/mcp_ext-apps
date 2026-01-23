@@ -1,0 +1,5 @@
+# Ignore everything except what's needed
+*
+!Dockerfile
+!server.py
+!mcp-app.html
