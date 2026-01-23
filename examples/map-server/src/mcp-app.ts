@@ -168,7 +168,7 @@ function loadPersistedViewState(): PersistedCameraState | null {
       typeof state.latitude !== "number" ||
       typeof state.height !== "number"
     ) {
-      log.warn("[localStorage] invalid data for", key, state);
+      log.warn("Invalid persisted view state, ignoring:", state);
       return null;
     }
     log.info("Loaded persisted view state:", state);
