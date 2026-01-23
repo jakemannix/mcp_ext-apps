@@ -71,7 +71,7 @@ let persistViewTimer: ReturnType<typeof setTimeout> | null = null;
 // Track whether tool input has been received (to know if we should restore persisted state)
 let hasReceivedToolInput = false;
 
-let widgetUUID: string | undefined = undefined;
+let viewUUID: string | undefined = undefined;
 
 /**
  * Persisted camera state for localStorage
@@ -122,7 +122,7 @@ function schedulePersistViewState(cesiumViewer: any): void {
  * Persist current view state to localStorage
  */
 function persistViewState(cesiumViewer: any): void {
-  if (!widgetUUID) {
+  if (!viewUUID) {
     log.info("No storage key available, skipping view persistence");
     return;
   }
@@ -132,8 +132,8 @@ function persistViewState(cesiumViewer: any): void {
 
   try {
     const value = JSON.stringify(state);
-    localStorage.setItem(widgetUUID, value);
-    log.info("Persisted view state:", widgetUUID, value);
+    localStorage.setItem(viewUUID, value);
+    log.info("Persisted view state:", viewUUID, value);
   } catch (e) {
     log.warn("Failed to persist view state:", e);
   }
@@ -143,10 +143,10 @@ function persistViewState(cesiumViewer: any): void {
  * Load persisted view state from localStorage
  */
 function loadPersistedViewState(): PersistedCameraState | null {
-  if (!widgetUUID) return null;
+  if (!viewUUID) return null;
 
   try {
-    const stored = localStorage.getItem(widgetUUID);
+    const stored = localStorage.getItem(viewUUID);
     if (!stored) {
       console.info("No persisted view state found");
       return null;
@@ -404,40 +404,24 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
     const center = getCameraCenter(cesiumViewer);
     const extent = getVisibleExtent(cesiumViewer);
 
-    if (!extent) {
-      log.info("No visible extent (camera looking at sky?)");
+    if (!extent || !center) {
+      log.info("No visible extent or center (camera looking at sky?)");
       return;
     }
 
     const { widthKm, heightKm } = getScaleDimensions(extent);
-
-    log.info(`Extent: ${widthKm.toFixed(1)}km × ${heightKm.toFixed(1)}km`);
-
-    // Get places visible in the extent (samples multiple points for large areas)
     const places = await getVisiblePlaces(extent);
-
-    // Build structured markdown with YAML frontmatter (like pdf-server)
-    // Note: tool name isn't in the notification protocol, so we hardcode it
-    const frontmatter = [
-      "---",
-      `tool: show-map`,
-      center
-        ? `center: [${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}]`
-        : null,
-      `extent: [${extent.west.toFixed(4)}, ${extent.south.toFixed(4)}, ${extent.east.toFixed(4)}, ${extent.north.toFixed(4)}]`,
-      `extent-size: ${widthKm.toFixed(1)}km × ${heightKm.toFixed(1)}km`,
-      places.length > 0 ? `visible-places: [${places.join(", ")}]` : null,
-      "---",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    log.info("Updating model context:", frontmatter);
 
     // Update the model's context with the current map location.
     // If the host doesn't support this, the request will silently fail.
+    const content = [
+      `The map view of ${app.getHostContext()?.toolInfo?.id} is now ${widthKm.toFixed(1)}km wide × ${heightKm.toFixed(1)}km tall `,
+      `and has changed to the following location: [${places.join(", ")}] `,
+      `lat. / long. of center of map = [${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}]`,
+    ].join("\n");
+    log.info("Updating model context:", content);
     app.updateModelContext({
-      content: [{ type: "text", text: frontmatter }],
+      content: [{ type: "text", text: content }],
     });
   }, 1500);
 }
@@ -938,16 +922,14 @@ app.ontoolinput = async (params) => {
 //   },
 // );
 
-// Handle tool result - extract widgetUUID and restore persisted view if available
+// Handle tool result - extract viewUUID and restore persisted view if available
 app.ontoolresult = async (result) => {
-  widgetUUID = result._meta?.widgetUUID
-    ? String(result._meta.widgetUUID)
-    : undefined;
-  log.info("Tool result received, widgetUUID:", widgetUUID);
+  viewUUID = result._meta?.viewUUID ? String(result._meta.viewUUID) : undefined;
+  log.info("Tool result received, viewUUID:", viewUUID);
 
-  // Now that we have widgetUUID, try to restore persisted view
+  // Now that we have viewUUID, try to restore persisted view
   // This overrides the tool input position if a saved state exists
-  if (viewer && widgetUUID) {
+  if (viewer && viewUUID) {
     const restored = restorePersistedView(viewer);
     if (restored) {
       log.info("Restored persisted view from tool result handler");

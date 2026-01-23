@@ -2,8 +2,11 @@ import { OptionDefaults } from "typedoc";
 
 /** @type {Partial<import('typedoc').TypeDocOptions>} */
 const config = {
-  blockTags: [...OptionDefaults.blockTags, "@description"],
-  intentionallyNotExported: ["AppOptions"],
+  readme: "README.md",
+  headings: {
+    readme: false,
+  },
+  gitRevision: "main",
   projectDocuments: [
     "docs/quickstart.md",
     "docs/patterns.md",
@@ -17,21 +20,25 @@ const config = {
     "src/message-transport.ts",
     "src/types.ts",
   ],
-  out: "docs/api",
-  gitRevision: "main",
   excludePrivate: true,
   excludeInternal: false,
+  intentionallyNotExported: ["AppOptions"],
+  blockTags: [...OptionDefaults.blockTags, "@description"],
   jsDocCompatibility: {
     exampleTag: false,
   },
+  includeVersion: true,
   categorizeByGroup: true,
+  navigation: {
+    includeGroups: true,
+  },
   navigationLinks: {
     GitHub: "https://github.com/modelcontextprotocol/ext-apps",
     Specification:
       "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx",
   },
-  readme: "README.md",
-  includeVersion: true,
+  out: "docs/api",
+  plugin: ["typedoc-github-theme"],
 };
 
 export default config;

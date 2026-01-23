@@ -271,13 +271,13 @@ export function newAppBridge(
     updateModelContext: { text: {} },
   }, {
     hostContext: {
-      containerDimensions: options?.containerDimensions ?? { maxHeight: 600 },
+      containerDimensions: options?.containerDimensions ?? { maxHeight: 6000 },
       displayMode: options?.displayMode ?? "inline",
       availableDisplayModes: ["inline", "fullscreen"],
     },
   });
 
-  // Register all handlers before calling connect(). The Guest UI can start
+  // Register all handlers before calling connect(). The view can start
   // sending requests immediately after the initialization handshake, so any
   // handlers registered after connect() might miss early requests.
 

@@ -5,14 +5,14 @@ import { App, McpUiAppCapabilities, PostMessageTransport } from "../app";
 export * from "../app";
 
 /**
- * Options for configuring the {@link useApp} hook.
+ * Options for configuring the {@link useApp `useApp`} hook.
  *
- * Note: This interface does NOT expose {@link App} options like `autoResize`.
+ * Note: This interface does NOT expose {@link App `App`} options like `autoResize`.
  * The hook creates the `App` with default options (`autoResize: true`). If you
  * need custom `App` options, create the `App` manually instead of using this hook.
  *
- * @see {@link useApp} for the hook that uses these options
- * @see {@link useAutoResize} for manual auto-resize control with custom `App` options
+ * @see {@link useApp `useApp`} for the hook that uses these options
+ * @see {@link useAutoResize `useAutoResize`} for manual auto-resize control with custom `App` options
  */
 export interface UseAppOptions {
   /** App identification (name and version) */
@@ -22,7 +22,7 @@ export interface UseAppOptions {
    */
   capabilities: McpUiAppCapabilities;
   /**
-   * Called after {@link App} is created but before connection.
+   * Called after {@link App `App`} is created but before connection.
    *
    * Use this to register request/notification handlers that need to be in place
    * before the initialization handshake completes.
@@ -30,16 +30,26 @@ export interface UseAppOptions {
    * @param app - The newly created `App` instance
    *
    * @example Register an event handler
-   * {@includeCode ./useApp.examples.tsx#useApp_registerHandler}
+   * ```tsx source="./useApp.examples.tsx#useApp_registerHandler"
+   * useApp({
+   *   appInfo: { name: "MyApp", version: "1.0.0" },
+   *   capabilities: {},
+   *   onAppCreated: (app) => {
+   *     app.ontoolresult = (result) => {
+   *       console.log("Tool result:", result);
+   *     };
+   *   },
+   * });
+   * ```
    */
   onAppCreated?: (app: App) => void;
 }
 
 /**
- * State returned by the {@link useApp} hook.
+ * State returned by the {@link useApp `useApp`} hook.
  */
 export interface AppState {
-  /** The connected {@link App} instance, null during initialization */
+  /** The connected {@link App `App`} instance, null during initialization */
   app: App | null;
   /** Whether initialization completed successfully */
   isConnected: boolean;
@@ -50,8 +60,8 @@ export interface AppState {
 /**
  * React hook to create and connect an MCP App.
  *
- * This hook manages {@link App} creation and connection. It automatically
- * creates a {@link PostMessageTransport} to window.parent and handles
+ * This hook manages {@link App `App`} creation and connection. It automatically
+ * creates a {@link PostMessageTransport `PostMessageTransport`} to window.parent and handles
  * initialization.
  *
  * This hook is part of the optional React integration. The core SDK (`App`,
@@ -62,7 +72,7 @@ export interface AppState {
  * to avoid reconnection loops. Options are only used during the initial mount.
  * Furthermore, the `App` instance is NOT closed on unmount. This avoids cleanup
  * issues during React Strict Mode's double-mount cycle. If you need to
- * explicitly close the `App`, call {@link App.close} manually.
+ * explicitly close the `App`, call {@link App.close `App.close`} manually.
  *
  * @param options - Configuration for the app
  * @returns Current connection state and app instance. If connection fails during
@@ -70,10 +80,42 @@ export interface AppState {
  *   timeouts, initialization handshake failures, or transport errors).
  *
  * @example Basic usage of useApp hook with common event handlers
- * {@includeCode ./useApp.examples.tsx#useApp_basicUsage}
+ * ```tsx source="./useApp.examples.tsx#useApp_basicUsage"
+ * function MyApp() {
+ *   const [hostContext, setHostContext] = useState<
+ *     McpUiHostContext | undefined
+ *   >(undefined);
  *
- * @see {@link App.connect} for the underlying connection method
- * @see {@link useAutoResize} for manual auto-resize control when using custom App options
+ *   const { app, isConnected, error } = useApp({
+ *     appInfo: { name: "MyApp", version: "1.0.0" },
+ *     capabilities: {},
+ *     onAppCreated: (app) => {
+ *       app.ontoolinput = (input) => {
+ *         console.log("Tool input:", input);
+ *       };
+ *       app.ontoolresult = (result) => {
+ *         console.log("Tool result:", result);
+ *       };
+ *       app.ontoolcancelled = (params) => {
+ *         console.log("Tool cancelled:", params.reason);
+ *       };
+ *       app.onerror = (error) => {
+ *         console.log("Error:", error);
+ *       };
+ *       app.onhostcontextchanged = (params) => {
+ *         setHostContext((prev) => ({ ...prev, ...params }));
+ *       };
+ *     },
+ *   });
+ *
+ *   if (error) return <div>Error: {error.message}</div>;
+ *   if (!isConnected) return <div>Connecting...</div>;
+ *   return <div>Theme: {hostContext?.theme}</div>;
+ * }
+ * ```
+ *
+ * @see {@link App.connect `App.connect`} for the underlying connection method
+ * @see {@link useAutoResize `useAutoResize`} for manual auto-resize control when using custom App options
  */
 export function useApp({
   appInfo,

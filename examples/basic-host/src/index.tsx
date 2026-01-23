@@ -422,7 +422,7 @@ function AppIFramePanel({ toolCallInfo, isDestroying, onTeardownComplete }: AppI
             onDisplayModeChange: setDisplayMode,
           }, {
             // Provide container dimensions - maxHeight for flexible sizing
-            containerDimensions: { maxHeight: 600 },
+            containerDimensions: { maxHeight: 6000 },
             displayMode: "inline",
           });
           appBridgeRef.current = appBridge;
