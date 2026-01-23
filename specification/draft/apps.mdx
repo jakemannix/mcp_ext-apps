@@ -432,6 +432,53 @@ UI iframes can use the following subset of standard MCP protocol messages:
 - `ui/initialize` → `ui/notifications/initialized` - MCP-like handshake (replaces custom iframe-ready pattern in MCP-UI)
 - `ping` - Connection health check
 
+### App Capabilities in `ui/initialize`
+
+When the Guest UI sends an `ui/initialize` request to the Host, it MUST include its capabilities in the `appCapabilities` field:
+
+```typescript
+interface McpUiAppCapabilities {
+  /** Experimental features (structure TBD). */
+  experimental?: {};
+  /** App exposes MCP-style tools that the host can call. */
+  tools?: {
+    /** App supports tools/list_changed notifications. */
+    listChanged?: boolean;
+  };
+  /**
+   * Display modes the app supports.
+   *
+   * Apps declare which display modes they are designed to work with.
+   * Hosts use this to determine which modes are available for the app.
+   * The intersection of host availableDisplayModes and app availableDisplayModes determines available options.
+   *
+   * @example ["inline", "fullscreen"]
+   */
+  availableDisplayModes?: Array<"inline" | "fullscreen" | "pip">;
+}
+```
+
+#### `availableDisplayModes`
+
+The `availableDisplayModes` field allows apps to declare which display modes they support. This enables hosts to:
+
+- Only switch to (and provide UI controls for) display mode options that the app can handle
+- Calculate the intersection of host and app capabilities
+
+**App Behavior:**
+
+- Apps SHOULD support `inline` which is the primary display mode
+- Apps SHOULD declare all display modes they are designed to support
+- If omitted, hosts MAY assume the app supports all modes, or only `inline`. Apps that do not specify this field may not be able to take over fullscreen automatically.
+- Apps MUST handle graceful degradation if placed in an unsupported mode
+
+**Host Behavior:**
+
+- Host SHOULD intersect its own `availableDisplayModes` with the app's declared modes
+- When responding to `ui/request-display-mode`, host SHOULD only allow modes both support
+- Host MAY include the computed available modes in `HostContext.availableDisplayModes`
+- Host MAY assume that all apps support `inline` display mode
+
 ### Host Context in `McpUiInitializeResult`
 
 When the Guest UI sends an `ui/initialize` request to the Host, the Host SHOULD include UI-specific context in the `McpUiInitializeResult`'s `hostContext` field:
