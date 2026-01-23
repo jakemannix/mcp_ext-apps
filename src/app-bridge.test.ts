@@ -829,234 +829,6 @@ describe("Content block modality validation", () => {
     await bridgeTransport.close();
   });
 
-  describe("Guest-side validation (sendMessage)", () => {
-    it("throws when sending unsupported content type", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        message: { text: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onmessage = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      expect(() =>
-        app.sendMessage({
-          role: "user",
-          content: [
-            { type: "image", data: "base64data", mimeType: "image/png" },
-          ],
-        }),
-      ).toThrow("unsupported content type(s): image");
-    });
-
-    it("allows content when modality is declared", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        message: { text: {}, image: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onmessage = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      const result = await app.sendMessage({
-        role: "user",
-        content: [
-          { type: "text", text: "hello" },
-          { type: "image", data: "base64data", mimeType: "image/png" },
-        ],
-      });
-      expect(result).toEqual({});
-    });
-
-    it("skips validation when message capability is not declared (backwards compat)", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      // No message capability declared
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        testHostCapabilities,
-      );
-      bridge.onmessage = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      // Should succeed even with image content since message capability is not declared
-      const result = await app.sendMessage({
-        role: "user",
-        content: [{ type: "image", data: "base64data", mimeType: "image/png" }],
-      });
-      expect(result).toEqual({});
-    });
-
-    it("rejects all types when message capability is empty object", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        message: {},
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onmessage = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      expect(() =>
-        app.sendMessage({
-          role: "user",
-          content: [{ type: "text", text: "hello" }],
-        }),
-      ).toThrow("unsupported content type(s): text");
-    });
-
-    it("resource_link type maps to resourceLink modality correctly", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        message: { resourceLink: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onmessage = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      const result = await app.sendMessage({
-        role: "user",
-        content: [
-          {
-            type: "resource_link",
-            uri: "test://resource",
-            name: "Test Resource",
-          },
-        ],
-      });
-      expect(result).toEqual({});
-    });
-  });
-
-  describe("Guest-side validation (updateModelContext)", () => {
-    it("throws when sending unsupported content type", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        updateModelContext: { text: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onupdatemodelcontext = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      expect(() =>
-        app.updateModelContext({
-          content: [
-            { type: "image", data: "base64data", mimeType: "image/png" },
-          ],
-        }),
-      ).toThrow("unsupported content type(s): image");
-    });
-
-    it("throws when sending structuredContent without capability", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        updateModelContext: { text: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onupdatemodelcontext = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      expect(() =>
-        app.updateModelContext({
-          structuredContent: { key: "value" },
-        }),
-      ).toThrow("structuredContent is not supported");
-    });
-
-    it("allows structuredContent when declared", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      const capabilities: McpUiHostCapabilities = {
-        ...testHostCapabilities,
-        updateModelContext: { text: {}, structuredContent: {} },
-      };
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        capabilities,
-      );
-      bridge.onupdatemodelcontext = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      const result = await app.updateModelContext({
-        structuredContent: { key: "value" },
-      });
-      expect(result).toEqual({});
-    });
-
-    it("skips validation when updateModelContext capability is not declared", async () => {
-      [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
-      bridge = new AppBridge(
-        createMockClient() as Client,
-        testHostInfo,
-        testHostCapabilities,
-      );
-      bridge.onupdatemodelcontext = async () => ({});
-      app = new App(testAppInfo, {}, { autoResize: false });
-
-      await bridge.connect(bridgeTransport);
-      await app.connect(appTransport);
-
-      const result = await app.updateModelContext({
-        content: [{ type: "image", data: "base64data", mimeType: "image/png" }],
-        structuredContent: { key: "value" },
-      });
-      expect(result).toEqual({});
-    });
-  });
-
   describe("Host-side validation", () => {
     it("host rejects unsupported content in onmessage", async () => {
       [appTransport, bridgeTransport] = InMemoryTransport.createLinkedPair();
@@ -1064,32 +836,20 @@ describe("Content block modality validation", () => {
         ...testHostCapabilities,
         message: { text: {} },
       };
-      // Use null client so we don't get guest-side validation
-      // (the bridge still validates on the host side)
       bridge = new AppBridge(null, testHostInfo, capabilities);
       bridge.onmessage = async () => ({});
-
-      // Create app without host capabilities knowledge to bypass guest validation
       app = new App(testAppInfo, {}, { autoResize: false });
 
       await bridge.connect(bridgeTransport);
       await app.connect(appTransport);
 
-      // The app received capabilities during connect, so it will validate.
-      // To test host-side validation independently, we directly send the request.
       await expect(
-        app.request(
-          {
-            method: "ui/message" as any,
-            params: {
-              role: "user",
-              content: [
-                { type: "image", data: "base64data", mimeType: "image/png" },
-              ],
-            },
-          },
-          EmptyResultSchema,
-        ),
+        app.sendMessage({
+          role: "user",
+          content: [
+            { type: "image", data: "base64data", mimeType: "image/png" },
+          ],
+        }),
       ).rejects.toThrow("unsupported content type(s): image");
     });
 
@@ -1107,17 +867,11 @@ describe("Content block modality validation", () => {
       await app.connect(appTransport);
 
       await expect(
-        app.request(
-          {
-            method: "ui/update-model-context" as any,
-            params: {
-              content: [
-                { type: "audio", data: "base64", mimeType: "audio/mp3" },
-              ],
-            },
-          },
-          EmptyResultSchema,
-        ),
+        app.updateModelContext({
+          content: [
+            { type: "audio", data: "base64", mimeType: "audio/mp3" },
+          ],
+        }),
       ).rejects.toThrow("unsupported content type(s): audio");
     });
 
@@ -1135,15 +889,9 @@ describe("Content block modality validation", () => {
       await app.connect(appTransport);
 
       await expect(
-        app.request(
-          {
-            method: "ui/update-model-context" as any,
-            params: {
-              structuredContent: { key: "value" },
-            },
-          },
-          EmptyResultSchema,
-        ),
+        app.updateModelContext({
+          structuredContent: { key: "value" },
+        }),
       ).rejects.toThrow("structuredContent is not supported");
     });
   });

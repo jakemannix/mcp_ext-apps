@@ -19,10 +19,6 @@ import {
 import { AppNotification, AppRequest, AppResult } from "./types";
 import { PostMessageTransport } from "./message-transport";
 import {
-  validateContentModalities,
-  buildValidationErrorMessage,
-} from "./content-validation";
-import {
   LATEST_PROTOCOL_VERSION,
   McpUiAppCapabilities,
   McpUiUpdateModelContextRequest,
@@ -625,14 +621,6 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
    * @see {@link McpUiMessageRequest `McpUiMessageRequest`} for request structure
    */
   sendMessage(params: McpUiMessageRequest["params"], options?: RequestOptions) {
-    const modalities = this._hostCapabilities?.message;
-    if (modalities !== undefined) {
-      const result = validateContentModalities(params.content, modalities);
-      if (!result.valid) {
-        throw new Error(buildValidationErrorMessage(result, "ui/message"));
-      }
-    }
-
     return this.request(
       <McpUiMessageRequest>{
         method: "ui/message",
@@ -691,20 +679,6 @@ export class App extends Protocol<AppRequest, AppNotification, AppResult> {
     params: McpUiUpdateModelContextRequest["params"],
     options?: RequestOptions,
   ) {
-    const modalities = this._hostCapabilities?.updateModelContext;
-    if (modalities !== undefined) {
-      const result = validateContentModalities(
-        params.content,
-        modalities,
-        params.structuredContent !== undefined,
-      );
-      if (!result.valid) {
-        throw new Error(
-          buildValidationErrorMessage(result, "ui/update-model-context"),
-        );
-      }
-    }
-
     return this.request(
       <McpUiUpdateModelContextRequest>{
         method: "ui/update-model-context",
