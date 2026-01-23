@@ -412,17 +412,41 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
     const { widthKm, heightKm } = getScaleDimensions(extent);
     const places = await getVisiblePlaces(extent);
 
-    // Update the model's context with the current map location.
+    // Update the model's context with the current map location and screenshot.
     // If the host doesn't support this, the request will silently fail.
-    const content = [
+    const text = [
       `The map view of ${app.getHostContext()?.toolInfo?.id} is now ${widthKm.toFixed(1)}km wide × ${heightKm.toFixed(1)}km tall `,
       `and has changed to the following location: [${places.join(", ")}] `,
       `lat. / long. of center of map = [${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}]`,
     ].join("\n");
-    log.info("Updating model context:", content);
-    app.updateModelContext({
-      content: [{ type: "text", text: content }],
-    });
+    log.info("Updating model context:", text);
+
+    // Build content array with text and optional screenshot
+    const content: Array<
+      { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+    > = [{ type: "text", text }];
+
+    // Add screenshot if host supports image content
+    if (app.getHostCapabilities()?.updateModelContext?.image) {
+      try {
+        // Canvas has preserveDrawingBuffer: true, so we can capture directly
+        const dataUrl = cesiumViewer.canvas.toDataURL("image/png");
+        // Extract base64 data (remove "data:image/png;base64," prefix)
+        const base64Data = dataUrl.split(",")[1];
+        if (base64Data) {
+          content.push({
+            type: "image",
+            data: base64Data,
+            mimeType: "image/png",
+          });
+          log.info("Added screenshot to model context");
+        }
+      } catch (err) {
+        log.warn("Failed to capture screenshot:", err);
+      }
+    }
+
+    app.updateModelContext({ content });
   }, 1500);
 }
 
