@@ -6,9 +6,9 @@
 
 import fs from "node:fs";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express from "express";
 import cors from "cors";
 import type { Request, Response } from "express";
 import {
@@ -37,9 +37,8 @@ export async function startServer(
 ): Promise<void> {
   const { port, name = "MCP Server" } = options;
 
-  const app = express();
+  const app = createMcpExpressApp({ host: "0.0.0.0" });
   app.use(cors());
-  app.use(express.json());
 
   app.all("/mcp", async (req: Request, res: Response) => {
     const server = createServer();
@@ -67,7 +66,11 @@ export async function startServer(
     }
   });
 
-  const httpServer = app.listen(port, () => {
+  const httpServer = app.listen(port, (err) => {
+    if (err) {
+      console.error("Failed to start server:", err);
+      process.exit(1);
+    }
     console.log(`${name} listening on http://localhost:${port}/mcp`);
   });
 
