@@ -98,7 +98,7 @@ const ALL_SERVERS = [
     dir: "customer-segmentation-server",
   },
   { key: "debug-server", name: "Debug MCP App Server", dir: "debug-server" },
-  { key: "map-server", name: "Map Server", dir: "map-server" },
+  { key: "map-server", name: "CesiumJS Map Server", dir: "map-server" },
   { key: "pdf-server", name: "PDF Server", dir: "pdf-server" },
   { key: "qr-server", name: "QR Code Server", dir: "qr-server" },
   { key: "say-server", name: "Say Demo", dir: "say-server" },
