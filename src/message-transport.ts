@@ -29,8 +29,8 @@ import {
  * **Host**:
  * {@includeCode ./message-transport.examples.ts#PostMessageTransport_host}
  *
- * @see {@link app!App.connect} for view usage
- * @see {@link app-bridge!AppBridge.connect} for Host usage
+ * @see {@link app!App.connect `App.connect`} for View usage
+ * @see {@link app-bridge!AppBridge.connect `AppBridge.connect`} for Host usage
  */
 export class PostMessageTransport implements Transport {
   private messageListener: (
@@ -102,7 +102,7 @@ export class PostMessageTransport implements Transport {
   /**
    * Stop listening for messages and cleanup.
    *
-   * Removes the message event listener and calls the {@link onclose} callback if set.
+   * Removes the message event listener and calls the {@link onclose `onclose`} callback if set.
    */
   async close() {
     window.removeEventListener("message", this.messageListener);
@@ -112,7 +112,7 @@ export class PostMessageTransport implements Transport {
   /**
    * Called when the transport is closed.
    *
-   * Set this handler to be notified when {@link close} is called.
+   * Set this handler to be notified when {@link close `close`} is called.
    */
   onclose?: () => void;
 
@@ -129,7 +129,7 @@ export class PostMessageTransport implements Transport {
   /**
    * Called when a valid JSON-RPC message is received.
    *
-   * This handler is invoked after message validation succeeds. The {@link start}
+   * This handler is invoked after message validation succeeds. The {@link start `start`}
    * method must be called before messages will be received.
    *
    * @param message - The validated JSON-RPC message

@@ -8,7 +8,7 @@ This document covers common patterns and recipes for building MCP Apps.
 
 ## Tools that are private to Apps
 
-Set {@link types!McpUiToolMeta.visibility Tool.\_meta.ui.visibility} to `["app"]` to make tools only callable by Apps (hidden from the model). This is useful for UI-driven actions like updating quantities, toggling settings, or other interactions that shouldn't appear in the model's tool list.
+Set {@link types!McpUiToolMeta.visibility `Tool._meta.ui.visibility`} to `["app"]` to make tools only callable by Apps (hidden from the model). This is useful for UI-driven actions like updating quantities, toggling settings, or other interactions that shouldn't appear in the model's tool list.
 
 {@includeCode ../src/server/index.examples.ts#registerAppTool_appOnlyVisibility}
 
@@ -32,7 +32,7 @@ _See [`examples/pdf-server/`](https://github.com/modelcontextprotocol/ext-apps/t
 
 **Server-side**: Tool handler validates inputs and returns `{ isError: true, content: [...] }`. The model receives this error through the normal tool call response.
 
-**Client-side**: If a runtime error occurs (e.g., API failure, permission denied, resource unavailable), use {@link app!App.updateModelContext updateModelContext} to inform the model:
+**Client-side**: If a runtime error occurs (e.g., API failure, permission denied, resource unavailable), use {@link app!App.updateModelContext `updateModelContext`} to inform the model:
 
 {@includeCode ../src/app.examples.ts#App_updateModelContext_reportError}
 
@@ -56,11 +56,11 @@ _See [`examples/basic-server-vanillajs/`](https://github.com/modelcontextprotoco
 
 ## Entering / Exiting fullscreen
 
-Toggle fullscreen mode by calling {@link app!App.requestDisplayMode requestDisplayMode}:
+Toggle fullscreen mode by calling {@link app!App.requestDisplayMode `requestDisplayMode`}:
 
 {@includeCode ../src/app.examples.ts#App_requestDisplayMode_toggle}
 
-Listen for display mode changes via {@link app!App.onhostcontextchanged onhostcontextchanged} to update your UI:
+Listen for display mode changes via {@link app!App.onhostcontextchanged `onhostcontextchanged`} to update your UI:
 
 {@includeCode ../src/app.examples.ts#App_onhostcontextchanged_respondToDisplayMode}
 
@@ -68,7 +68,7 @@ _See [`examples/shadertoy-server/`](https://github.com/modelcontextprotocol/ext-
 
 ## Passing contextual information from the App to the Model
 
-Use {@link app!App.updateModelContext updateModelContext} to keep the model informed about what the user is viewing or interacting with. Structure the content with YAML frontmatter for easy parsing:
+Use {@link app!App.updateModelContext `updateModelContext`} to keep the model informed about what the user is viewing or interacting with. Structure the content with YAML frontmatter for easy parsing:
 
 {@includeCode ../src/app.examples.ts#App_updateModelContext_appState}
 
@@ -76,7 +76,7 @@ _See [`examples/map-server/`](https://github.com/modelcontextprotocol/ext-apps/t
 
 ## Sending large follow-up messages
 
-When you need to send more data than fits in a message, use {@link app!App.updateModelContext updateModelContext} to set the context first, then {@link app!App.sendMessage sendMessage} with a brief prompt to trigger a response:
+When you need to send more data than fits in a message, use {@link app!App.updateModelContext `updateModelContext`} to set the context first, then {@link app!App.sendMessage `sendMessage`} with a brief prompt to trigger a response:
 
 {@includeCode ../src/app.examples.ts#App_sendMessage_withLargeContext}
 
@@ -90,7 +90,7 @@ To persist view state across conversation reloads (e.g., current page in a PDF v
 
 {@includeCode ./patterns.tsx#persistDataServer}
 
-**Client-side**: Receive the UUID in {@link app!App.ontoolresult ontoolresult} and use it as the storage key:
+**Client-side**: Receive the UUID in {@link app!App.ontoolresult `ontoolresult`} and use it as the storage key:
 
 {@includeCode ./patterns.tsx#persistData}
 
@@ -106,7 +106,7 @@ _See [`examples/shadertoy-server/`](https://github.com/modelcontextprotocol/ext-
 
 ## Lowering perceived latency
 
-Use {@link app!App.ontoolinputpartial ontoolinputpartial} to receive streaming tool arguments as they arrive, allowing you to show a loading preview before the complete input is available.
+Use {@link app!App.ontoolinputpartial `ontoolinputpartial`} to receive streaming tool arguments as they arrive, allowing you to show a loading preview before the complete input is available.
 
 {@includeCode ../src/app.examples.ts#App_ontoolinputpartial_progressiveRendering}
 
