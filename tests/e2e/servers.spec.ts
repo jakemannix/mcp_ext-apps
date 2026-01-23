@@ -57,6 +57,8 @@ const HOST_MASKS: Record<string, string[]> = {
 // Servers to skip in CI (require special resources like GPU, large ML models)
 const SKIP_SERVERS = new Set<string>([
   // None currently - say-server view works without TTS model for screenshots
+  "qr-server", // TODO
+  "say-server", // TTS model download from HuggingFace can be slow
 ]);
 
 // Optional: filter to a single example via EXAMPLE env var (folder name)
@@ -172,10 +174,11 @@ async function waitForAppLoad(page: Page) {
 }
 
 /**
- * Load a server by selecting it by name and clicking Call Tool
+ * Load a server by selecting it by name and clicking Call Tool.
+ * Uses ?theme=hide to hide the theme toggle for consistent screenshots.
  */
 async function loadServer(page: Page, serverName: string) {
-  await page.goto("/");
+  await page.goto("/?theme=hide");
   // Wait for servers to connect (select becomes enabled when servers are ready)
   await expect(page.locator("select").first()).toBeEnabled({ timeout: 30000 });
   await page.locator("select").first().selectOption({ label: serverName });
@@ -207,14 +210,14 @@ function getMaskLocators(page: Page, serverKey: string) {
 
 test.describe("Host UI", () => {
   test("initial state shows controls", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/?theme=hide");
     await expect(page.locator("label:has-text('Server')")).toBeVisible();
     await expect(page.locator("label:has-text('Tool')")).toBeVisible();
     await expect(page.locator('button:has-text("Call Tool")')).toBeVisible();
   });
 
   test("screenshot of initial state", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/?theme=hide");
     await expect(page.locator('button:has-text("Call Tool")')).toBeVisible();
     await expect(page).toHaveScreenshot("host-initial.png");
   });
