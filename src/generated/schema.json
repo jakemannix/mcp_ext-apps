@@ -28,6 +28,20 @@
       },
       "additionalProperties": false
     },
+    "McpUiClientCapabilities": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "mimeTypes": {
+          "description": "Array of supported MIME types for UI resources.\nMust include `\"text/html;profile=mcp-app\"` for MCP Apps support.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "McpUiDisplayMode": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "anyOf": [

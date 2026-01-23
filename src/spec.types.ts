@@ -672,3 +672,18 @@ export const INITIALIZED_METHOD: McpUiInitializedNotification["method"] =
   "ui/notifications/initialized";
 export const REQUEST_DISPLAY_MODE_METHOD: McpUiRequestDisplayModeRequest["method"] =
   "ui/request-display-mode";
+
+/**
+ * @description MCP Apps capability settings advertised by clients to servers.
+ *
+ * Clients advertise these capabilities via the `extensions` field in their
+ * capabilities during MCP initialization. Servers can check for MCP Apps
+ * support using {@link server-helpers!getUiCapability}.
+ */
+export interface McpUiClientCapabilities {
+  /**
+   * @description Array of supported MIME types for UI resources.
+   * Must include `"text/html;profile=mcp-app"` for MCP Apps support.
+   */
+  mimeTypes?: string[];
+}

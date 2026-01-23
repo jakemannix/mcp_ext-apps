@@ -1457,13 +1457,13 @@ Future versions may add additional settings:
 
 #### Server Behavior
 
-Servers SHOULD check client (host would-be) capabilities before registering UI-enabled tools:
+Servers SHOULD check client capabilities before registering UI-enabled tools. The SDK provides the `getUiCapability` helper for this:
 
 ```typescript
-const hasUISupport =
-  clientCapabilities?.extensions?.["io.modelcontextprotocol/ui"]?.mimeTypes?.includes("text/html;profile=mcp-app");
+import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 
-if (hasUISupport) {
+const uiCap = getUiCapability(clientCapabilities);
+if (uiCap?.mimeTypes?.includes(RESOURCE_MIME_TYPE)) {
   // Register tools with UI templates
   server.registerTool("get_weather", {
     description: "Get weather with interactive dashboard",

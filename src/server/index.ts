@@ -36,6 +36,7 @@ import {
   RESOURCE_MIME_TYPE,
   McpUiResourceMeta,
   McpUiToolMeta,
+  McpUiClientCapabilities,
 } from "../app.js";
 import type {
   BaseToolCallback,
@@ -49,7 +50,10 @@ import type {
   AnySchema,
   ZodRawShapeCompat,
 } from "@modelcontextprotocol/sdk/server/zod-compat.js";
-import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  ClientCapabilities,
+  ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 
 // Re-exports for convenience
 export { RESOURCE_URI_META_KEY, RESOURCE_MIME_TYPE };
@@ -312,4 +316,59 @@ export function registerAppResource(
     },
     readCallback,
   );
+}
+
+/**
+ * Extension identifier for MCP Apps capability negotiation.
+ *
+ * Used as the key in `extensions` to advertise MCP Apps support.
+ */
+export const EXTENSION_ID = "io.modelcontextprotocol/ui";
+
+/**
+ * Get MCP Apps capability settings from client capabilities.
+ *
+ * This helper retrieves the capability object from the `extensions` field
+ * where MCP Apps advertises its support.
+ *
+ * Note: The `clientCapabilities` parameter extends the SDK's `ClientCapabilities`
+ * type with an `extensions` field (pending SEP-1724). Once `extensions` is added
+ * to the SDK, this can use `ClientCapabilities` directly.
+ *
+ * @param clientCapabilities - The client capabilities from the initialize response
+ * @returns The MCP Apps capability settings, or `undefined` if not supported
+ *
+ * @example Check for MCP Apps support in server initialization
+ * ```typescript
+ * import { getUiCapability, RESOURCE_MIME_TYPE, registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+ *
+ * server.oninitialized = ({ clientCapabilities }) => {
+ *   const uiCap = getUiCapability(clientCapabilities);
+ *   if (uiCap?.mimeTypes?.includes(RESOURCE_MIME_TYPE)) {
+ *     registerAppTool(server, "weather", {
+ *       description: "Get weather with interactive dashboard",
+ *       _meta: { ui: { resourceUri: "ui://weather/dashboard" } },
+ *     }, weatherHandler);
+ *   } else {
+ *     // Register text-only fallback
+ *     server.registerTool("weather", {
+ *       description: "Get weather as text",
+ *     }, textWeatherHandler);
+ *   }
+ * };
+ * ```
+ */
+export function getUiCapability(
+  clientCapabilities:
+    | (ClientCapabilities & { extensions?: Record<string, unknown> })
+    | null
+    | undefined,
+): McpUiClientCapabilities | undefined {
+  if (!clientCapabilities) {
+    return undefined;
+  }
+
+  return clientCapabilities.extensions?.[EXTENSION_ID] as
+    | McpUiClientCapabilities
+    | undefined;
 }
