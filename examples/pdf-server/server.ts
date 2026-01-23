@@ -346,6 +346,11 @@ export function createServer(): McpServer {
     },
   );
 
+  // Build allowed domains list for tool description (strip https:// and www.)
+  const allowedDomains = [...allowedRemoteOrigins]
+    .map(origin => origin.replace(/^https?:\/\/(www\.)?/, ""))
+    .join(", ");
+
   // Tool: display_pdf - Show interactive viewer
   registerAppTool(
     server,
@@ -356,7 +361,7 @@ export function createServer(): McpServer {
 
 Accepts:
 - Local files explicitly added to the server (use list_pdfs to see available files)
-- Remote PDFs from allowed services: arxiv.org, ssrn.com, biorxiv.org, medrxiv.org, chemrxiv.org, zenodo.org, osf.io, hal.science, researchsquare.com, preprints.org, eartharxiv.org, psyarxiv.com, engrxiv.org, sportarxiv.org, agrirxiv.org, edarxiv.org`,
+- Remote PDFs from: ${allowedDomains}`,
       inputSchema: {
         url: z.string().default(DEFAULT_PDF).describe("PDF URL"),
         page: z.number().min(1).default(1).describe("Initial page"),
@@ -385,7 +390,7 @@ Accepts:
           initialPage: page,
         },
         _meta: {
-          widgetUUID: randomUUID(),
+          viewUUID: randomUUID(),
         },
       };
     },

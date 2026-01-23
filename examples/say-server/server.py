@@ -204,7 +204,7 @@ def say(
     return [types.TextContent(
         type="text",
         text=f"Displayed a TTS widget with voice '{voice}'. Click to play/pause, use toolbar to restart or fullscreen.",
-        _meta={"widgetUUID": widget_uuid},
+        _meta={"viewUUID": widget_uuid},
     )]
 
 
@@ -796,7 +796,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const [showInfo, setShowInfo] = useState(false);
 
       const voiceRef = useRef("cosette"); // Current voice, updated from tool input
-      const widgetUuidRef = useRef(null); // Widget UUID for speak lock coordination
+      const viewUUIDRef = useRef(null); // Widget UUID for speak lock coordination
       const speakLockIntervalRef = useRef(null); // Polling interval for speak lock
       const queueIdRef = useRef(null);
       const audioContextRef = useRef(null);
@@ -820,18 +820,18 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
       const SPEAK_LOCK_KEY = "mcp-tts-playing";
 
       const announcePlayback = useCallback(() => {
-        if (!widgetUuidRef.current) return;
+        if (!viewUUIDRef.current) return;
         localStorage.setItem(SPEAK_LOCK_KEY, JSON.stringify({
-          uuid: widgetUuidRef.current,
+          uuid: viewUUIDRef.current,
           timestamp: Date.now()
         }));
       }, []);
 
       const clearSpeakLock = useCallback(() => {
-        if (!widgetUuidRef.current) return;
+        if (!viewUUIDRef.current) return;
         try {
           const current = JSON.parse(localStorage.getItem(SPEAK_LOCK_KEY) || "null");
-          if (current?.uuid === widgetUuidRef.current) {
+          if (current?.uuid === viewUUIDRef.current) {
             localStorage.removeItem(SPEAK_LOCK_KEY);
           }
         } catch {}
@@ -842,7 +842,7 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
         speakLockIntervalRef.current = setInterval(() => {
           try {
             const current = JSON.parse(localStorage.getItem(SPEAK_LOCK_KEY) || "null");
-            if (current && current.uuid !== widgetUuidRef.current) {
+            if (current && current.uuid !== viewUUIDRef.current) {
               // Someone else started playing - yield
               console.log('[TTS] Another widget started playing, pausing');
               onStolenCallback();
@@ -1220,9 +1220,9 @@ EMBEDDED_WIDGET_HTML = """<!DOCTYPE html>
             console.log('[TTS] ontoolresult called, queueId:', queueIdRef.current);
             fullTextRef.current = lastTextRef.current;
             // Read widget UUID from tool result _meta for speak lock coordination
-            const resultUuid = params.content?.[0]?._meta?.widgetUUID;
+            const resultUuid = params.content?.[0]?._meta?.viewUUID;
             if (resultUuid) {
-              widgetUuidRef.current = resultUuid;
+              viewUUIDRef.current = resultUuid;
               console.log('[TTS] Widget UUID:', resultUuid);
             }
             if (queueIdRef.current) {
