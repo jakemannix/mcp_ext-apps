@@ -22,6 +22,30 @@ const log = {
   error: console.error.bind(console, "[APP]"),
 };
 
+/**
+ * Apply safe area insets as CSS custom properties on the document root.
+ */
+function applySafeAreaInsets(insets: {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}) {
+  const root = document.documentElement;
+  if (insets.top !== undefined) {
+    root.style.setProperty("--safe-area-inset-top", `${insets.top}px`);
+  }
+  if (insets.right !== undefined) {
+    root.style.setProperty("--safe-area-inset-right", `${insets.right}px`);
+  }
+  if (insets.bottom !== undefined) {
+    root.style.setProperty("--safe-area-inset-bottom", `${insets.bottom}px`);
+  }
+  if (insets.left !== undefined) {
+    root.style.setProperty("--safe-area-inset-left", `${insets.left}px`);
+  }
+}
+
 // DOM element references
 const mainEl = document.querySelector(".main") as HTMLElement;
 const xAxisSelect = document.getElementById("x-axis") as HTMLSelectElement;
@@ -34,6 +58,9 @@ const chartCanvas = document.getElementById(
 ) as HTMLCanvasElement;
 const legendContainer = document.getElementById("legend")!;
 const detailPanel = document.getElementById("detail-panel")!;
+const fullscreenBtn = document.getElementById(
+  "fullscreen-btn",
+) as HTMLButtonElement;
 
 // App state
 interface AppState {
@@ -367,7 +394,11 @@ function resetDetailPanel(): void {
 }
 
 // Create app instance
-const app = new App({ name: "Customer Segmentation", version: "1.0.0" });
+// Create app instance with fullscreen support
+const app = new App(
+  { name: "Customer Segmentation", version: "1.0.0" },
+  { availableDisplayModes: ["inline", "fullscreen"] },
+);
 
 // Fetch data from server
 async function fetchData(): Promise<void> {
@@ -421,6 +452,16 @@ sizeMetricSelect.addEventListener("change", () => {
   updateChart();
 });
 
+// Fullscreen toggle
+fullscreenBtn.addEventListener("click", async () => {
+  try {
+    const result = await app.requestDisplayMode({ mode: "fullscreen" });
+    log.info("Display mode changed to:", result.mode);
+  } catch (error) {
+    log.error("Failed to change display mode:", error);
+  }
+});
+
 // Clear selection when clicking outside chart
 document.addEventListener("click", (e) => {
   if (!(e.target as HTMLElement).closest(".chart-section")) {
@@ -461,11 +502,29 @@ function handleHostContextChanged(ctx: McpUiHostContext) {
   if (ctx.styles?.css?.fonts) {
     applyHostFonts(ctx.styles.css.fonts);
   }
+  if (ctx.displayMode) {
+    document.documentElement.setAttribute(
+      "data-display-mode",
+      ctx.displayMode,
+    );
+  }
   if (ctx.safeAreaInsets) {
-    mainEl.style.paddingTop = `${ctx.safeAreaInsets.top}px`;
-    mainEl.style.paddingRight = `${ctx.safeAreaInsets.right}px`;
-    mainEl.style.paddingBottom = `${ctx.safeAreaInsets.bottom}px`;
-    mainEl.style.paddingLeft = `${ctx.safeAreaInsets.left}px`;
+    applySafeAreaInsets(ctx.safeAreaInsets);
+  }
+  // Update container height based on containerDimensions from host
+  // This ensures the chart resizes correctly during transitions
+  if (ctx.containerDimensions) {
+    if ("height" in ctx.containerDimensions) {
+      // If height is fixed, take up all the height
+      mainEl.style.height = "100vh";
+    } else if ("maxHeight" in ctx.containerDimensions) {
+      // If height is variable, let the rest of the css determine the height
+      mainEl.style.height = "";
+    }
+    // Resize chart after container dimensions change
+    if (state.chart) {
+      state.chart.resize();
+    }
   }
   // Recreate chart to pick up new colors
   if (state.chart && (ctx.theme || ctx.styles?.variables)) {
