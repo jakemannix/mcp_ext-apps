@@ -868,9 +868,7 @@ describe("Content block modality validation", () => {
 
       await expect(
         app.updateModelContext({
-          content: [
-            { type: "audio", data: "base64", mimeType: "audio/mp3" },
-          ],
+          content: [{ type: "audio", data: "base64", mimeType: "audio/mp3" }],
         }),
       ).rejects.toThrow("unsupported content type(s): audio");
     });
