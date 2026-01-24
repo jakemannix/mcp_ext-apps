@@ -7,6 +7,7 @@ An MCP Apps server that lets you browse and play classic arcade games from [arch
 This example demonstrates serving **external HTML content** as an MCP App resource. Instead of bundling a custom UI, it fetches game pages from archive.org, processes the HTML server-side to work within an iframe sandbox, and returns it as an inline resource.
 
 Key techniques:
+
 - Server-side HTML fetching and processing
 - `<base href>` tag for resolving relative URLs against archive.org
 - `baseUriDomains` CSP metadata to allow the base tag
@@ -43,10 +44,10 @@ The server starts on `http://localhost:3002/mcp` by default. Set the `PORT` envi
 
 ## Tools
 
-| Tool | Description | UI |
-|------|-------------|----|
-| `search_games` | Search archive.org for arcade games by name | No |
-| `get_game_by_id` | Load and play a specific game | Yes |
+| Tool             | Description                                 | UI  |
+| ---------------- | ------------------------------------------- | --- |
+| `search_games`   | Search archive.org for arcade games by name | No  |
+| `get_game_by_id` | Load and play a specific game               | Yes |
 
 ## How It Works
 

@@ -51,19 +51,25 @@ export function createServer(port: number): McpServer {
       inputSchema: z.object({
         searchTerm: z
           .string()
-          .describe('The game name or search term (e.g., "doom", "pacman", "mario").'),
+          .describe(
+            'The game name or search term (e.g., "doom", "pacman", "mario").',
+          ),
         maxResults: z
           .number()
           .optional()
           .default(10)
-          .describe("Maximum number of results to return (default: 10, max: 50)"),
+          .describe(
+            "Maximum number of results to return (default: 10, max: 50)",
+          ),
       }) as any,
     },
     async (args: any): Promise<CallToolResult> => {
       const { searchTerm, maxResults } = args;
       if (!searchTerm || searchTerm.trim().length === 0) {
         return {
-          content: [{ type: "text", text: "Error: Search term cannot be empty." }],
+          content: [
+            { type: "text", text: "Error: Search term cannot be empty." },
+          ],
           isError: true,
         };
       }
@@ -128,7 +134,9 @@ export function createServer(port: number): McpServer {
       inputSchema: z.object({
         gameId: z
           .string()
-          .describe('The archive.org identifier (e.g., "arcade_20pacgal", "msdos_doom_1993").'),
+          .describe(
+            'The archive.org identifier (e.g., "arcade_20pacgal", "msdos_doom_1993").',
+          ),
       }) as any,
       _meta: {
         ui: { resourceUri: GAME_VIEWER_RESOURCE_URI },
@@ -153,9 +161,7 @@ export function createServer(port: number): McpServer {
         cachedGameHtml = html;
 
         return {
-          content: [
-            { type: "text", text: `Loading arcade game: ${gameId}` },
-          ],
+          content: [{ type: "text", text: `Loading arcade game: ${gameId}` }],
         };
       } catch (error) {
         return {
@@ -206,7 +212,11 @@ export function createServer(port: number): McpServer {
 
       return {
         contents: [
-          { uri: GAME_VIEWER_RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: html },
+          {
+            uri: GAME_VIEWER_RESOURCE_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html,
+          },
         ],
       };
     },

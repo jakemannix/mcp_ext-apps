@@ -153,10 +153,7 @@ function convertModuleScripts(html: string): string {
       if (content.includes("window.loadScript")) return match;
 
       // Remove type="module"
-      const newOpenTag = openTag.replace(
-        /\s*type\s*=\s*["']module["']/gi,
-        "",
-      );
+      const newOpenTag = openTag.replace(/\s*type\s*=\s*["']module["']/gi, "");
 
       // Rewrite dynamic import() to loadScript()
       let newContent = content.replace(
