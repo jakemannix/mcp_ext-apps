@@ -226,7 +226,9 @@ function setupBinLink(bunPath) {
       const sourceStat = statSync(bunPath);
       const linkStat = statSync(bunLink);
       if (sourceStat.size === linkStat.size) {
-        console.log("Bun binaries already exist and appear valid, skipping copy");
+        console.log(
+          "Bun binaries already exist and appear valid, skipping copy",
+        );
         needsCopy = false;
       }
     } catch {
@@ -263,33 +265,43 @@ function setupBinLink(bunPath) {
           const sourceQuoted = `"${bunPath}"`;
           const destQuoted = `"${bunLink}"`;
           const destxQuoted = `"${bunxLink}"`;
-          
+
           // Try copying with a small delay between attempts
           const result1 = spawnSync(
             "cmd.exe",
             ["/c", "copy", "/Y", sourceQuoted, destQuoted],
             { shell: false, stdio: "pipe" },
           );
-          
+
           // Small delay before second copy
           const start = Date.now();
           while (Date.now() - start < 50) {}
-          
+
           const result2 = spawnSync(
             "cmd.exe",
             ["/c", "copy", "/Y", sourceQuoted, destxQuoted],
             { shell: false, stdio: "pipe" },
           );
-          
+
           if (result1.status !== 0) {
-            const errorMsg = result1.stderr?.toString() || result1.stdout?.toString() || "Unknown error";
-            throw new Error(`Windows copy command failed for bun.exe: ${errorMsg}`);
+            const errorMsg =
+              result1.stderr?.toString() ||
+              result1.stdout?.toString() ||
+              "Unknown error";
+            throw new Error(
+              `Windows copy command failed for bun.exe: ${errorMsg}`,
+            );
           }
           if (result2.status !== 0) {
-            const errorMsg = result2.stderr?.toString() || result2.stdout?.toString() || "Unknown error";
-            throw new Error(`Windows copy command failed for bunx.exe: ${errorMsg}`);
+            const errorMsg =
+              result2.stderr?.toString() ||
+              result2.stdout?.toString() ||
+              "Unknown error";
+            throw new Error(
+              `Windows copy command failed for bunx.exe: ${errorMsg}`,
+            );
           }
-          
+
           // Verify files were created
           if (!existsSync(bunLink) || !existsSync(bunxLink)) {
             throw new Error("Files were not created after copy command");
