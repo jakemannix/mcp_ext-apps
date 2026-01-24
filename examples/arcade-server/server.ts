@@ -40,7 +40,8 @@ function validateGameId(gameId: string): boolean {
     !gameId.includes("/") &&
     !gameId.includes("?") &&
     !gameId.includes("#") &&
-    !gameId.includes("..")
+    !gameId.includes("..") &&
+    !/\s/.test(gameId)
   );
 }
 
