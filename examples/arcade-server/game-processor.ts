@@ -111,6 +111,11 @@ async function rewriteEmulationScript(
   html: string,
   serverPort: number,
 ): Promise<string> {
+  // NOTE: We intentionally match only the first <script> tag whose src contains
+  // "emulation.min.js". Archive.org embeds are expected to include a single
+  // relevant emulation script, so rewriting the first match is sufficient.
+  // If Archive.org's HTML structure changes to include multiple such scripts,
+  // this logic may need to be revisited.
   const pattern =
     /<script\s+[^>]*src=["']([^"']*emulation\.min\.js[^"']*)["'][^>]*><\/script>/i;
   const match = html.match(pattern);
