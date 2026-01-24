@@ -49,9 +49,11 @@ async function main() {
       res.setHeader("Cache-Control", "no-cache");
       res.send(html);
     } catch (error) {
-      res.status(500).send(
-        `Failed to load game: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      res
+        .status(500)
+        .send(
+          `Failed to load game: ${error instanceof Error ? error.message : String(error)}`,
+        );
     }
   });
 

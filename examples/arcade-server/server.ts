@@ -26,9 +26,7 @@ const gameHtmlMap = new Map<string, Promise<string>>();
  * Returns the game HTML for the given ID, awaiting processing if in-flight.
  * Used by the /game-html/:gameId HTTP endpoint.
  */
-export async function getGameHtmlForId(
-  gameId: string,
-): Promise<string | null> {
+export async function getGameHtmlForId(gameId: string): Promise<string | null> {
   const promise = gameHtmlMap.get(gameId);
   return promise ? promise : null;
 }
