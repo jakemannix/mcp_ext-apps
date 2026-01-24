@@ -44,14 +44,16 @@ We have [contributed a tentative implementation](https://github.com/MCP-UI-Org/m
 npm install -S @modelcontextprotocol/ext-apps
 ```
 
-### Claude Code Plugin
+### Install Agent Skills
 
-A [Claude Code plugin](https://github.com/modelcontextprotocol/ext-apps/tree/main/plugins/mcp-apps) is available to help create MCP Apps. To install, run these commands inside Claude Code:
+This repository provides two [Agent Skills](https://agentskills.io/) for building MCP Apps. You can install the skills as a Claude Code plugin:
 
 ```
 /plugin marketplace add modelcontextprotocol/ext-apps
 /plugin install mcp-apps@modelcontextprotocol-ext-apps
 ```
+
+Or you can install the skills in your favorite AI coding agent by following the [skills installation guide](./docs/agent-skills.md).
 
 ## Examples
 

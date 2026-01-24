@@ -10,6 +10,7 @@ const config = {
   projectDocuments: [
     "docs/overview.md",
     "docs/quickstart.md",
+    "docs/agent-skills.md",
     "docs/patterns.md",
     "docs/migrate_from_openai_apps.md",
   ],
