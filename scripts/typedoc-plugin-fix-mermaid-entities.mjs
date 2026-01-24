@@ -1,12 +1,15 @@
 /**
- * TypeDoc plugin that properly decodes HTML entities in mermaid code blocks.
+ * TypeDoc plugin that fixes mermaid diagram rendering issues.
  *
- * This runs BEFORE the mermaid plugin and converts HTML entities back to raw
- * characters, allowing mermaid to parse them correctly.
+ * 1. Decodes HTML entities in mermaid code blocks before the mermaid plugin
+ *    processes them. The @boneskull/typedoc-plugin-mermaid converts &lt; to #lt;
+ *    and &gt; to #gt;, but those aren't valid mermaid entities.
  *
- * The @boneskull/typedoc-plugin-mermaid converts &lt; to #lt; and &gt; to #gt;,
- * but those aren't valid mermaid entities (mermaid uses numeric codes like #60;).
- * This plugin sidesteps the issue by decoding entities before mermaid sees them.
+ * 2. Removes dark-theme mermaid divs to fix duplicate marker IDs. The mermaid
+ *    plugin creates both dark and light variants with identical marker IDs
+ *    (e.g., `#arrowhead`), causing the browser to resolve references to the
+ *    wrong SVG. By keeping only light-theme divs, we avoid duplicate IDs.
+ *    CSS filters handle dark mode styling.
  */
 
 import { Renderer } from "typedoc";
@@ -30,6 +33,18 @@ function decodeHtmlEntities(html) {
 }
 
 /**
+ * CSS to invert mermaid diagrams in dark mode.
+ * Since we only render light-theme diagrams, we use CSS filters for dark mode.
+ */
+const darkModeStyles = `
+<style>
+:root[data-theme="dark"] .mermaid-block .mermaid svg {
+  filter: invert(1) hue-rotate(180deg);
+}
+</style>
+`;
+
+/**
  * TypeDoc plugin entry point.
  * @param {import('typedoc').Application} app
  */
@@ -50,5 +65,38 @@ export function load(app) {
       );
     },
     200,
+  );
+
+  // Use low priority (-100) to run after the mermaid plugin injects its content
+  app.renderer.on(
+    Renderer.EVENT_END_PAGE,
+    (page) => {
+      if (!page.contents) return;
+      if (!page.contents.includes('class="mermaid-block"')) return;
+
+      // Remove dark-theme mermaid divs to avoid duplicate marker IDs
+      page.contents = page.contents.replace(
+        /<div class="mermaid dark">[\s\S]*?<\/div>/g,
+        "",
+      );
+
+      // Also remove the CSS that hides light-theme divs by default
+      // The mermaid plugin adds visibility:hidden until JS sets display:block
+      // Since we only have light divs now, make them visible immediately
+      page.contents = page.contents.replace(
+        /<div class="mermaid light">/g,
+        '<div class="mermaid" style="display: block">',
+      );
+
+      // Add dark mode CSS filter before </head>
+      const headEndIndex = page.contents.indexOf("</head>");
+      if (headEndIndex !== -1) {
+        page.contents =
+          page.contents.slice(0, headEndIndex) +
+          darkModeStyles +
+          page.contents.slice(headEndIndex);
+      }
+    },
+    -100,
   );
 }
