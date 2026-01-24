@@ -288,7 +288,7 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
     const { widthKm, heightKm } = getScaleDimensions(extent);
 
     // Update the model's context with the current map location and screenshot.
-    const text = 
+    const text =
       `The map view of ${app.getHostContext()?.toolInfo?.id} is now ${widthKm.toFixed(1)}km wide × ${heightKm.toFixed(1)}km tall, ` +
       `centered on lat. / long. [${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}]`;
 
@@ -300,7 +300,11 @@ function scheduleLocationUpdate(cesiumViewer: any): void {
       try {
         // Scale down to reduce token usage (tokens depend on dimensions)
         const sourceCanvas = cesiumViewer.canvas;
-        const scale = Math.min(1, MAX_MODEL_CONTEXT_UPDATE_IMAGE_DIMENSION / Math.max(sourceCanvas.width, sourceCanvas.height));
+        const scale = Math.min(
+          1,
+          MAX_MODEL_CONTEXT_UPDATE_IMAGE_DIMENSION /
+            Math.max(sourceCanvas.width, sourceCanvas.height),
+        );
         const targetWidth = Math.round(sourceCanvas.width * scale);
         const targetHeight = Math.round(sourceCanvas.height * scale);
 
