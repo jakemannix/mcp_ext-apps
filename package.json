@@ -136,6 +136,7 @@
     "@rollup/rollup-win32-x64-msvc": "^4.53.3"
   },
   "overrides": {
-    "seroval": "^1.4.1"
+    "seroval": "1.4.1",
+    "solid-js": "1.9.10"
   }
 }
