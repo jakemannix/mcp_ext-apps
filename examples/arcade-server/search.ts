@@ -100,7 +100,7 @@ async function performSearch(
   });
 
   // fl[] needs multiple values, URLSearchParams doesn't handle this well
-  const searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(fullQuery)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=description&fl[]=year&fl[]=creator&output=json&rows=${maxResults}`;
+  const searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(fullQuery)}&fl[]=identifier&fl[]=title&fl[]=mediatype&fl[]=description&fl[]=year&fl[]=creator&output=json&rows=${encodeURIComponent(String(maxResults))}`;
 
   const response = await fetch(searchUrl, {
     headers: {
