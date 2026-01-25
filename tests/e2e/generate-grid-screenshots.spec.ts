@@ -28,6 +28,8 @@ const EXTRA_WAIT_MS: Record<string, number> = {
 // Servers to skip (screenshots maintained manually)
 const SKIP_SERVERS = new Set([
   "video-resource", // Uses custom screenshot from PR comment
+  "qr-server", // Uses custom screenshot from PR comment
+  "say-server", // TTS model download from HuggingFace can be slow
 ]);
 
 // Optional: filter to a single example via EXAMPLE env var (folder name)
@@ -103,9 +105,10 @@ async function waitForAppLoad(page: Page) {
 
 /**
  * Load a server by selecting it from dropdown and clicking Call Tool.
+ * Uses ?theme=hide to hide the theme toggle for consistent screenshots.
  */
 async function loadServer(page: Page, serverName: string) {
-  await page.goto("/");
+  await page.goto("/?theme=hide");
   // Wait for servers to connect (select becomes enabled when servers are ready)
   await expect(page.locator("select").first()).toBeEnabled({ timeout: 30000 });
   await page.locator("select").first().selectOption({ label: serverName });

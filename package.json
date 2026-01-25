@@ -136,5 +136,10 @@
     "@rollup/rollup-linux-x64-gnu": "^4.53.3",
     "@rollup/rollup-win32-arm64-msvc": "^4.53.3",
     "@rollup/rollup-win32-x64-msvc": "^4.53.3"
+  },
+  "overrides": {
+    "seroval": "1.4.1",
+    "seroval-plugins": "1.4.2",
+    "solid-js": "1.9.10"
   }
 }

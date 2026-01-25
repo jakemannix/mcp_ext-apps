@@ -55,13 +55,14 @@ interface HostProps {
 type ToolCallEntry = ToolCallInfo & { id: number };
 let nextToolCallId = 0;
 
-// Parse URL query params for debugging: ?server=name&tool=name&call=true
+// Parse URL query params for debugging: ?server=name&tool=name&call=true&theme=hide
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
   return {
     server: params.get("server"),
     tool: params.get("tool"),
     call: params.get("call") === "true",
+    hideThemeToggle: params.get("theme") === "hide",
   };
 }
 
@@ -107,7 +108,7 @@ function Host({ serversPromise }: HostProps) {
 
   return (
     <>
-      <ThemeToggle />
+      {!queryParams.hideThemeToggle && <ThemeToggle />}
       {toolCalls.map((info) => (
         <ToolCallInfoPanel
           key={info.id}

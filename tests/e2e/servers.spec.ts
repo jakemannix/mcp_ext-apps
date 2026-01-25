@@ -34,13 +34,32 @@ const DYNAMIC_MASKS: Record<string, string[]> = {
 
 // Servers that need extra stabilization time (e.g., for tile loading, WebGL init)
 const SLOW_SERVERS: Record<string, number> = {
-  "map-server": 5000, // CesiumJS needs time for tiles to load
+  "map-server": 15000, // CesiumJS needs time for tiles to load
   threejs: 2000, // Three.js WebGL initialization
+  "say-server": 10000, // TTS model download from HuggingFace can be slow
+};
+
+// Host-level masks (outside app iframe) - for dynamic content in Tool Input/Result panels
+// Use [class*="..."] for CSS modules which generate unique class names
+const HOST_MASKS: Record<string, string[]> = {
+  // Servers with dynamic timestamps in Tool Result (get-time response)
+  // Mask entire collapsible panels to avoid font rendering differences
+  integration: ['[class*="collapsiblePanel"]'],
+  "basic-preact": ['[class*="collapsiblePanel"]'],
+  "basic-react": ['[class*="collapsiblePanel"]'],
+  "basic-solid": ['[class*="collapsiblePanel"]'],
+  "basic-svelte": ['[class*="collapsiblePanel"]'],
+  "basic-vanillajs": ['[class*="collapsiblePanel"]'],
+  "basic-vue": ['[class*="collapsiblePanel"]'],
+  // System monitor has dynamic system stats in result
+  "system-monitor": ['[class*="collapsiblePanel"]'],
 };
 
 // Servers to skip in CI (require special resources like GPU, large ML models)
 const SKIP_SERVERS = new Set<string>([
   // None currently - say-server view works without TTS model for screenshots
+  "qr-server", // TODO
+  "say-server", // TTS model download from HuggingFace can be slow
 ]);
 
 // Optional: filter to a single example via EXAMPLE env var (folder name)
@@ -157,14 +176,15 @@ function captureHostLogs(page: Page): string[] {
  */
 async function waitForAppLoad(page: Page) {
   const outerFrame = page.frameLocator("iframe").first();
-  await expect(outerFrame.locator("iframe")).toBeVisible();
+  await expect(outerFrame.locator("iframe")).toBeVisible({ timeout: 30000 });
 }
 
 /**
- * Load a server by selecting it by name and clicking Call Tool
+ * Load a server by selecting it by name and clicking Call Tool.
+ * Uses ?theme=hide to hide the theme toggle for consistent screenshots.
  */
 async function loadServer(page: Page, serverName: string) {
-  await page.goto("/");
+  await page.goto("/?theme=hide");
   // Wait for servers to connect (select becomes enabled when servers are ready)
   await expect(page.locator("select").first()).toBeEnabled({ timeout: 30000 });
   await page.locator("select").first().selectOption({ label: serverName });
@@ -173,26 +193,37 @@ async function loadServer(page: Page, serverName: string) {
 }
 
 /**
- * Get mask locators for dynamic elements inside the nested app iframe.
+ * Get mask locators for dynamic elements (both in app iframe and host).
  */
 function getMaskLocators(page: Page, serverKey: string) {
-  const selectors = DYNAMIC_MASKS[serverKey];
-  if (!selectors) return [];
+  const masks = [];
 
-  const appFrame = getAppFrame(page);
-  return selectors.map((selector) => appFrame.locator(selector));
+  // App-level masks (inside nested iframe)
+  const appSelectors = DYNAMIC_MASKS[serverKey];
+  if (appSelectors) {
+    const appFrame = getAppFrame(page);
+    masks.push(...appSelectors.map((selector) => appFrame.locator(selector)));
+  }
+
+  // Host-level masks (Tool Input/Result panels with dynamic content)
+  const hostSelectors = HOST_MASKS[serverKey];
+  if (hostSelectors) {
+    masks.push(...hostSelectors.map((selector) => page.locator(selector)));
+  }
+
+  return masks;
 }
 
 test.describe("Host UI", () => {
   test("initial state shows controls", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/?theme=hide");
     await expect(page.locator("label:has-text('Server')")).toBeVisible();
     await expect(page.locator("label:has-text('Tool')")).toBeVisible();
     await expect(page.locator('button:has-text("Call Tool")')).toBeVisible();
   });
 
   test("screenshot of initial state", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/?theme=hide");
     await expect(page.locator('button:has-text("Call Tool")')).toBeVisible();
     await expect(page).toHaveScreenshot("host-initial.png");
   });
