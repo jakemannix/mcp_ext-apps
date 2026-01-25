@@ -2,13 +2,20 @@
 title: Agent Skills
 ---
 
-# Install the Skills
+# Agent Skills
 
-The MCP Apps repository provides two [Agent Skills](https://agentskills.io/) for AI coding agents: one for scaffolding MCP Apps with interactive UIs, and one for migrating from the OpenAI Apps SDK.
+[Agent Skills](https://agentskills.io/) are instruction sets that guide AI coding agents through tasks. When you invoke a skill, the agent takes the lead — it asks clarifying questions, makes decisions based on your codebase, and executes the work.
+
+This repository provides two skills:
+
+- [**create-mcp-app**](https://github.com/modelcontextprotocol/ext-apps/blob/main/plugins/mcp-apps/skills/create-mcp-app/SKILL.md) — scaffolds a new MCP App with an interactive UI
+- [**migrate-oai-app**](https://github.com/modelcontextprotocol/ext-apps/blob/main/plugins/mcp-apps/skills/migrate-oai-app/SKILL.md) — migrates an existing OpenAI App to the MCP Apps SDK
+
+## Install the Skills
 
 Choose one of the following installation methods based on your agent:
 
-## Option 1: Claude Code Plugin
+### Option 1: Claude Code Plugin
 
 Install via Claude Code:
 
@@ -17,7 +24,7 @@ Install via Claude Code:
 /plugin install mcp-apps@modelcontextprotocol-ext-apps
 ```
 
-## Option 2: Vercel Skills CLI
+### Option 2: Vercel Skills CLI
 
 Use the [Vercel Skills CLI](https://skills.sh/) to install skills across different AI coding agents:
 
@@ -25,7 +32,7 @@ Use the [Vercel Skills CLI](https://skills.sh/) to install skills across differe
 npx skills add modelcontextprotocol/ext-apps
 ```
 
-## Option 3: Manual Installation
+### Option 3: Manual Installation
 
 Clone the repository:
 
@@ -45,9 +52,15 @@ Then copy the skills from `plugins/mcp-apps/skills/` to your agent's skills dire
 
 Ask your agent "What skills do you have?" — you should see `create-mcp-app` and `migrate-oai-app` among the available skills.
 
-## Next Steps
+## Invoke a Skill
 
 Try invoking the skills by asking your agent:
 
 - "Create an MCP App" — scaffolds a new MCP App with an interactive UI
 - "Migrate from OpenAI Apps SDK" — converts an existing OpenAI App to use the MCP Apps SDK
+
+The agent will guide you through the process, asking clarifying questions as needed.
+
+## Test Your App
+
+After creating or migrating your MCP App, see the [Testing MCP Apps](./testing-mcp-apps.md) guide to run and debug it locally.

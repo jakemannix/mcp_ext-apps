@@ -482,6 +482,11 @@ Some OpenAI Apps SDK features don't have MCP equivalents yet. These are marked &
 <td>Not yet implemented</td>
 </tr>
 <tr>
+<td><code>window.openai.setOpenInAppUrl({ href })</code></td>
+<td>—</td>
+<td>Not yet implemented</td>
+</tr>
+<tr>
 <td><code>window.openai.view</code></td>
 <td>—</td>
 <td>Not yet mapped</td>
@@ -499,19 +504,19 @@ Some OpenAI Apps SDK features don't have MCP equivalents yet. These are marked &
 </thead>
 <tbody>
 <tr>
-<td>Read <code>window.openai.*</code> on load</td>
+<td><code>window.openai.toolInput</code> (read on load)</td>
 <td><code>app.ontoolinput = (params) =&gt; {...}</code></td>
-<td>Register before <code>connect()</code></td>
+<td>OpenAI: sync property; MCP: callback (register before <code>connect()</code>)</td>
 </tr>
 <tr>
-<td>Read <code>window.openai.*</code> on load</td>
+<td><code>window.openai.toolOutput</code> (read on load)</td>
 <td><code>app.ontoolresult = (params) =&gt; {...}</code></td>
-<td>Register before <code>connect()</code></td>
+<td>OpenAI: sync property; MCP: callback (register before <code>connect()</code>)</td>
 </tr>
 <tr>
-<td>Poll or re-read properties</td>
+<td><code>addEventListener(&quot;openai:set_globals&quot;, ...)</code></td>
 <td><code>app.onhostcontextchanged = (ctx) =&gt; {...}</code></td>
-<td>MCP pushes context changes</td>
+<td>Both push updates; MCP uses callback, OpenAI uses DOM event</td>
 </tr>
 <tr>
 <td>—</td>
