@@ -6,12 +6,12 @@ title: Quickstart
 
 This tutorial walks you through building an MCP App—a tool with an interactive **View** (a UI that renders inside an iframe) that displays in MCP hosts like Claude Desktop.
 
+> [!TIP]
+> Feel like vibe coding instead? Try the [MCP Apps agent skills](./agent-skills.md).
+
 ## What You'll Build
 
-A simple app that fetches the current server time and displays it in an interactive View. You'll learn the core pattern: **MCP Apps = Tool + UI Resource**.
-
-> [!NOTE]
-> The complete example is available at [`examples/quickstart`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/quickstart).
+A simple app that fetches the current server time and displays it in an interactive View. You'll learn the core pattern: **MCP Apps = Tool + UI Resource**. The complete example is available in [`examples/quickstart`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/quickstart).
 
 ## Prerequisites
 
