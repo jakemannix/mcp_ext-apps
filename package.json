@@ -41,7 +41,8 @@
     "dist"
   ],
   "workspaces": [
-    "examples/*"
+    "examples/*",
+    "packages/*"
   ],
   "scripts": {
     "postinstall": "node scripts/setup-bun.mjs || echo 'setup-bun.mjs failed or not available'",

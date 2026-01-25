@@ -1,0 +1,57 @@
+.main {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+
+  width: 100%;
+  max-width: 425px;
+  box-sizing: border-box;
+  padding: 1rem;
+
+  > * {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  > * + * {
+    margin-top: 1.5rem;
+  }
+}
+
+.action {
+  > * {
+    margin-top: 0;
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+  > * + * {
+    margin-top: 0.5rem;
+  }
+
+  > p {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+
+  textarea,
+  input {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    background-color: var(--color-primary);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--color-primary-hover);
+    }
+  }
+}
