@@ -11,6 +11,7 @@ const config = {
     "docs/overview.md",
     "docs/quickstart.md",
     "docs/agent-skills.md",
+    "docs/testing-mcp-apps.md",
     "docs/patterns.md",
     "docs/migrate_from_openai_apps.md",
   ],
