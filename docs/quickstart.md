@@ -21,6 +21,9 @@ We'll use the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/types
 
 You'll also need Node.js 18+.
 
+> [!TIP]
+> **Want to skip the setup?** Run `npm create @modelcontextprotocol/mcp-app my-app` to scaffold this project automatically, then skip to [Section 3: Build the View](#3-build-the-view).
+
 ## 1. Set up the project
 
 We'll set up a minimal TypeScript project with Vite for bundling.

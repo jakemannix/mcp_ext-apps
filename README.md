@@ -38,6 +38,18 @@ There's no _supported_ host implementation in this repo (beyond the [examples/ba
 
 We have [contributed a tentative implementation](https://github.com/MCP-UI-Org/mcp-ui/pull/147) of hosting / iframing / sandboxing logic to the [MCP-UI](https://github.com/idosal/mcp-ui) repository, and expect OSS clients may use it, while other clients might roll their own hosting logic.
 
+## Quick Start
+
+Create a new MCP App project in seconds:
+
+```bash
+npm create @modelcontextprotocol/mcp-app my-app
+cd my-app
+npm run dev
+```
+
+Choose from React or Vanilla JS templates. See the [create-mcp-app README](packages/create-mcp-app/README.md) for all options.
+
 ## Installation
 
 ```bash
