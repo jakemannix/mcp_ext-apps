@@ -291,16 +291,17 @@ Client-side migration involves replacing the implicit `window.openai` global wit
 | ------------------------------------------- | -------- | ------------------- |
 | `await window.openai.requestModal(options)` | —        | Not yet implemented |
 | `window.openai.requestClose()`              | —        | Not yet implemented |
+| `window.openai.setOpenInAppUrl({ href })`   | —        | Not yet implemented |
 | `window.openai.view`                        | —        | Not yet mapped      |
 
 ### Event Handling
 
-| OpenAI                         | MCP Apps                                    | Notes                            |
-| ------------------------------ | ------------------------------------------- | -------------------------------- |
-| Read `window.openai.*` on load | `app.ontoolinput = (params) => {...}`       | Register before `connect()`      |
-| Read `window.openai.*` on load | `app.ontoolresult = (params) => {...}`      | Register before `connect()`      |
-| Poll or re-read properties     | `app.onhostcontextchanged = (ctx) => {...}` | MCP pushes context changes       |
-| —                              | `app.onteardown = async () => {...}`        | MCP adds: cleanup before unmount |
+| OpenAI                                        | MCP Apps                                    | Notes                                                              |
+| --------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| `window.openai.toolInput` (read on load)      | `app.ontoolinput = (params) => {...}`       | OpenAI: sync property; MCP: callback (register before `connect()`) |
+| `window.openai.toolOutput` (read on load)     | `app.ontoolresult = (params) => {...}`      | OpenAI: sync property; MCP: callback (register before `connect()`) |
+| `addEventListener("openai:set_globals", ...)` | `app.onhostcontextchanged = (ctx) => {...}` | Both push updates; MCP uses callback, OpenAI uses DOM event        |
+| —                                             | `app.onteardown = async () => {...}`        | MCP adds: cleanup before unmount                                   |
 
 ### Logging
 
