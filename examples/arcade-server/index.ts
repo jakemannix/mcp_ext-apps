@@ -16,7 +16,7 @@ import {
   processGameEmbed,
 } from "./game-processor.js";
 
-const DEFAULT_PORT = 3002;
+const DEFAULT_PORT = 3001;
 
 async function main() {
   const port = parseInt(process.env.PORT ?? String(DEFAULT_PORT), 10);
@@ -91,6 +91,8 @@ async function main() {
   const shutdown = () => {
     console.log("\nShutting down...");
     httpServer.close(() => process.exit(0));
+    // Force exit after 2 seconds if connections don't close gracefully
+    setTimeout(() => process.exit(0), 2000).unref();
   };
 
   process.on("SIGINT", shutdown);

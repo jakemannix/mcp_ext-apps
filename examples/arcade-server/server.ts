@@ -5,12 +5,12 @@
  * Fetches game HTML server-side and serves it as an inline MCP App resource.
  */
 
-import { RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+import {
+  RESOURCE_MIME_TYPE,
+  registerAppResource,
+} from "@modelcontextprotocol/ext-apps/server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type {
-  CallToolResult,
-  ReadResourceResult,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { searchArchiveOrgGames } from "./search.js";
 
@@ -160,30 +160,12 @@ export function createServer(port: number): McpServer {
   );
 
   // Resource: Serves the processed game HTML with CSP configuration
-  server.registerResource(
+  registerAppResource(
+    server,
+    "Game Viewer",
     GAME_VIEWER_RESOURCE_URI,
-    GAME_VIEWER_RESOURCE_URI,
-    {
-      mimeType: RESOURCE_MIME_TYPE,
-      _meta: {
-        ui: {
-          csp: {
-            resourceDomains: [
-              "https://archive.org",
-              "https://*.archive.org",
-              `http://localhost:${port}`,
-            ],
-            connectDomains: [
-              "https://archive.org",
-              "https://*.archive.org",
-              `http://localhost:${port}`,
-            ],
-            baseUriDomains: ["https://archive.org"],
-          },
-        },
-      },
-    },
-    async (): Promise<ReadResourceResult> => {
+    {},
+    async () => {
       // Static view shell with inline MCP Apps protocol handling.
       // Performs the initialization handshake, then waits for tool input
       // to know which game to load. Fetches game HTML from the server's
@@ -257,6 +239,23 @@ export function createServer(port: number): McpServer {
             uri: GAME_VIEWER_RESOURCE_URI,
             mimeType: RESOURCE_MIME_TYPE,
             text: html,
+            _meta: {
+              ui: {
+                csp: {
+                  resourceDomains: [
+                    "https://archive.org",
+                    "https://*.archive.org",
+                    `http://localhost:${port}`,
+                  ],
+                  connectDomains: [
+                    "https://archive.org",
+                    "https://*.archive.org",
+                    `http://localhost:${port}`,
+                  ],
+                  baseUriDomains: ["https://archive.org"],
+                },
+              },
+            },
           },
         ],
       };
