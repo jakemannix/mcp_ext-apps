@@ -53,7 +53,7 @@ This repository provides two [Agent Skills](https://agentskills.io/) for buildin
 /plugin install mcp-apps@modelcontextprotocol-ext-apps
 ```
 
-Or you can install the skills in your favorite AI coding agent by following the [skills installation guide](./docs/agent-skills.md).
+For more information, including instructions for installing the skills in your favorite AI coding agent, see the [agent skills guide](./docs/agent-skills.md).
 
 ## Examples
 
