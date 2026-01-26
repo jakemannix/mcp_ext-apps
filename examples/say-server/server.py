@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "mcp @ git+https://github.com/modelcontextprotocol/python-sdk@main",
+#     "mcp>=1.26.0",
 #     "uvicorn>=0.34.0",
 #     "starlette>=0.46.0",
 #     "pocket-tts>=1.0.1",
