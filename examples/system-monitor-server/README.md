@@ -31,6 +31,21 @@ Add to your MCP client configuration (stdio transport):
 }
 ```
 
+### Local Development
+
+To test local modifications, use this configuration (replace `~/code/ext-apps` with your clone path):
+
+```json
+{
+  "mcpServers": {
+    "system-monitor": {
+      "command": "bash",
+      "args": ["-c", "cd ~/code/ext-apps/examples/system-monitor-server && npm run build >&2 && node dist/index.js --stdio"]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Per-Core CPU Monitoring**: Stacked area chart showing individual CPU core utilization over a 1-minute sliding window

@@ -31,6 +31,21 @@ Add to your MCP client configuration (stdio transport):
 }
 ```
 
+### Local Development
+
+To test local modifications, use this configuration (replace `~/code/ext-apps` with your clone path):
+
+```json
+{
+  "mcpServers": {
+    "shadertoy": {
+      "command": "bash",
+      "args": ["-c", "cd ~/code/ext-apps/examples/shadertoy-server && npm run build >&2 && node dist/index.js --stdio"]
+    }
+  }
+}
+```
+
 ## Features
 
 - **Real-time Rendering**: Renders GLSL shaders using WebGL 2.0

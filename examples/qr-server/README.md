@@ -12,7 +12,7 @@ First, clone the repository:
 git clone https://github.com/modelcontextprotocol/ext-apps.git
 ```
 
-Then add to your MCP client configuration (stdio transport), replacing the path with your clone location:
+Then add to your MCP client configuration (stdio transport), replacing `~/code/ext-apps` with your clone path:
 
 ```json
 {
@@ -21,7 +21,7 @@ Then add to your MCP client configuration (stdio transport), replacing the path 
       "command": "uv",
       "args": [
         "run",
-        "/path/to/ext-apps/examples/qr-server/server.py",
+        "~/code/ext-apps/examples/qr-server/server.py",
         "--stdio"
       ]
     }

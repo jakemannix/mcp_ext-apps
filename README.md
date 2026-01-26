@@ -326,6 +326,36 @@ To use these examples with MCP clients that support the stdio transport (such as
 > [!NOTE]
 > The `qr` server requires cloning the repository first. See [qr-server README](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/qr-server) for details.
 
+#### Local Development
+
+To test local modifications with MCP clients, first clone and install the repository:
+
+```bash
+git clone https://github.com/modelcontextprotocol/ext-apps.git
+cd ext-apps
+npm install
+```
+
+Then configure your MCP client to build and run the local server. Replace `~/code/ext-apps` with your actual clone path:
+
+<details>
+<summary>MCP client configuration for local development</summary>
+
+```json
+{
+  "mcpServers": {
+    "basic-react": {
+      "command": "bash",
+      "args": ["-c", "cd ~/code/ext-apps/examples/basic-server-react && npm run build >&2 && node dist/index.js --stdio"]
+    }
+  }
+}
+```
+
+</details>
+
+This configuration rebuilds the server on each launch, ensuring your local changes are picked up. For Python examples like `qr-server`, use `uv run server.py --stdio` instead.
+
 ## Resources
 
 - [Quickstart Guide](https://modelcontextprotocol.github.io/ext-apps/api/documents/Quickstart.html)
