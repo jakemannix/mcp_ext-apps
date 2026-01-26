@@ -6,29 +6,33 @@ This repo contains the SDK and [specification](https://github.com/modelcontextpr
 
 MCP Apps are a proposed standard inspired by [MCP-UI](https://mcpui.dev/) and [OpenAI's Apps SDK](https://developers.openai.com/apps-sdk/) to allow MCP Servers to display interactive UI elements in conversational MCP clients / chatbots.
 
+## Why MCP Apps?
+
+MCP tools return text and structured data. That works for many cases, but not when you need an interactive UI, like a chart, form, or video player.
+
+MCP Apps provide a standardized way to deliver interactive UIs from MCP servers. Your UI renders inline in the conversation, in context, in any compliant host.
+
 ## How It Works
 
-MCP Apps extend the Model Context Protocol to let servers deliver **interactive UIs** to MCP hosts. Here's how it works:
+MCP Apps extend the Model Context Protocol by letting tools declare UI resources:
 
-1. **Tool call** — The LLM calls a tool on your server
-2. **UI Resource** — The tool's definition links to a predeclared `ui://` resource containing its HTML interface
+1. **Tool definition** — Your tool declares a `ui://` resource containing its HTML interface
+2. **Tool call** — The LLM calls the tool on your server
 3. **Host renders** — The host fetches the resource and displays it in a sandboxed iframe
 4. **Bidirectional communication** — The host passes tool data to the UI via notifications, and the UI can call other tools through the host
 
-This enables dashboards, forms, visualizations, and other rich experiences inside chat interfaces.
-
-## Overview
+## Using the SDK
 
 This SDK serves two audiences:
 
-### App Developers
+### For App Developers
 
 Build interactive UIs that run inside MCP-enabled chat clients.
 
 - **SDK for Apps**: `@modelcontextprotocol/ext-apps` — [API Docs](https://modelcontextprotocol.github.io/ext-apps/api/modules/app.html)
 - **React hooks**: `@modelcontextprotocol/ext-apps/react` — [API Docs](https://modelcontextprotocol.github.io/ext-apps/api/modules/_modelcontextprotocol_ext-apps_react.html)
 
-### Host Developers
+### For Host Developers
 
 Embed and communicate with MCP Apps in your chat application.
 
@@ -44,16 +48,20 @@ We have [contributed a tentative implementation](https://github.com/MCP-UI-Org/m
 npm install -S @modelcontextprotocol/ext-apps
 ```
 
-### Claude Code Plugin
+### Install Agent Skills
 
-A [Claude Code plugin](https://github.com/modelcontextprotocol/ext-apps/tree/main/plugins/mcp-apps) is available to help create MCP Apps. To install, run these commands inside Claude Code:
+This repository provides two [Agent Skills](https://agentskills.io/) for building MCP Apps. You can install the skills as a Claude Code plugin:
 
 ```
 /plugin marketplace add modelcontextprotocol/ext-apps
 /plugin install mcp-apps@modelcontextprotocol-ext-apps
 ```
 
+For more information, including instructions for installing the skills in your favorite AI coding agent, see the [agent skills guide](./docs/agent-skills.md).
+
 ## Examples
+
+The [`examples/`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples) directory contains demo apps showcasing real-world use cases.
 
 <!-- prettier-ignore-start -->
 | | | |
@@ -76,12 +84,27 @@ A [Claude Code plugin](https://github.com/modelcontextprotocol/ext-apps/tree/mai
 | [![Basic](examples/basic-server-react/grid-cell.png "Starter template")](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-react) | The same app built with different frameworks — pick your favorite!<br><br>[React](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-react) · [Vue](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vue) · [Svelte](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-svelte) · [Preact](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-preact) · [Solid](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-solid) · [Vanilla JS](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-server-vanillajs) |
 <!-- prettier-ignore-end -->
 
-The [`examples/`](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples) directory contains additional demo apps showcasing real-world use cases.
+### Running the Examples
+
+#### With basic-host
+
+To run all examples locally using [basic-host](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/basic-host) (the reference host implementation included in this repo):
+
+```bash
+git clone https://github.com/modelcontextprotocol/ext-apps.git
+cd ext-apps
+npm install
+npm start
+```
+
+Then open http://localhost:8080/.
+
+#### With MCP Clients
+
+To use these examples with MCP clients that support the stdio transport (such as Claude Desktop or VS Code), add this MCP server configuration to your client's settings:
 
 <details>
-<summary>MCP client configuration for all examples</summary>
-
-Add to your MCP client configuration (stdio transport):
+<summary>MCP client configuration for all examples (using stdio)</summary>
 
 ```json
 {
@@ -298,18 +321,10 @@ Add to your MCP client configuration (stdio transport):
 }
 ```
 
-> **Note:** The `qr` server requires cloning the repository first. See [qr-server README](examples/qr-server) for details.
-
 </details>
 
-To run all examples locally in dev mode:
-
-```bash
-npm install
-npm start
-```
-
-Then open http://localhost:8080/.
+> [!NOTE]
+> The `qr` server requires cloning the repository first. See [qr-server README](https://github.com/modelcontextprotocol/ext-apps/tree/main/examples/qr-server) for details.
 
 ## Resources
 

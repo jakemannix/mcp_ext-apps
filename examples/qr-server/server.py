@@ -25,7 +25,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 VIEW_URI = "ui://qr-server/view.html"
 HOST = os.environ.get("HOST", "0.0.0.0")  # 0.0.0.0 for Docker compatibility
-PORT = int(os.environ.get("PORT", "3108"))
+PORT = int(os.environ.get("PORT", "3001"))
 
 mcp = FastMCP("QR Code Server")
 

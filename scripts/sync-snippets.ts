@@ -1,17 +1,29 @@
 /**
  * Code Snippet Sync Script
  *
- * This script syncs code snippets from `.examples.ts/.examples.tsx` files
- * into JSDoc comments containing labeled code fences.
+ * This script syncs code snippets into JSDoc comments and markdown files
+ * containing labeled code fences.
  *
- * The script replaces the content inside code fences that have a path#region
- * reference in their info string.
+ * ## Supported Source Files
+ *
+ * - **Full-file inclusion**: Any file type (e.g., `.json`, `.yaml`, `.sh`, `.ts`)
+ * - **Region extraction**: Only `.ts` and `.tsx` files (using `//#region` markers)
  *
  * ## Code Fence Format
  *
+ * Full-file inclusion (any file type):
+ *
+ * ``````typescript
+ * ```json source="./config.json"
+ * // entire file content is synced here
+ * ```
+ * ``````
+ *
+ * Region extraction (.ts/.tsx only):
+ *
  * ``````typescript
  * ```ts source="./path.examples.ts#regionName"
- * // code is synced here
+ * // region content is synced here
  * ```
  * ``````
  *
@@ -55,10 +67,10 @@ interface LabeledCodeFence {
   displayName?: string;
   /** Relative path to the example file (e.g., "./app.examples.ts") */
   examplePath: string;
-  /** Region name (e.g., "App_basicUsage") */
-  regionName: string;
-  /** Language from the code fence (ts or tsx) */
-  language: "ts" | "tsx";
+  /** Region name (e.g., "App_basicUsage"), or undefined for whole file */
+  regionName?: string;
+  /** Language from the code fence (e.g., "ts", "json", "yaml") */
+  language: string;
   /** Character index of the opening fence line start */
   openingFenceStart: number;
   /** Character index after the opening fence line (after newline) */
@@ -70,21 +82,11 @@ interface LabeledCodeFence {
 }
 
 /**
- * Represents extracted region content from an example file.
- */
-interface RegionContent {
-  /** The dedented code content */
-  code: string;
-  /** Language for code fence (ts or tsx) */
-  language: "ts" | "tsx";
-}
-
-/**
  * Cache for example file regions to avoid re-reading files.
- * Key: absolute example file path
- * Value: Map<regionName, RegionContent>
+ * Key: `${absoluteExamplePath}#${regionName}` (empty regionName for whole file)
+ * Value: extracted code string
  */
-type RegionCache = Map<string, Map<string, RegionContent>>;
+type RegionCache = Map<string, string>;
 
 /**
  * Processing result for a source file.
@@ -97,18 +99,20 @@ interface FileProcessingResult {
 }
 
 // JSDoc patterns - for code fences inside JSDoc comments with " * " prefix
-// Matches: <prefix>```<lang> [displayName] source="<path>#<region>"
+// Matches: <prefix>```<lang> [displayName] source="<path>" or source="<path>#<region>"
 // Example: " * ```ts my-app.ts source="./app.examples.ts#App_basicUsage""
 // Example: " * ```ts source="./app.examples.ts#App_basicUsage""
+// Example: " * ```ts source="./complete-example.ts"" (whole file)
 const JSDOC_LABELED_FENCE_PATTERN =
-  /^(\s*\*\s*)```(ts|tsx)(?:\s+(\S+))?\s+source="([^"#]+)#([^"]+)"/;
+  /^(\s*\*\s*)```(\w+)(?:\s+(\S+))?\s+source="([^"#]+)(?:#([^"]+))?"/;
 const JSDOC_CLOSING_FENCE_PATTERN = /^(\s*\*\s*)```\s*$/;
 
 // Markdown patterns - for plain code fences in markdown files (no prefix)
-// Matches: ```<lang> [displayName] source="<path>#<region>"
+// Matches: ```<lang> [displayName] source="<path>" or source="<path>#<region>"
 // Example: ```tsx source="./patterns.tsx#chunkedDataServer"
+// Example: ```tsx source="./complete-example.tsx" (whole file)
 const MARKDOWN_LABELED_FENCE_PATTERN =
-  /^```(ts|tsx)(?:\s+(\S+))?\s+source="([^"#]+)#([^"]+)"/;
+  /^```(\w+)(?:\s+(\S+))?\s+source="([^"#]+)(?:#([^"]+))?"/;
 const MARKDOWN_CLOSING_FENCE_PATTERN = /^```\s*$/;
 
 /**
@@ -184,7 +188,7 @@ function findLabeledCodeFences(
         displayName,
         examplePath,
         regionName,
-        language: language as "ts" | "tsx",
+        language,
         openingFenceStart,
         openingFenceEnd,
         closingFenceStart,
@@ -242,6 +246,14 @@ function extractRegion(
   regionName: string,
   examplePath: string,
 ): string {
+  // Region extraction only supported for .ts/.tsx files (uses //#region syntax)
+  if (!examplePath.endsWith(".ts") && !examplePath.endsWith(".tsx")) {
+    throw new Error(
+      `Region extraction (#${regionName}) is only supported for .ts/.tsx files. ` +
+        `Use full-file inclusion (without #regionName) for: ${examplePath}`,
+    );
+  }
+
   const regionStart = `//#region ${regionName}`;
   const regionEnd = `//#endregion ${regionName}`;
 
@@ -281,53 +293,46 @@ function extractRegion(
  * Get or load a region from the cache.
  * @param sourceFilePath The source file requesting the region
  * @param examplePath The relative path to the example file
- * @param regionName The region name to extract
+ * @param regionName The region name to extract, or undefined for whole file
  * @param cache The region cache
- * @returns The region content
+ * @returns The extracted code string
  */
 function getOrLoadRegion(
   sourceFilePath: string,
   examplePath: string,
-  regionName: string,
+  regionName: string | undefined,
   cache: RegionCache,
-): RegionContent {
+): string {
   // Resolve the example path relative to the source file
   const sourceDir = dirname(sourceFilePath);
   const absoluteExamplePath = resolve(sourceDir, examplePath);
 
-  // Check cache first
-  let fileCache = cache.get(absoluteExamplePath);
-  if (fileCache) {
-    const cached = fileCache.get(regionName);
-    if (cached) {
-      return cached;
+  // File content is always cached with key ending in "#" (empty region)
+  const fileKey = `${absoluteExamplePath}#`;
+  let fileContent = cache.get(fileKey);
+
+  if (fileContent === undefined) {
+    try {
+      fileContent = readFileSync(absoluteExamplePath, "utf-8").trim();
+    } catch {
+      throw new Error(`Example file not found: ${absoluteExamplePath}`);
     }
+    cache.set(fileKey, fileContent);
   }
 
-  // Load the example file
-  let exampleContent: string;
-  try {
-    exampleContent = readFileSync(absoluteExamplePath, "utf-8");
-  } catch {
-    throw new Error(`Example file not found: ${absoluteExamplePath}`);
+  // If no region name, return whole file
+  if (!regionName) {
+    return fileContent;
   }
 
-  // Initialize file cache if needed
-  if (!fileCache) {
-    fileCache = new Map();
-    cache.set(absoluteExamplePath, fileCache);
+  // Extract region from cached file content, cache the result
+  const regionKey = `${absoluteExamplePath}#${regionName}`;
+  let regionContent = cache.get(regionKey);
+
+  if (regionContent === undefined) {
+    regionContent = extractRegion(fileContent, regionName, examplePath);
+    cache.set(regionKey, regionContent);
   }
-
-  // Determine language from file extension
-  const language: "ts" | "tsx" = absoluteExamplePath.endsWith(".tsx")
-    ? "tsx"
-    : "ts";
-
-  // Extract the region
-  const code = extractRegion(exampleContent, regionName, examplePath);
-
-  const regionContent: RegionContent = { code, language };
-  fileCache.set(regionName, regionContent);
 
   return regionContent;
 }
@@ -393,17 +398,14 @@ function processFile(
     const fence = fences[i];
 
     try {
-      const regionContent = getOrLoadRegion(
+      const code = getOrLoadRegion(
         filePath,
         fence.examplePath,
         fence.regionName,
         cache,
       );
 
-      const formattedCode = formatCodeLines(
-        regionContent.code,
-        fence.linePrefix,
-      );
+      const formattedCode = formatCodeLines(code, fence.linePrefix);
 
       // Replace content between opening fence end and closing fence start
       content =
