@@ -310,7 +310,7 @@ To use these examples with MCP clients that support the stdio transport (such as
       "command": "uv",
       "args": [
         "run",
-        "/path/to/ext-apps/examples/qr-server/server.py",
+        "https://raw.githubusercontent.com/modelcontextprotocol/ext-apps/refs/heads/main/examples/qr-server/server.py",
         "--stdio"
       ]
     },
