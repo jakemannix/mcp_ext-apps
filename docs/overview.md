@@ -25,7 +25,7 @@ MCP Apps is designed for graceful degradation. Hosts advertise their UI support 
 
 This is fundamental: UI is a progressive enhancement, not a requirement. Your server works everywhere; hosts that support UI get a richer experience.
 
-See the [Client<>Server Capability Negotiation](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#clientserver-capability-negotiation) section of the specification.
+See the [Client<>Server Capability Negotiation](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#clientserver-capability-negotiation) section of the specification.
 
 ## Architecture
 
@@ -96,7 +96,7 @@ sequenceDiagram
 4. **Interactive phase** — The user interacts with the View. The View can call tools, send messages, or update context.
 5. **Teardown** — Before unmounting, the Host notifies the View so it can save state or release resources.
 
-See the [Lifecycle](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#lifecycle) section of the specification for the complete sequence diagrams.
+See the [Lifecycle](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#lifecycle) section of the specification for the complete sequence diagrams.
 
 ## UI Resources
 
@@ -108,7 +108,7 @@ Resources are declared upfront, during tool registration. This design enables:
 - **Separation of concerns** — Templates (presentation) are separate from tool results (data)
 - **Review** — Hosts can inspect UI templates during connection setup
 
-See the [UI Resource Format](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#ui-resource-format) section of the specification for the full schema.
+See the [UI Resource Format](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#ui-resource-format) section of the specification for the full schema.
 
 ## Tool-UI Linkage
 
@@ -126,7 +126,7 @@ When this tool is called, the Host:
 2. Renders it in a sandboxed iframe
 3. Passes the tool arguments and results to the View
 
-See the [Resource Discovery](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#resource-discovery) section of the specification for details.
+See the [Resource Discovery](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#resource-discovery) section of the specification for details.
 
 ## Bidirectional Communication
 
@@ -146,7 +146,7 @@ Views communicate with Hosts using JSON-RPC over [`postMessage`](https://develop
 
 - Open external links (`ui/open-link`)
 
-See the {@link app!App} class for the View-side API and the [Communication Protocol](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#communication-protocol) section of the specification.
+See the {@link app!App} class for the View-side API and the [Communication Protocol](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#communication-protocol) section of the specification.
 
 ## Tool Visibility
 
@@ -168,7 +168,7 @@ Views use this context to adapt their presentation. For example, a chart might u
 
 The Host notifies Views when context changes (e.g., the user toggles dark mode), allowing dynamic updates without reloading.
 
-See the [Host Context](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#host-context-in-mcpuiinitializeresult) section of the specification for the full schema.
+See the [Host Context](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#host-context-in-mcpuiinitializeresult) section of the specification for the full schema.
 
 ## Theming
 
@@ -183,7 +183,7 @@ Hosts provide CSS custom properties for colors, typography, and borders. Views u
 
 Theme changes (light/dark toggle) are sent via notifications, allowing Views to update dynamically.
 
-See the [Theming](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#theming) section of the specification for the full list of CSS variables.
+See the [Theming](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#theming) section of the specification for the full list of CSS variables.
 
 ## Display Modes
 
@@ -195,7 +195,7 @@ Views can be displayed in different modes:
 
 Views declare which modes they support; Hosts declare which they can provide. Views can request mode changes, but the Host decides whether to honor them — the Host always has final say over its own UI.
 
-See the [Display Modes](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#display-modes) section of the specification.
+See the [Display Modes](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#display-modes) section of the specification.
 
 ## Security
 
@@ -203,9 +203,9 @@ All Views run in sandboxed iframes with no access to the Host's DOM, cookies, or
 
 Servers declare which external domains their UI needs via [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) metadata. Hosts enforce these declarations — if no domains are declared, no external connections are allowed. This "restrictive by default" approach prevents data exfiltration to undeclared servers.
 
-See the [Security Implications](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#security-implications) section of the specification for the threat model and mitigations.
+See the [Security Implications](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#security-implications) section of the specification for the threat model and mitigations.
 
 ## Learn More
 
-- [Specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx) — Full protocol specification
+- [Specification](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx) — Full protocol specification
 - [Quickstart](./quickstart.md) — Build your first MCP App

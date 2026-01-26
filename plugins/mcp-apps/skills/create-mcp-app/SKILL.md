@@ -216,7 +216,7 @@ app.onhostcontextchanged = (ctx) => {
 
 For large tool inputs, use `ontoolinputpartial` to show progress during LLM generation. The partial JSON is healed (always valid), enabling progressive UI updates.
 
-**Spec:** [ui/notifications/tool-input-partial](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#streaming-tool-input)
+**Spec:** [ui/notifications/tool-input-partial](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#streaming-tool-input)
 
 ```typescript
 app.ontoolinputpartial = (params) => {

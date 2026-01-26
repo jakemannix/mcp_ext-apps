@@ -178,7 +178,7 @@ export const McpUiMessageResultSchema = z
 /**
  * @description Notification that the sandbox proxy iframe is ready to receive content.
  * @internal
- * @see https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#sandbox-proxy
+ * @see https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#sandbox-proxy
  */
 export const McpUiSandboxProxyReadyNotificationSchema = z.object({
   method: z.literal("ui/notifications/sandbox-proxy-ready"),
@@ -608,7 +608,7 @@ export const McpUiMessageRequestSchema = z.object({
 /**
  * @description Notification containing HTML resource for the sandbox proxy to load.
  * @internal
- * @see https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx#sandbox-proxy
+ * @see https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx#sandbox-proxy
  */
 export const McpUiSandboxResourceReadyNotificationSchema = z.object({
   method: z.literal("ui/notifications/sandbox-resource-ready"),

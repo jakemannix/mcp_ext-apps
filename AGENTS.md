@@ -10,7 +10,7 @@ Key abstractions:
 - **Host** - Chat client embedding the iframe, uses `AppBridge` class to proxy MCP requests
 - **Server** - MCP server that registers tools/resources with UI metadata
 
-Specification (draft): `specification/draft/apps.mdx`
+Specification (stable): `specification/2026-01-26/apps.mdx`
 
 ## Commands
 

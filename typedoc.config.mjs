@@ -38,7 +38,7 @@ const config = {
   navigationLinks: {
     GitHub: "https://github.com/modelcontextprotocol/ext-apps",
     Specification:
-      "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/draft/apps.mdx",
+      "https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx",
   },
   out: "docs/api",
   plugin: [
