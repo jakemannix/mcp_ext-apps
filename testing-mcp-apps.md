@@ -61,7 +61,8 @@ To test your App in a real conversational environment, install your MCP server i
 - Claude\.ai
   - [Remote MCP servers (over HTTP)](https://claude.ai/docs/connectors/custom/remote-mcp)
   - [Local MCP servers (over stdio)](https://claude.ai/docs/connectors/custom/desktop-extensions)
-- [VS Code Copilot](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
+- [VS Code (Insiders)](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
+- [Goose](https://block.github.io/goose/docs/getting-started/using-extensions/)
 
 Once your server is configured, ask the agent to perform a task related to your App-enhanced tool. For example, if you have a weather App, ask the agent "Show me the current weather."
 

@@ -44,6 +44,7 @@ Then copy the skills from `plugins/mcp-apps/skills/` to your agent's skills dire
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code/skills)
 - [VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills) / [GitHub Copilot](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
+- [Codex](https://developers.openai.com/codex/skills/)
 - [Gemini CLI](https://geminicli.com/docs/cli/skills/)
 - [Cline](https://docs.cline.bot/features/skills#skills)
 - [Goose](https://block.github.io/goose/docs/guides/context-engineering/using-skills/)
