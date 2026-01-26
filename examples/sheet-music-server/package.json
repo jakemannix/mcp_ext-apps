@@ -22,7 +22,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "*",
+    "@modelcontextprotocol/ext-apps": "^0.4.2",
     "@modelcontextprotocol/sdk": "^1.24.0",
     "abcjs": "^6.4.4",
     "cors": "^2.8.5",
