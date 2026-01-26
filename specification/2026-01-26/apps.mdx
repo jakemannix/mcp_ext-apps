@@ -6,6 +6,8 @@
 
 **Status:** Stable (2026-01-26)
 
+**Protocol Version:** 2026-01-26
+
 **Created:** 2025-11-21
 
 ## Abstract
@@ -459,7 +461,7 @@ function onNotification(method: string, handler: (params: any) => void) {
 const initializeResult = await sendRequest("initialize", {
   capabilities: {},
   clientInfo: {name: "My UI", version: "1.0.0"},
-  protocolVersion: "2025-06-18",
+  protocolVersion: "2026-01-26",
 });
 ```
 
@@ -594,7 +596,7 @@ Example:
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "2025-06-18",
+    "protocolVersion": "2026-01-26",
     "hostCapabilities": { /* ... */ },
     "hostInfo": { "name": "claude-desktop", "version": "1.0.0" },
     "hostContext": {

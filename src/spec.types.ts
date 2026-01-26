@@ -24,7 +24,7 @@ import type {
  * The SDK automatically handles version negotiation during initialization.
  * Apps and hosts don't need to manage protocol versions manually.
  */
-export const LATEST_PROTOCOL_VERSION = "2025-11-21";
+export const LATEST_PROTOCOL_VERSION = "2026-01-26";
 
 /**
  * @description Color theme preference for the host environment.
