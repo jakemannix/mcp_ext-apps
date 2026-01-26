@@ -59,8 +59,8 @@ For additional observability, open your browser's developer console. Basic-host 
 To test your App in a real conversational environment, install your MCP server in a host that supports MCP Apps:
 
 - Claude\.ai
-  - [Remote MCP servers (over HTTP)](https://claude.ai/docs/connectors/custom/remote-mcp)
-  - [Local MCP servers (over stdio)](https://claude.ai/docs/connectors/custom/desktop-extensions)
+  - [Remote MCP servers (over HTTP)](https://claude.com/docs/connectors/custom/remote-mcp)
+  - [Local MCP servers (over stdio)](https://claude.com/docs/connectors/custom/desktop-extensions)
 - [VS Code (Insiders)](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
 - [Goose](https://block.github.io/goose/docs/getting-started/using-extensions/)
 
