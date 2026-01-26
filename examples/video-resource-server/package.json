@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-video-resource",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "type": "module",
   "description": "MCP App Server demonstrating video resources served as base64 blobs",
   "repository": {

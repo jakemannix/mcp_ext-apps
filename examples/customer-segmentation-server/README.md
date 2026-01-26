@@ -40,7 +40,10 @@ To test local modifications, use this configuration (replace `~/code/ext-apps` w
   "mcpServers": {
     "customer-segmentation": {
       "command": "bash",
-      "args": ["-c", "cd ~/code/ext-apps/examples/customer-segmentation-server && npm run build >&2 && node dist/index.js --stdio"]
+      "args": [
+        "-c",
+        "cd ~/code/ext-apps/examples/customer-segmentation-server && npm run build >&2 && node dist/index.js --stdio"
+      ]
     }
   }
 }

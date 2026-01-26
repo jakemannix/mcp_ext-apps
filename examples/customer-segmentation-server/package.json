@@ -1,6 +1,6 @@
 {
   "name": "@modelcontextprotocol/server-customer-segmentation",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "type": "module",
   "description": "Customer segmentation MCP App Server with filtering",
   "repository": {

@@ -34,7 +34,10 @@ To test local modifications, use this configuration (replace `~/code/ext-apps` w
   "mcpServers": {
     "transcript": {
       "command": "bash",
-      "args": ["-c", "cd ~/code/ext-apps/examples/transcript-server && npm run build >&2 && node dist/index.js --stdio"]
+      "args": [
+        "-c",
+        "cd ~/code/ext-apps/examples/transcript-server && npm run build >&2 && node dist/index.js --stdio"
+      ]
     }
   }
 }

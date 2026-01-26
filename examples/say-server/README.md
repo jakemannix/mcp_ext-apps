@@ -34,7 +34,10 @@ To test local modifications, use this configuration (replace `~/code/ext-apps` w
   "mcpServers": {
     "say": {
       "command": "bash",
-      "args": ["-c", "uv run --index https://pypi.org/simple ~/code/ext-apps/examples/say-server/server.py --stdio"]
+      "args": [
+        "-c",
+        "uv run --index https://pypi.org/simple ~/code/ext-apps/examples/say-server/server.py --stdio"
+      ]
     }
   }
 }

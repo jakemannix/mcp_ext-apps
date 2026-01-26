@@ -40,7 +40,10 @@ To test local modifications, use this configuration (replace `~/code/ext-apps` w
   "mcpServers": {
     "cohort-heatmap": {
       "command": "bash",
-      "args": ["-c", "cd ~/code/ext-apps/examples/cohort-heatmap-server && npm run build >&2 && node dist/index.js --stdio"]
+      "args": [
+        "-c",
+        "cd ~/code/ext-apps/examples/cohort-heatmap-server && npm run build >&2 && node dist/index.js --stdio"
+      ]
     }
   }
 }
