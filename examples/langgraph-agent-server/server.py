@@ -355,13 +355,10 @@ The agent workflow executed 4 steps:
 
 {final_state["conclusion"]}"""
 
-    return [
-        types.TextContent(
-            type="text",
-            text=text_summary,
-            _meta={"structuredContent": graph.to_dict()},
-        )
-    ]
+    return types.CallToolResult(
+        content=[types.TextContent(type="text", text=text_summary)],
+        structuredContent=graph.to_dict(),
+    )
 
 
 @mcp.tool(meta={"ui": {"visibility": ["app"]}})
@@ -828,10 +825,8 @@ EMBEDDED_VIEW_HTML = """<!DOCTYPE html>
     app.ontoolresult = (result) => {
       console.log('Tool result received:', result);
 
-      // Extract structured content from the result
-      const textContent = result.content?.find(c => c.type === 'text');
-      if (textContent?._meta?.structuredContent) {
-        graphData = textContent._meta.structuredContent;
+      if (result.structuredContent) {
+        graphData = result.structuredContent;
         renderUI(graphData);
       }
     };
