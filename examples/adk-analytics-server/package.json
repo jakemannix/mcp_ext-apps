@@ -10,10 +10,10 @@
   },
   "license": "MIT",
   "scripts": {
-    "start": "uv run server.py",
-    "dev": "uv run server.py",
+    "start": "uv run python -m adk_analytics_server",
+    "dev": "uv run python -m adk_analytics_server",
     "build": "echo 'No build step needed for Python server'",
-    "start:stdio": "uv run server.py --stdio"
+    "start:stdio": "uv run python -m adk_analytics_server --stdio"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.0"

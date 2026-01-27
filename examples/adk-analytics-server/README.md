@@ -1,14 +1,15 @@
 # ADK Financial Analytics Dashboard
 
-An MCP Apps demo showcasing **Google ADK** (Agent Development Kit) integration with interactive financial data visualization.
+An MCP Apps demo showcasing **Google ADK** (Agent Development Kit) integration with interactive financial data visualization and real market data from **Tiingo**.
 
 ## Overview
 
 This demo demonstrates how to build an MCP server that:
 
 1. Uses **Google ADK** patterns for AI-powered analysis
-2. Provides **rich financial dashboards** through MCP Apps extension
-3. Visualizes market data with **interactive D3.js charts**
+2. Fetches **real market data** from Tiingo API
+3. Provides **rich financial dashboards** through MCP Apps extension
+4. Visualizes market data with **interactive D3.js charts**
 
 ## Screenshot
 
@@ -34,52 +35,48 @@ The dashboard features:
 │          │ iframe                     │  │   Analysis     │  │    │
 │          ▼                            │  │   Engine       │  │    │
 │   ┌──────────────┐    postMessage     │  │                │  │    │
-│   │  Dashboard   │◄──────────────────►│  │  • Technical   │  │    │
-│   │  (D3.js)     │                    │  │  • AI Insights │  │    │
-│   │              │                    │  │  • Portfolio   │  │    │
+│   │  Dashboard   │◄──────────────────►│  │  • Tiingo API  │  │    │
+│   │  (D3.js)     │                    │  │  • Technical   │  │    │
+│   │              │                    │  │  • AI Insights │  │    │
 │   └──────────────┘                    │  └────────────────┘  │    │
 │                                       └──────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Features
+## Setup
 
-### Financial Analysis
+### 1. Get a Tiingo API Key
 
-- **Portfolio Analysis**: Analyze multiple stocks simultaneously
-- **Technical Indicators**: RSI, MACD, Bollinger Bands, Moving Averages
-- **AI Insights**: Intelligent trading signals and recommendations
-- **Historical Data**: 60+ days of OHLCV data
+Sign up for a free API key at [tiingo.com](https://www.tiingo.com/). The free tier includes:
+- 500 requests/hour
+- 30+ years of EOD stock data
+- No delay on historical data
 
-### Interactive Visualization
+### 2. Configure Environment
 
-- **Candlestick Charts**: Classic OHLC visualization with D3.js
-- **Volume Analysis**: Volume bars synchronized with price action
-- **Moving Averages**: SMA 20 and SMA 50 overlays
-- **Multi-Stock Tabs**: Switch between analyzed stocks
-- **Tooltips**: Detailed data on hover
+Add your Tiingo token to the repository's `.env` file:
 
-### MCP Apps Integration
+```bash
+TIINGO_API_TOKEN=your_token_here
+```
 
-- `structuredContent` for rich portfolio data
-- UI-only tools for interactive data fetching
-- Proper CSP for D3.js external library
+The package automatically loads `.env` from the repository root.
 
 ## Usage
 
 ### Start the Server
 
 ```bash
-# Using uv (recommended)
-uv run server.py
+# HTTP mode (for basic-host)
+uv run python -m adk_analytics_server
 
-# Or with stdio transport for Claude Desktop
-uv run server.py --stdio
+# STDIO mode (for Claude Desktop)
+uv run python -m adk_analytics_server --stdio
 ```
 
 ### Connect with basic-host
 
-1. Start the server: `uv run server.py`
+1. Start the server: `uv run python -m adk_analytics_server`
 2. Open basic-host at `http://localhost:8080`
 3. Connect to `http://localhost:3003/mcp`
 4. Call the `analyze_portfolio` tool
@@ -96,36 +93,72 @@ uv run server.py --stdio
 }
 ```
 
+## Project Structure
+
+```
+adk-analytics-server/
+├── pyproject.toml              # Package configuration
+├── package.json                # npm workspace config
+├── README.md
+└── adk_analytics_server/       # Python package
+    ├── __init__.py             # Loads .env, exports version
+    ├── __main__.py             # Entry point for python -m
+    ├── data.py                 # Tiingo API + mock data fallback
+    ├── indicators.py           # RSI, MACD, Bollinger, AI insights
+    ├── server.py               # MCP server, tools, resource
+    └── static/
+        └── view.html           # D3.js dashboard
+```
+
 ## Code Walkthrough
 
-### Server Structure (`server.py`)
+### Data Module (`data.py`)
 
 ```python
-# 1. Generate realistic stock data
-def generate_stock_data(symbol: str, days: int = 60) -> list[dict]:
-    # Returns OHLCV data for candlestick charts
+# Fetch real market data from Tiingo
+def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
+    # Returns OHLCV data with adjusted prices
     ...
 
-# 2. Calculate technical indicators
+# Get data with caching (5-minute TTL)
+def get_stock_data(symbol: str, days: int = 60) -> list[dict]:
+    # Tries Tiingo first, falls back to mock data
+    ...
+```
+
+### Indicators Module (`indicators.py`)
+
+```python
+# Calculate technical indicators
 def calculate_technical_indicators(data: list[dict]) -> dict:
     # RSI, MACD, Bollinger Bands, SMAs
     ...
 
-# 3. Generate AI insights using ADK patterns
+# Generate AI-powered insights
 def generate_ai_insights(symbol: str, indicators: dict) -> list[dict]:
     # Trading signals based on technical analysis
     ...
+```
 
-# 4. Register MCP tool with UI metadata
+### Server Module (`server.py`)
+
+```python
+# Register MCP tool with UI metadata
 @mcp.tool(meta={"ui": {"resourceUri": VIEW_URI}})
 def analyze_portfolio(symbols: str, days: int):
     # Analyze portfolio and return structuredContent
     ...
 ```
 
-### View Features (embedded HTML)
+### View (`static/view.html`)
 
 ```javascript
+// Handle MCP tool results
+app.ontoolresult = (result) => {
+  portfolioData = result.structuredContent;
+  renderDashboard(portfolioData);
+};
+
 // Interactive D3.js candlestick chart
 function renderCandlestickChart(data) {
   // Candlestick bodies and wicks
@@ -133,13 +166,30 @@ function renderCandlestickChart(data) {
   // SMA overlays
   // Interactive tooltips
 }
-
-// Handle MCP tool results
-app.ontoolresult = (result) => {
-  portfolioData = result.content[0]._meta.structuredContent;
-  renderDashboard(portfolioData);
-};
 ```
+
+## Features
+
+### Financial Analysis
+
+- **Portfolio Analysis**: Analyze multiple stocks simultaneously
+- **Technical Indicators**: RSI, MACD, Bollinger Bands, Moving Averages
+- **AI Insights**: Intelligent trading signals and recommendations
+- **Real Market Data**: Live data from Tiingo (EOD, no delay)
+
+### Interactive Visualization
+
+- **Candlestick Charts**: Classic OHLC visualization with D3.js
+- **Volume Analysis**: Volume bars synchronized with price action
+- **Moving Averages**: SMA 20 and SMA 50 overlays
+- **Multi-Stock Tabs**: Switch between analyzed stocks
+- **Tooltips**: Detailed data on hover
+
+### MCP Apps Integration
+
+- `structuredContent` for rich portfolio data
+- UI-only tools for interactive data fetching
+- Proper CSP for D3.js external library
 
 ## Technical Indicators Explained
 
@@ -171,18 +221,19 @@ app.ontoolresult = (result) => {
 ## Dependencies
 
 - `mcp>=1.26.0` - MCP SDK
-- `google-genai>=1.0.0` - Google ADK
+- `requests>=2.31.0` - HTTP client for Tiingo API
+- `python-dotenv>=1.0.0` - Environment variable loading
 - `uvicorn>=0.34.0` - ASGI server
 - `starlette>=0.46.0` - CORS middleware
 
 ## Disclaimer
 
-This demo uses **simulated data** for educational purposes only.
-It is not financial advice and should not be used for actual trading decisions.
+This demo is for **educational purposes only**. It is not financial advice and should not be used for actual trading decisions. Market data is provided by Tiingo with a 15-20 minute delay on live quotes (EOD historical data has no delay).
 
 ## Learn More
 
 - [MCP Apps Specification](../../specification/2026-01-26/apps.mdx)
+- [Tiingo API Documentation](https://www.tiingo.com/documentation/general/overview)
 - [Google ADK Documentation](https://ai.google.dev/adk)
 - [D3.js Documentation](https://d3js.org/)
 - [Technical Analysis Guide](https://www.investopedia.com/technical-analysis-4689657)

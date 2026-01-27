@@ -1,0 +1,37 @@
+[project]
+name = "adk-analytics-server"
+version = "1.0.0"
+description = "ADK Financial Analytics Dashboard - MCP Apps demo with interactive financial visualization"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.26.0",
+    "uvicorn>=0.34.0",
+    "starlette>=0.46.0",
+    "google-genai>=1.0.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+adk-analytics-server = "adk_analytics_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["adk_analytics_server"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"
