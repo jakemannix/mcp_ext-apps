@@ -344,13 +344,10 @@ def analyze_portfolio(
     for insight in all_insights[:5]:
         text_summary += f"\n- [{insight['indicator']}] {insight['title']}: {insight['description']}"
 
-    return [
-        types.TextContent(
-            type="text",
-            text=text_summary,
-            _meta={"structuredContent": portfolio_data},
-        )
-    ]
+    return types.CallToolResult(
+        content=[types.TextContent(type="text", text=text_summary)],
+        structuredContent=portfolio_data,
+    )
 
 
 @mcp.tool(meta={"ui": {"visibility": ["app"]}})
@@ -919,9 +916,8 @@ EMBEDDED_VIEW_HTML = """<!DOCTYPE html>
     app.ontoolresult = (result) => {
       console.log('Tool result received:', result);
 
-      const textContent = result.content?.find(c => c.type === 'text');
-      if (textContent?._meta?.structuredContent) {
-        portfolioData = textContent._meta.structuredContent;
+      if (result.structuredContent) {
+        portfolioData = result.structuredContent;
         renderDashboard(portfolioData);
       }
     };
