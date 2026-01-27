@@ -5,6 +5,7 @@ An MCP Apps demo showcasing **Google ADK** (Agent Development Kit) integration w
 ## Overview
 
 This demo demonstrates how to build an MCP server that:
+
 1. Uses **Google ADK** patterns for AI-powered analysis
 2. Provides **rich financial dashboards** through MCP Apps extension
 3. Visualizes market data with **interactive D3.js charts**
@@ -12,6 +13,7 @@ This demo demonstrates how to build an MCP server that:
 ## Screenshot
 
 The dashboard features:
+
 - Interactive candlestick charts with volume
 - Technical indicators (RSI, MACD, SMA)
 - AI-generated trading insights
@@ -43,12 +45,14 @@ The dashboard features:
 ## Features
 
 ### Financial Analysis
+
 - **Portfolio Analysis**: Analyze multiple stocks simultaneously
 - **Technical Indicators**: RSI, MACD, Bollinger Bands, Moving Averages
 - **AI Insights**: Intelligent trading signals and recommendations
 - **Historical Data**: 60+ days of OHLCV data
 
 ### Interactive Visualization
+
 - **Candlestick Charts**: Classic OHLC visualization with D3.js
 - **Volume Analysis**: Volume bars synchronized with price action
 - **Moving Averages**: SMA 20 and SMA 50 overlays
@@ -56,6 +60,7 @@ The dashboard features:
 - **Tooltips**: Detailed data on hover
 
 ### MCP Apps Integration
+
 - `structuredContent` for rich portfolio data
 - UI-only tools for interactive data fetching
 - Proper CSP for D3.js external library
@@ -139,21 +144,25 @@ app.ontoolresult = (result) => {
 ## Technical Indicators Explained
 
 ### RSI (Relative Strength Index)
+
 - **> 70**: Overbought (potential sell signal)
 - **< 30**: Oversold (potential buy signal)
 - **30-70**: Neutral territory
 
 ### MACD (Moving Average Convergence Divergence)
+
 - **Positive histogram**: Bullish momentum
 - **Negative histogram**: Bearish momentum
 - **Signal crossovers**: Trend change indicators
 
 ### Bollinger Bands
+
 - **Above upper band**: Price overextended
 - **Below lower band**: Potential reversal
 - **Band squeeze**: Low volatility, breakout pending
 
 ### Moving Averages
+
 - **SMA 20** (blue): Short-term trend
 - **SMA 50** (yellow): Medium-term trend
 - **Golden Cross**: SMA 20 crosses above SMA 50 (bullish)

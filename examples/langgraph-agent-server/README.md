@@ -5,6 +5,7 @@ An MCP Apps demo showcasing **LangGraph** integration with interactive 3D visual
 ## Overview
 
 This demo demonstrates how to build an MCP server that:
+
 1. Uses **LangGraph** for multi-step agent workflows
 2. Provides **rich UI** through MCP Apps extension
 3. Visualizes agent state in **interactive 3D**
@@ -35,6 +36,7 @@ This demo demonstrates how to build an MCP server that:
 ## Features
 
 ### LangGraph Workflow
+
 The agent implements a 4-step analysis workflow:
 
 1. **Research** - Gathers background information about the topic
@@ -43,6 +45,7 @@ The agent implements a 4-step analysis workflow:
 4. **Conclude** - Generates final recommendations
 
 ### Interactive 3D Visualization
+
 - **Force-directed graph** showing workflow nodes
 - **Real-time status updates** as agent progresses
 - **OrbitControls** for camera manipulation
@@ -50,6 +53,7 @@ The agent implements a 4-step analysis workflow:
 - **Color-coded states**: pending, active, completed
 
 ### MCP Apps Integration
+
 - `structuredContent` for rich data delivery to UI
 - `ui://` resource scheme for HTML templates
 - Proper CSP configuration for Three.js
@@ -120,12 +124,12 @@ def view() -> str:
 
 ```javascript
 // Initialize MCP App connection
-const app = new App({ name: 'LangGraph Visualizer', version: '1.0.0' });
+const app = new App({ name: "LangGraph Visualizer", version: "1.0.0" });
 
 // Handle tool results
 app.ontoolresult = (result) => {
   const data = result.content[0]._meta.structuredContent;
-  updateGraph(data);  // Update Three.js visualization
+  updateGraph(data); // Update Three.js visualization
 };
 
 // Connect to host
@@ -135,6 +139,7 @@ await app.connect();
 ## Key Concepts
 
 ### 1. LangGraph Integration
+
 LangGraph provides a declarative way to define agent workflows:
 
 ```python
@@ -149,6 +154,7 @@ agent = workflow.compile()
 ```
 
 ### 2. structuredContent
+
 The key to rich UI is `structuredContent`:
 
 ```python
@@ -159,13 +165,14 @@ return {
 ```
 
 ### 3. Three.js Visualization
+
 The view uses Three.js for 3D rendering:
 
 ```javascript
 // Create node spheres
 const mesh = new THREE.Mesh(
   new THREE.SphereGeometry(0.3, 32, 32),
-  new THREE.MeshStandardMaterial({ color: statusColors[node.status] })
+  new THREE.MeshStandardMaterial({ color: statusColors[node.status] }),
 );
 ```
 
