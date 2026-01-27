@@ -1,0 +1,29 @@
+{
+  "name": "@modelcontextprotocol/langgraph-agent-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LangGraph Agent Visualizer - MCP Apps demo with 3D workflow visualization",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modelcontextprotocol/ext-apps",
+    "directory": "examples/langgraph-agent-server"
+  },
+  "license": "MIT",
+  "scripts": {
+    "start": "uv run server.py",
+    "dev": "uv run server.py",
+    "build": "echo 'No build step needed for Python server'",
+    "start:stdio": "uv run server.py --stdio"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-apps",
+    "langgraph",
+    "agent",
+    "visualization",
+    "threejs"
+  ]
+}
