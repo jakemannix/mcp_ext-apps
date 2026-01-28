@@ -10,3 +10,8 @@ if _env_path.exists():
     load_dotenv(_env_path)
 
 __version__ = "1.0.0"
+
+# Export exceptions for external use
+from .data import TiingoAPIError, TiingoConfigError
+
+__all__ = ["TiingoAPIError", "TiingoConfigError", "__version__"]

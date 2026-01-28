@@ -1,12 +1,16 @@
-"""Stock data fetching from Tiingo API with fallback to mock data."""
+"""Stock data fetching from Tiingo API."""
 
 from __future__ import annotations
 
 import os
-import random
 from datetime import datetime, timedelta
 
 import requests
+
+from .logging import get_logger, log_data_fetch
+
+# Module logger
+logger = get_logger("data")
 
 # Tiingo API configuration
 TIINGO_API_TOKEN = os.environ.get("TIINGO_API_TOKEN")
@@ -15,6 +19,18 @@ TIINGO_BASE_URL = "https://api.tiingo.com"
 # Simple in-memory cache for stock data (cache_key -> (timestamp, data))
 _stock_cache: dict[str, tuple[float, list[dict]]] = {}
 _CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+class TiingoConfigError(Exception):
+    """Raised when Tiingo API is not configured."""
+
+    pass
+
+
+class TiingoAPIError(Exception):
+    """Raised when Tiingo API request fails."""
+
+    pass
 
 
 def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
@@ -28,11 +44,14 @@ def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
         List of OHLCV dictionaries with date, timestamp, open, high, low, close, volume
 
     Raises:
-        ValueError: If TIINGO_API_TOKEN is not set
-        requests.HTTPError: If API request fails
+        TiingoConfigError: If TIINGO_API_TOKEN is not set
+        TiingoAPIError: If API request fails
     """
     if not TIINGO_API_TOKEN:
-        raise ValueError("TIINGO_API_TOKEN environment variable not set")
+        raise TiingoConfigError(
+            "TIINGO_API_TOKEN environment variable not set. "
+            "Get a free API key at https://www.tiingo.com/ and add it to your .env file."
+        )
 
     # Calculate date range - request extra days to account for weekends/holidays
     end_date = datetime.now()
@@ -48,10 +67,39 @@ def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
         "endDate": end_date.strftime("%Y-%m-%d"),
     }
 
-    response = requests.get(url, headers=headers, params=params, timeout=10)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+    except requests.exceptions.Timeout:
+        raise TiingoAPIError(f"Tiingo API timeout fetching {symbol} - try again later")
+    except requests.exceptions.ConnectionError as e:
+        raise TiingoAPIError(f"Tiingo API connection error: {e}")
+    except requests.exceptions.RequestException as e:
+        raise TiingoAPIError(f"Tiingo API request failed: {e}")
+
+    # Handle HTTP errors with specific messages
+    if response.status_code == 401:
+        raise TiingoAPIError(
+            "Tiingo API authentication failed - check your TIINGO_API_TOKEN is valid"
+        )
+    elif response.status_code == 404:
+        raise TiingoAPIError(
+            f"Symbol '{symbol}' not found on Tiingo - check the ticker symbol is correct"
+        )
+    elif response.status_code == 429:
+        raise TiingoAPIError(
+            "Tiingo API rate limit exceeded - wait a minute and try again"
+        )
+    elif not response.ok:
+        raise TiingoAPIError(
+            f"Tiingo API error {response.status_code}: {response.text[:200]}"
+        )
 
     raw_data = response.json()
+
+    if not raw_data:
+        raise TiingoAPIError(
+            f"No data returned for {symbol} - the symbol may be delisted or invalid"
+        )
 
     # Transform to our format and take only the last N trading days
     data = []
@@ -71,7 +119,7 @@ def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
 
 
 def get_stock_data(symbol: str, days: int = 60) -> list[dict]:
-    """Get stock data with caching. Falls back to mock data if Tiingo unavailable.
+    """Get stock data with caching.
 
     Args:
         symbol: Stock ticker symbol (e.g., "AAPL")
@@ -79,6 +127,10 @@ def get_stock_data(symbol: str, days: int = 60) -> list[dict]:
 
     Returns:
         List of OHLCV dictionaries
+
+    Raises:
+        TiingoConfigError: If TIINGO_API_TOKEN is not set
+        TiingoAPIError: If API request fails
     """
     cache_key = f"{symbol}:{days}"
     now = datetime.now().timestamp()
@@ -87,79 +139,12 @@ def get_stock_data(symbol: str, days: int = 60) -> list[dict]:
     if cache_key in _stock_cache:
         cached_time, cached_data = _stock_cache[cache_key]
         if now - cached_time < _CACHE_TTL_SECONDS:
+            logger.debug(f"Cache hit for {symbol} ({days} days)")
             return cached_data
 
-    # Try Tiingo API
-    if TIINGO_API_TOKEN:
-        try:
-            data = fetch_stock_data_from_tiingo(symbol, days)
-            _stock_cache[cache_key] = (now, data)
-            return data
-        except Exception as e:
-            print(f"Tiingo API error for {symbol}: {e}, falling back to mock data")
-
-    # Fallback to mock data
-    data = generate_mock_stock_data(symbol, days)
-    return data
-
-
-def generate_mock_stock_data(symbol: str, days: int = 60) -> list[dict]:
-    """Generate mock stock price data (fallback when Tiingo unavailable).
-
-    Args:
-        symbol: Stock ticker symbol
-        days: Number of days of data to generate
-
-    Returns:
-        List of OHLCV dictionaries with simulated price data
-    """
-    random.seed(hash(symbol) % 1000)  # Consistent data per symbol
-
-    # Starting price based on symbol
-    base_prices = {
-        "AAPL": 178.0,
-        "GOOGL": 141.0,
-        "MSFT": 378.0,
-        "AMZN": 178.0,
-        "NVDA": 875.0,
-        "TSLA": 248.0,
-        "META": 505.0,
-    }
-    price = base_prices.get(symbol, 100.0)
-
-    data = []
-    volatility = 0.02
-    trend = random.uniform(-0.001, 0.002)
-
-    now = datetime.now()
-
-    for i in range(days):
-        date = now - timedelta(days=days - i - 1)
-
-        # Generate OHLCV data
-        daily_return = random.gauss(trend, volatility)
-        open_price = price
-        close_price = price * (1 + daily_return)
-
-        # High and low within the day
-        intraday_vol = abs(random.gauss(0, volatility * 0.5))
-        high = max(open_price, close_price) * (1 + intraday_vol)
-        low = min(open_price, close_price) * (1 - intraday_vol)
-
-        # Volume (higher on volatile days)
-        base_volume = random.randint(10_000_000, 50_000_000)
-        volume = int(base_volume * (1 + abs(daily_return) * 10))
-
-        data.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "timestamp": int(date.timestamp() * 1000),
-            "open": round(open_price, 2),
-            "high": round(high, 2),
-            "low": round(low, 2),
-            "close": round(close_price, 2),
-            "volume": volume,
-        })
-
-        price = close_price
+    # Fetch from Tiingo (will raise on error)
+    data = fetch_stock_data_from_tiingo(symbol, days)
+    _stock_cache[cache_key] = (now, data)
+    log_data_fetch(logger, symbol, "tiingo", days, success=True)
 
     return data

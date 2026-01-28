@@ -48,6 +48,7 @@ The dashboard features:
 ### 1. Get a Tiingo API Key
 
 Sign up for a free API key at [tiingo.com](https://www.tiingo.com/). The free tier includes:
+
 - 500 requests/hour
 - 30+ years of EOD stock data
 - No delay on historical data
@@ -72,7 +73,31 @@ uv run python -m adk_analytics_server
 
 # STDIO mode (for Claude Desktop)
 uv run python -m adk_analytics_server --stdio
+
+# With verbose logging (shows MCP calls, data fetches, timing)
+uv run python -m adk_analytics_server -v
+
+# Very verbose - includes full structuredContent in logs
+uv run python -m adk_analytics_server -vv
+
+# With structured JSON log file
+uv run python -m adk_analytics_server --log-file analytics.jsonl
+
+# Combine options (very verbose + log file for debugging)
+uv run python -m adk_analytics_server -vv --log-file debug.jsonl
 ```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `--stdio` | Run in STDIO mode for Claude Desktop |
+| `-v` | Verbose logging (DEBUG level - tool calls, timing) |
+| `-vv` | Very verbose (TRACE level - includes full structuredContent) |
+| `--log-file PATH` | Write structured JSON logs to file |
+| `--log-level` | Base log level: DEBUG, INFO, WARNING, ERROR |
+| `--host HOST` | Host to bind to (default: 0.0.0.0) |
+| `--port PORT` | Port to bind to (default: 3003) |
 
 ### Connect with basic-host
 
@@ -105,7 +130,8 @@ adk-analytics-server/
     ├── __main__.py             # Entry point for python -m
     ├── data.py                 # Tiingo API + mock data fallback
     ├── indicators.py           # RSI, MACD, Bollinger, AI insights
-    ├── server.py               # MCP server, tools, resource
+    ├── logging.py              # Structured logging configuration
+    ├── server.py               # MCP server, tools, CLI
     └── static/
         └── view.html           # D3.js dashboard
 ```
@@ -118,11 +144,13 @@ adk-analytics-server/
 # Fetch real market data from Tiingo
 def fetch_stock_data_from_tiingo(symbol: str, days: int = 60) -> list[dict]:
     # Returns OHLCV data with adjusted prices
+    # Raises TiingoConfigError if token not set
+    # Raises TiingoAPIError on API failures with clear error messages
     ...
 
 # Get data with caching (5-minute TTL)
 def get_stock_data(symbol: str, days: int = 60) -> list[dict]:
-    # Tries Tiingo first, falls back to mock data
+    # Returns cached data if available, otherwise fetches from Tiingo
     ...
 ```
 
