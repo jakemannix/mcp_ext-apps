@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>ADK Financial Analytics</title>
+  <title>Terminal BoomBurger - Market Data</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script type="importmap">
   {
@@ -262,14 +262,14 @@
   <div id="root">
     <div class="loading">
       <div class="spinner"></div>
-      <div>Connecting to ADK Analytics...</div>
+      <div>Loading Terminal BoomBurger...</div>
     </div>
   </div>
 
   <script type="module">
     import { App } from '@modelcontextprotocol/ext-apps';
 
-    const app = new App({ name: 'ADK Financial Analytics', version: '1.0.0' });
+    const app = new App({ name: 'Terminal BoomBurger', version: '1.0.0' });
 
     let portfolioData = null;
     let selectedSymbol = null;
@@ -289,7 +289,7 @@
       document.getElementById('root').innerHTML = `
         <div class="dashboard">
           <header class="header">
-            <h1>ADK Financial Analytics</h1>
+            <h1>Terminal BoomBurger</h1>
             <div class="header-stats">
               <div class="stat">
                 <div class="stat-label">Portfolio Return</div>
@@ -355,7 +355,7 @@
           </aside>
 
           <footer class="footer">
-            Powered by Google ADK + MCP Apps | Market data from Tiingo
+            Terminal BoomBurger | Market data from Tiingo
           </footer>
         </div>
       `;
@@ -553,16 +553,22 @@
       console.log('Host context changed:', ctx);
     };
 
-    // Connect to host
+    // Connect to host (for MCP Apps integration)
     app.connect().then(() => {
       console.log('Connected to MCP host');
     }).catch(err => {
-      console.error('Connection failed:', err);
-      document.getElementById('root').innerHTML = `
-        <div class="loading">
-          <div style="color: #f4212e;">Connection failed: ${err.message}</div>
-        </div>
-      `;
+      // Connection failure is expected when running in agent mode (not as MCP App)
+      console.log('MCP connection not available (running in agent mode):', err.message);
+    });
+
+    // Listen for postMessage updates from parent (agent UI)
+    window.addEventListener('message', (event) => {
+      console.log('Received postMessage:', event.data);
+
+      if (event.data && event.data.type === 'update_data' && event.data.data) {
+        portfolioData = event.data.data;
+        renderDashboard(portfolioData);
+      }
     });
 
     // Handle window resize

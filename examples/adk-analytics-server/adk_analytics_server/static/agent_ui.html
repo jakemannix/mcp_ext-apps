@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal BoomBurger</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --accent: #e94560;
+            --accent-dim: #a93b4a;
+            --border: #333;
+            --user-bg: #0f3460;
+            --assistant-bg: #1a1a2e;
+            --tool-bg: #2a2a3e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            min-width: 400px;
+            max-width: 600px;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-header .provider {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .clear-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 90%;
+        }
+
+        .message.user {
+            background: var(--user-bg);
+            margin-left: auto;
+        }
+
+        .message.assistant {
+            background: var(--assistant-bg);
+            border: 1px solid var(--border);
+        }
+
+        .message.tool {
+            background: var(--tool-bg);
+            font-size: 13px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .message .role {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .message .content {
+            line-height: 1.6;
+        }
+
+        .message .content p {
+            margin: 0 0 0.75em 0;
+        }
+
+        .message .content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message .content h2 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 1em 0 0.5em 0;
+            color: var(--accent);
+        }
+
+        .message .content h3 {
+            font-size: 1em;
+            font-weight: 600;
+            margin: 0.75em 0 0.4em 0;
+        }
+
+        .message .content ul, .message .content ol {
+            margin: 0.5em 0;
+            padding-left: 1.5em;
+        }
+
+        .message .content li {
+            margin: 0.25em 0;
+        }
+
+        .message .content code {
+            background: var(--bg-tertiary);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .message .content strong, .message .content b {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .message.tool .tool-name {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .message.tool .tool-args {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .typing-indicator.visible {
+            display: block;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-form textarea {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            height: 48px;
+            font-family: inherit;
+        }
+
+        .input-form textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-form button {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .input-form button:hover {
+            background: var(--accent-dim);
+        }
+
+        .input-form button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        /* Visualization Panel */
+        .viz-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+        }
+
+        .viz-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .viz-header h2 {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .viz-content {
+            flex: 1;
+            position: relative;
+        }
+
+        .viz-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .viz-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Error state */
+        .message.error {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid var(--accent);
+        }
+
+        /* Scrollbar styling */
+        .messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .messages::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <div>
+                    <h1>Terminal BoomBurger</h1>
+                    <div class="provider">AI-Powered Financial Analysis</div>
+                </div>
+                <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+            </div>
+            <div class="messages" id="messages">
+                <div class="message assistant">
+                    <div class="role">Assistant</div>
+                    <div class="content">
+                        <p>Welcome to <strong>Terminal BoomBurger</strong>! I'm your AI-powered financial analyst.</p>
+                        <p>I can analyze stocks, show technical indicators, and provide market insights.</p>
+                        <p>Try asking:</p>
+                        <ul>
+                            <li>"Analyze AAPL stock"</li>
+                            <li>"Show me NVDA and TSLA over the past month"</li>
+                            <li>"What's the technical analysis for MSFT?"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typing">Agent is thinking...</div>
+            <div class="input-area">
+                <form class="input-form" onsubmit="sendMessage(event)">
+                    <textarea
+                        id="input"
+                        placeholder="Ask about stocks, market data, or technical analysis..."
+                        onkeydown="handleKeyDown(event)"
+                    ></textarea>
+                    <button type="submit" id="send-btn">Send</button>
+                </form>
+            </div>
+        </div>
+        <div class="viz-panel">
+            <div class="viz-header">
+                <h2>Market Data</h2>
+            </div>
+            <div class="viz-content" id="viz-content">
+                <div class="viz-placeholder" id="viz-placeholder">
+                    Charts and market data will appear here
+                </div>
+                <iframe id="viz-iframe" src="/static/view.html" style="visibility: hidden; position: absolute;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingEl = document.getElementById('typing');
+        const vizIframe = document.getElementById('viz-iframe');
+        const vizPlaceholder = document.getElementById('viz-placeholder');
+
+        let isStreaming = false;
+        let currentAssistantMessage = null;
+        let currentAssistantText = '';
+        let iframeReady = false;
+        let pendingData = null;
+
+        // Wait for iframe to signal it's ready
+        vizIframe.onload = () => {
+            console.log('Iframe loaded');
+            iframeReady = true;
+            // If we have pending data, send it now
+            if (pendingData) {
+                sendToIframe(pendingData);
+                pendingData = null;
+            }
+        };
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(e);
+            }
+        }
+
+        function addMessage(role, content, toolInfo = null) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${role}`;
+
+            if (role === 'tool' && toolInfo) {
+                messageEl.innerHTML = `
+                    <div class="role">Tool Call</div>
+                    <div class="content">
+                        <span class="tool-name">${escapeHtml(toolInfo.name)}</span>
+                        <div class="tool-args">${escapeHtml(JSON.stringify(toolInfo.args, null, 2))}</div>
+                    </div>
+                `;
+            } else if (role === 'user') {
+                // Escape user content for safety
+                messageEl.innerHTML = `
+                    <div class="role">${role}</div>
+                    <div class="content">${escapeHtml(content)}</div>
+                `;
+            } else {
+                // Allow HTML in assistant/error messages
+                messageEl.innerHTML = `
+                    <div class="role">${role}</div>
+                    <div class="content">${content}</div>
+                `;
+            }
+
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return messageEl;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setStreaming(streaming) {
+            isStreaming = streaming;
+            sendBtn.disabled = streaming;
+            typingEl.classList.toggle('visible', streaming);
+        }
+
+        async function sendMessage(e) {
+            e.preventDefault();
+
+            const message = inputEl.value.trim();
+            if (!message || isStreaming) return;
+
+            // Add user message
+            addMessage('user', message);
+            inputEl.value = '';
+
+            // Start streaming
+            setStreaming(true);
+            currentAssistantMessage = null;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = JSON.parse(line.slice(6));
+                            handleEvent(data);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Chat error:', err);
+                addMessage('error', `Error: ${err.message}`);
+            } finally {
+                setStreaming(false);
+                currentAssistantMessage = null;
+                currentAssistantText = '';
+            }
+        }
+
+        function handleEvent(event) {
+            switch (event.type) {
+                case 'text':
+                    if (!currentAssistantMessage) {
+                        currentAssistantMessage = addMessage('assistant', '');
+                        currentAssistantText = '';
+                    }
+                    currentAssistantText += event.text;
+                    const contentEl = currentAssistantMessage.querySelector('.content');
+                    contentEl.innerHTML = currentAssistantText;
+                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                    break;
+
+                case 'tool_call':
+                    // Finalize current message if any
+                    currentAssistantMessage = null;
+                    currentAssistantText = '';
+                    addMessage('tool', '', { name: event.tool_name, args: event.tool_args });
+                    break;
+
+                case 'tool_result':
+                    // Tool results are shown via structured_content
+                    break;
+
+                case 'structured_content':
+                    // Send to iframe for visualization
+                    updateVisualization(event.structured_content);
+                    break;
+
+                case 'error':
+                    addMessage('error', event.error);
+                    break;
+
+                case 'done':
+                    // Stream complete
+                    break;
+            }
+        }
+
+        function sendToIframe(data) {
+            console.log('Sending data to iframe:', data);
+            vizIframe.contentWindow.postMessage({
+                type: 'update_data',
+                data: data
+            }, '*');
+        }
+
+        function updateVisualization(data) {
+            // Show iframe, hide placeholder
+            vizPlaceholder.style.display = 'none';
+            vizIframe.style.visibility = 'visible';
+            vizIframe.style.position = 'relative';
+
+            // Send data to iframe
+            if (iframeReady) {
+                sendToIframe(data);
+            } else {
+                // Queue data until iframe is ready
+                console.log('Iframe not ready, queuing data');
+                pendingData = data;
+            }
+        }
+
+        async function clearHistory() {
+            try {
+                await fetch('/clear', { method: 'POST' });
+                // Clear UI
+                messagesEl.innerHTML = `
+                    <div class="message assistant">
+                        <div class="role">Assistant</div>
+                        <div class="content"><p>History cleared. How can I help you?</p></div>
+                    </div>
+                `;
+                // Reset visualization
+                vizPlaceholder.style.display = 'flex';
+                vizIframe.style.display = 'none';
+            } catch (err) {
+                console.error('Clear error:', err);
+            }
+        }
+
+        // Focus input on load
+        inputEl.focus();
+    </script>
+</body>
+</html>

@@ -2,6 +2,10 @@
 
 An MCP Apps demo showcasing **Google ADK** (Agent Development Kit) integration with interactive financial data visualization and real market data from **Tiingo**.
 
+This project includes:
+- **MCP Server**: Exposes financial analysis tools via MCP protocol
+- **LLM Agent Server**: Conversational UI powered by Claude, OpenRouter, or Gemini
+
 ## Overview
 
 This demo demonstrates how to build an MCP server that:
@@ -10,6 +14,7 @@ This demo demonstrates how to build an MCP server that:
 2. Fetches **real market data** from Tiingo API
 3. Provides **rich financial dashboards** through MCP Apps extension
 4. Visualizes market data with **interactive D3.js charts**
+5. Offers a conversational agent UI with multi-provider LLM support
 
 ## Screenshot
 
@@ -43,6 +48,57 @@ The dashboard features:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+## LLM Agent Mode
+
+The agent server provides a chat UI where users can ask questions in natural language. The agent uses an LLM to understand requests, call MCP tools, and explain results.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Agent Server (Port 3004)                      │
+│  ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐   │
+│  │  Chat UI     │◄──►│ LLM Agent    │◄──►│  MCP Client     │   │
+│  │  (HTML/JS)   │SSE │ (ReAct loop) │    │  (HTTP)         │   │
+│  └──────────────┘    └──────────────┘    └────────┬────────┘   │
+└──────────────────────────────────────────────────│─────────────┘
+                                                    │ HTTP
+                                                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    MCP Server (Port 3003)                        │
+│  analyze_portfolio │ get_market_data │ technical_analysis       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### LLM Provider Support
+
+The agent auto-detects which provider to use based on available API keys:
+
+| Priority | Provider | API Key Env Var | Default Model |
+|----------|----------|-----------------|---------------|
+| 1 | Anthropic | `ANTHROPIC_API_KEY` | claude-opus-4-5 |
+| 2 | OpenRouter | `OPENROUTER_API_KEY` | anthropic/claude-3.5-sonnet |
+| 3 | Google | `GOOGLE_API_KEY` | gemini-2.0-flash |
+
+### Running the Agent
+
+```bash
+# Terminal 1: Start MCP server (required)
+uv run python -m adk_analytics_server
+
+# Terminal 2: Start agent server
+uv run python -m adk_analytics_server agent
+
+# Open http://localhost:3004 in your browser
+```
+
+### Example Conversations
+
+- "What's the current state of AAPL stock?"
+- "Analyze NVDA and TSLA over the past month"
+- "Show me technical analysis for MSFT"
+- "Compare the momentum of GOOGL vs META"
+
 ## Setup
 
 ### 1. Get a Tiingo API Key
@@ -55,10 +111,19 @@ Sign up for a free API key at [tiingo.com](https://www.tiingo.com/). The free ti
 
 ### 2. Configure Environment
 
-Add your Tiingo token to the repository's `.env` file:
+Add your API tokens to the repository's `.env` file:
 
 ```bash
-TIINGO_API_TOKEN=your_token_here
+# Required: Market data
+TIINGO_API_TOKEN=your_tiingo_token
+
+# LLM Provider (set ONE of these for agent mode)
+ANTHROPIC_API_KEY=your_anthropic_key  # Recommended
+# OR
+OPENROUTER_API_KEY=your_openrouter_key
+MODEL_NAME=anthropic/claude-3.5-sonnet  # Optional, for OpenRouter
+# OR
+GOOGLE_API_KEY=your_google_key
 ```
 
 The package automatically loads `.env` from the repository root.
@@ -89,15 +154,15 @@ uv run python -m adk_analytics_server -vv --log-file debug.jsonl
 
 ### CLI Options
 
-| Option | Description |
-|--------|-------------|
-| `--stdio` | Run in STDIO mode for Claude Desktop |
-| `-v` | Verbose logging (DEBUG level - tool calls, timing) |
-| `-vv` | Very verbose (TRACE level - includes full structuredContent) |
-| `--log-file PATH` | Write structured JSON logs to file |
-| `--log-level` | Base log level: DEBUG, INFO, WARNING, ERROR |
-| `--host HOST` | Host to bind to (default: 0.0.0.0) |
-| `--port PORT` | Port to bind to (default: 3003) |
+| Option            | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `--stdio`         | Run in STDIO mode for Claude Desktop                         |
+| `-v`              | Verbose logging (DEBUG level - tool calls, timing)           |
+| `-vv`             | Very verbose (TRACE level - includes full structuredContent) |
+| `--log-file PATH` | Write structured JSON logs to file                           |
+| `--log-level`     | Base log level: DEBUG, INFO, WARNING, ERROR                  |
+| `--host HOST`     | Host to bind to (default: 0.0.0.0)                           |
+| `--port PORT`     | Port to bind to (default: 3003)                              |
 
 ### Connect with basic-host
 
@@ -127,13 +192,24 @@ adk-analytics-server/
 ├── README.md
 └── adk_analytics_server/       # Python package
     ├── __init__.py             # Loads .env, exports version
-    ├── __main__.py             # Entry point for python -m
-    ├── data.py                 # Tiingo API + mock data fallback
+    ├── __main__.py             # CLI entry point (MCP server or agent)
+    ├── data.py                 # Tiingo API integration
     ├── indicators.py           # RSI, MACD, Bollinger, AI insights
     ├── logging.py              # Structured logging configuration
-    ├── server.py               # MCP server, tools, CLI
+    ├── server.py               # MCP server and tools
+    ├── mcp_client.py           # HTTP client for MCP server
+    ├── agent.py                # ReAct agent loop
+    ├── agent_server.py         # HTTP server for agent UI
+    ├── llm/                    # LLM provider abstraction
+    │   ├── __init__.py
+    │   ├── base.py             # Abstract provider interface
+    │   ├── factory.py          # Provider auto-detection
+    │   ├── anthropic.py        # Claude provider
+    │   ├── openrouter.py       # OpenRouter provider
+    │   └── google.py           # Gemini provider
     └── static/
-        └── view.html           # D3.js dashboard
+        ├── view.html           # D3.js dashboard (MCP App view)
+        └── agent_ui.html       # Chat UI for agent mode
 ```
 
 ## Code Walkthrough
@@ -253,6 +329,9 @@ function renderCandlestickChart(data) {
 - `python-dotenv>=1.0.0` - Environment variable loading
 - `uvicorn>=0.34.0` - ASGI server
 - `starlette>=0.46.0` - CORS middleware
+- `anthropic>=0.40.0` - Anthropic SDK (agent mode)
+- `httpx>=0.27.0` - Async HTTP client (agent mode)
+- `google-genai>=1.0.0` - Google Gemini SDK (agent mode)
 
 ## Disclaimer
 
