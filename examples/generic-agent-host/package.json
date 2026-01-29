@@ -1,0 +1,24 @@
+{
+  "name": "@modelcontextprotocol/generic-agent-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "serve": "uv run python -m agent"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "file:../..",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}

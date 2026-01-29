@@ -3434,9 +3434,17 @@
           "type": "object",
           "properties": {
             "role": {
-              "type": "string",
-              "const": "user",
-              "description": "Message role, currently only \"user\" is supported."
+              "anyOf": [
+                {
+                  "type": "string",
+                  "const": "user"
+                },
+                {
+                  "type": "string",
+                  "const": "assistant"
+                }
+              ],
+              "description": "Message role. \"user\" for user-initiated, \"assistant\" for app-initiated messages."
             },
             "content": {
               "type": "array",

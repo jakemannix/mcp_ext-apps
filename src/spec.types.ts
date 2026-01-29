@@ -175,8 +175,8 @@ export interface McpUiOpenLinkResult {
 export interface McpUiMessageRequest {
   method: "ui/message";
   params: {
-    /** @description Message role, currently only "user" is supported. */
-    role: "user";
+    /** @description Message role. "user" for user-initiated, "assistant" for app-initiated messages. */
+    role: "user" | "assistant";
     /** @description Message content blocks (text, image, etc.). */
     content: ContentBlock[];
   };

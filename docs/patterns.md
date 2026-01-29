@@ -6,6 +6,157 @@ title: Patterns
 
 This document covers common patterns and recipes for building MCP Apps.
 
+## Structured Output with outputSchema
+
+Use `outputSchema` to define typed structured data that flows from server to UI. This enables the UI to receive parsed, validated data via `structuredContent` instead of parsing JSON from text.
+
+### The `.shape` Pattern
+
+**Critical**: Pass `Schema.shape` (the raw shape object), not the full Zod schema:
+
+```ts
+// Define your output schema as a z.object()
+const GameStateSchema = z.object({
+  sessionId: z.string(),
+  player: z.object({
+    x: z.number(),
+    y: z.number(),
+    health: z.number(),
+  }),
+  enemies: z.array(
+    z.object({
+      id: z.string(),
+      x: z.number(),
+      y: z.number(),
+      alive: z.boolean(),
+    }),
+  ),
+});
+
+// Register tool with .shape (NOT the full schema)
+registerAppTool(
+  server,
+  "start_game",
+  {
+    description: "Start a new game session",
+    inputSchema: { difficulty: z.enum(["easy", "hard"]) },
+    outputSchema: GameStateSchema.shape, // ✅ Use .shape
+    // outputSchema: GameStateSchema,     // ❌ WRONG - causes type errors
+    _meta: { ui: { resourceUri: "ui://game/view.html" } },
+  },
+  async ({ difficulty }) => {
+    const state = initializeGame(difficulty);
+    return {
+      content: [{ type: "text", text: `Game started on ${difficulty}` }],
+      structuredContent: state, // Typed data matching GameStateSchema
+    };
+  },
+);
+```
+
+**Why `.shape`?** The MCP SDK expects `ZodRawShapeCompat` (the inner shape object `{ key: ZodType, ... }`) rather than a full `ZodObject`. Using the full schema causes TypeScript errors like "Type instantiation is excessively deep and possibly infinite."
+
+### Zod Version Requirements
+
+**Use Zod v4** (`"zod": "^4.0.0"` in package.json). The MCP SDK includes compatibility for both Zod v3 and v4, but v4 provides cleaner type inference. If you see deep recursion TypeScript errors, check your Zod version first.
+
+### Server → UI Data Flow
+
+When the tool returns `structuredContent`, the host delivers it to the App:
+
+```
+Server Tool Handler                    Host                         App (UI)
+       │                                │                              │
+       │ return {                       │                              │
+       │   content: [...],              │                              │
+       │   structuredContent: data      │                              │
+       │ }                              │                              │
+       │ ─────────────────────────────► │                              │
+       │                                │  app.ontoolresult(result)    │
+       │                                │ ────────────────────────────►│
+       │                                │                              │
+       │                                │  result.structuredContent    │
+       │                                │  contains typed data         │
+```
+
+**App-side handling:**
+
+```tsx
+// React example using useApp hook
+function GameView() {
+  const { app } = useApp({ appInfo, capabilities: {} });
+  const [gameState, setGameState] = useState<GameState | null>(null);
+
+  useEffect(() => {
+    if (!app) return;
+
+    app.ontoolresult = (result) => {
+      if (result.structuredContent) {
+        // structuredContent is typed based on outputSchema
+        setGameState(result.structuredContent as GameState);
+      }
+    };
+  }, [app]);
+
+  if (!gameState) return <div>Waiting for game to start...</div>;
+  return <GameCanvas state={gameState} />;
+}
+```
+
+### Nested Schema Composition
+
+For complex outputs, define sub-schemas separately and compose them:
+
+```ts
+// Define sub-schemas for reuse
+const EnemySchema = z.object({
+  id: z.string(),
+  x: z.number(),
+  y: z.number(),
+  alive: z.boolean(),
+});
+
+const PlayerSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  health: z.number(),
+  direction: z.enum(["n", "s", "e", "w"]),
+});
+
+const TileSchema = z.object({
+  id: z.string(),
+  walls: z.array(z.array(z.boolean())),
+  enemies: z.array(EnemySchema),
+  exits: z.object({
+    north: z.nullable(z.string()),
+    south: z.nullable(z.string()),
+    east: z.nullable(z.string()),
+    west: z.nullable(z.string()),
+  }),
+});
+
+// Compose into output schema
+const StartMazeOutputSchema = z.object({
+  sessionId: z.string(),
+  tile: TileSchema,
+  player: PlayerSchema,
+  narrative: z.string(),
+});
+
+// Use .shape in tool registration
+registerAppTool(
+  server,
+  "start_maze",
+  {
+    outputSchema: StartMazeOutputSchema.shape,
+    // ...
+  },
+  handler,
+);
+```
+
+_See [`examples/maze-server/`](https://github.com/anthropics/mcp-apps/tree/main/examples/maze-server) for a full implementation of this pattern._
+
 ## Tools that are private to Apps
 
 Set {@link types!McpUiToolMeta.visibility `Tool._meta.ui.visibility`} to `["app"]` to make tools only callable by Apps (hidden from the model). This is useful for UI-driven actions like updating quantities, toggling settings, or other interactions that shouldn't appear in the model's tool list.
