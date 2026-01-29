@@ -1008,7 +1008,8 @@ Host SHOULD open the URL in the user's default browser or a new tab.
     content: {
       type: "text",
       text: string
-    }
+    },
+    triggerAgent?: boolean  // If true, host MUST invoke agent immediately
   }
 }
 
@@ -1030,8 +1031,10 @@ Host SHOULD open the URL in the user's default browser or a new tab.
 }
 ```
 Host behavior:
-* Host SHOULD add the message to the conversation context, preserving the specified role.
+* Host SHOULD add the message to the conversation context.
 * Host MAY request user consent.
+* If `triggerAgent` is `true`, Host MUST invoke the agent to process the message immediately and generate a response.
+* If `triggerAgent` is `false` or omitted, Host MAY defer agent invocation until the next user-initiated turn.
 
 `ui/request-display-mode` - Request host to change display mode
 
@@ -1091,12 +1094,12 @@ See the Display Modes section for detailed behavior requirements.
 ```
 
 The View MAY send this request to update the Host's model context. This context will be used in future turns. Each request overwrites the previous context sent by the View.
-This event serves a different use case from `notifications/message` (logging) and `ui/message` (which also trigger follow-ups).
+This event serves a different use case from `notifications/message` (logging) and `ui/message` (which can trigger agent follow-ups via the `triggerAgent` flag).
 
 Host behavior:
 - SHOULD provide the context to the model in future turns
 - MAY overwrite the previous model context with the new update
-- MAY defer sending the context to the model until the next user message (including `ui/message`)
+- MAY defer sending the context to the model until the next user message (including `ui/message` with `triggerAgent: true`)
 - MAY dedupe identical `ui/update-model-context` calls
 - If multiple updates are received before the next user message, Host SHOULD only send the last update to the model
 - MAY display context updates to the user

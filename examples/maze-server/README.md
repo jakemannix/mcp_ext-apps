@@ -2,6 +2,60 @@
 
 A minimal 2D maze game demonstrating MCP Apps + LLM agent architecture where the LLM is the creative driver of content generation.
 
+## Quick Start
+
+There are two ways to run this demo:
+
+### Option 1: Local Agent Host (Self-contained)
+
+Run everything locally with the bundled Python agent:
+
+```bash
+# Set your API key (one of these)
+export ANTHROPIC_API_KEY='sk-ant-...'
+# or: export OPENROUTER_API_KEY='...'
+# or: export GOOGLE_API_KEY='...'
+
+# Start all services
+./demo.sh start
+
+# Open http://localhost:5173 and type "Start a maze game"
+```
+
+This starts:
+- MCP Server on port 3002
+- Python Agent Server on port 3004
+- Frontend on port 5173
+
+### Option 2: Claude.ai via Cloudflare Tunnel
+
+Expose the MCP server to the internet so Claude.ai can connect directly:
+
+```bash
+# Start MCP server + tunnel (no API key needed - Claude.ai provides the LLM)
+./demo.sh tunnel
+```
+
+The script will output a public URL like `https://random-name.trycloudflare.com/mcp`.
+
+Then in Claude.ai:
+1. Go to **Settings > MCP Servers**
+2. Add a new server:
+   ```json
+   {
+     "maze": {
+       "url": "https://random-name.trycloudflare.com/mcp"
+     }
+   }
+   ```
+3. Start a new conversation and say: **"Start a maze game on easy difficulty"**
+
+### Stopping Services
+
+```bash
+./demo.sh stop
+```
+
 ## Architecture
 
 ```
@@ -20,7 +74,8 @@ A minimal 2D maze game demonstrating MCP Apps + LLM agent architecture where the
             ▼                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                  maze-server (MCP Server)                   │
-│                   http://localhost:3002/mcp                 │
+│              Local: http://localhost:3002/mcp               │
+│           Tunneled: https://xxx.trycloudflare.com/mcp       │
 │                                                             │
 │  Tools:                                                     │
 │  - start_maze: Initialize game session                      │
@@ -51,9 +106,36 @@ The `generate_tile` tool gives Claude full creative control:
 - `narrative`: Custom atmospheric description
 - `wallDensity`: sparse, medium, dense
 
-## Running
+## Prerequisites
 
-### 1. Start the MCP Server
+### For Local Agent Host (`./demo.sh start`)
+
+- Node.js 18+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- One of: `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, or `GOOGLE_API_KEY`
+
+### For Tunnel Mode (`./demo.sh tunnel`)
+
+- Node.js 18+
+- [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+  ```bash
+  # macOS
+  brew install cloudflared
+
+  # Linux (Debian/Ubuntu)
+  curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+  sudo dpkg -i cloudflared.deb
+  ```
+
+## Game Controls
+
+- **Arrow keys** or **HJKL**: Move player
+- **Space**: Fire laser in current direction
+- **S**: Slow down enemies (debug cheat)
+
+## Manual Setup (without demo.sh)
+
+### 1. Build and Start the MCP Server
 
 ```bash
 cd examples/maze-server
@@ -64,24 +146,25 @@ npm run serve:http
 
 Server runs at **http://localhost:3002/mcp**
 
-### 2. Connect from Claude.ai
+### 2a. Connect via Local Agent Host
 
-Add to your MCP server configuration:
-```json
-{
-  "maze": {
-    "url": "http://localhost:3002/mcp"
-  }
-}
+```bash
+cd examples/generic-agent-host
+npm install
+npm run build
+ANTHROPIC_API_KEY=... MCP_SERVER_URL=http://localhost:3002 uv run python -m agent
 ```
 
-Then ask Claude: "Start a maze game on easy difficulty"
+Then open http://localhost:3004
 
-## Game Controls
+### 2b. Connect via Claude.ai
 
-- **Arrow keys** or **HJKL**: Move player
-- **Space**: Fire laser in current direction
-- **S**: Slow down enemies (debug cheat)
+Start a Cloudflare tunnel:
+```bash
+cloudflared tunnel --url http://localhost:3002
+```
+
+Copy the generated URL and add to Claude.ai MCP settings.
 
 ## Testing Notes
 
@@ -109,3 +192,4 @@ This tests whether Claude.ai respects `role: "assistant"` in `ui/message` reques
 - `src/mcp-app.tsx` - React app that connects to MCP tools
 - `src/types.ts` - TypeScript types for game state
 - `main.ts` - HTTP server entry point
+- `demo.sh` - Launch script for running the demo

@@ -158,8 +158,13 @@ function App() {
             return { isError: true };
           }
 
-          // Stream the response
-          await handleAgentStream(response);
+          // Only invoke agent loop if triggerAgent is true
+          if (params.triggerAgent) {
+            console.log("[HOST] triggerAgent=true, streaming agent response");
+            await handleAgentStream(response);
+          } else {
+            console.log("[HOST] triggerAgent=false, message added to context only");
+          }
         } catch (err) {
           console.error("[HOST] Error forwarding message:", err);
           return { isError: true };

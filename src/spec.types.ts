@@ -175,10 +175,15 @@ export interface McpUiOpenLinkResult {
 export interface McpUiMessageRequest {
   method: "ui/message";
   params: {
-    /** @description Message role. "user" for user-initiated, "assistant" for app-initiated messages. */
-    role: "user" | "assistant";
+    /** @description Message role, currently only "user" is supported. */
+    role: "user";
     /** @description Message content blocks (text, image, etc.). */
     content: ContentBlock[];
+    /**
+     * @description If true, host MUST invoke the agent to process this message immediately.
+     * If false or omitted, host adds message to context but MAY defer agent invocation.
+     */
+    triggerAgent?: boolean;
   };
 }
 

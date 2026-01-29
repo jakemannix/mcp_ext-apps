@@ -165,17 +165,18 @@ tiles_explored: ${tilesExplored}`,
       });
 
       try {
-        // Send as assistant turn - narrate what happened and prompt for tile generation
+        // Send message requesting tile generation with triggerAgent to invoke the LLM
         await app.sendMessage({
-          role: "assistant",
+          role: "user",
           content: [
             {
               type: "text",
               text: `The player moved ${direction} into unexplored territory. Current status: ${gameState.player.health}/${gameState.player.maxHealth} HP, ${gameState.player.kills} kills, ${tilesExplored} tiles explored.
 
-I'll generate a new area using the generate_tile tool with the session context provided.`,
+Please generate a new area using the generate_tile tool with the session context provided.`,
             },
           ],
+          triggerAgent: true,
         });
         // The LLM will call generate_tile, and we'll receive the result via ontoolresult
       } catch (err) {

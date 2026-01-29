@@ -594,16 +594,24 @@ export const McpUiClientCapabilitiesSchema = z.object({
 export const McpUiMessageRequestSchema = z.object({
   method: z.literal("ui/message"),
   params: z.object({
-    /** @description Message role. "user" for user-initiated, "assistant" for app-initiated messages. */
+    /** @description Message role, currently only "user" is supported. */
     role: z
-      .union([z.literal("user"), z.literal("assistant")])
-      .describe(
-        'Message role. "user" for user-initiated, "assistant" for app-initiated messages.',
-      ),
+      .literal("user")
+      .describe('Message role, currently only "user" is supported.'),
     /** @description Message content blocks (text, image, etc.). */
     content: z
       .array(ContentBlockSchema)
       .describe("Message content blocks (text, image, etc.)."),
+    /**
+     * @description If true, host MUST invoke the agent to process this message immediately.
+     * If false or omitted, host adds message to context but MAY defer agent invocation.
+     */
+    triggerAgent: z
+      .boolean()
+      .optional()
+      .describe(
+        "If true, host MUST invoke the agent to process this message immediately.\nIf false or omitted, host adds message to context but MAY defer agent invocation.",
+      ),
   }),
 });
 
