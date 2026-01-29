@@ -4,20 +4,25 @@ A generic LLM agent host with full MCP Apps bridge support. Works with any MCP A
 
 ## Current Status (2026-01-29)
 
-**WORKING:**
+**FULLY WORKING:**
 - Python backend with LLM agent (Anthropic/OpenRouter/Google)
 - MCP client for tool calls
 - React frontend with AppBridge for MCP Apps protocol
-- Game starts correctly, single tile works
+- Game starts correctly via `start_maze` tool
 - Player movement, combat, all game mechanics work
+- **LLM-driven tile generation works!** When player walks to border:
+  1. App sends `ui/message` with `role: "assistant"`
+  2. Frontend forwards to agent backend
+  3. Agent injects as assistant turn and continues loop
+  4. LLM calls `generate_tile` with creative parameters
+  5. New tile renders in game
 
-**KNOWN ISSUE:**
-- When player walks to tile border, app sends `ui/message` with `role: "assistant"`
-- The ext-apps@1.0.0 schema only accepts `role: "user"` for ui/message
-- Error: `MCP error -32603: Invalid input: expected "user"`
-- This needs either:
-  1. ext-apps schema update to support `role: "assistant"`
-  2. Or a different approach to trigger LLM tile generation
+**Local ext-apps modification:**
+This uses a local modification to ext-apps that adds `role: "assistant"` support
+to `ui/message`. The upstream ext-apps@1.0.0 only allows `role: "user"`.
+See `src/spec.types.ts` for the change.
+
+This is a potential upstream contribution if the pattern proves useful.
 
 ## Architecture
 

@@ -594,10 +594,12 @@ export const McpUiClientCapabilitiesSchema = z.object({
 export const McpUiMessageRequestSchema = z.object({
   method: z.literal("ui/message"),
   params: z.object({
-    /** @description Message role, currently only "user" is supported. */
+    /** @description Message role. "user" for user-initiated, "assistant" for app-initiated messages. */
     role: z
-      .literal("user")
-      .describe('Message role, currently only "user" is supported.'),
+      .union([z.literal("user"), z.literal("assistant")])
+      .describe(
+        'Message role. "user" for user-initiated, "assistant" for app-initiated messages.',
+      ),
     /** @description Message content blocks (text, image, etc.). */
     content: z
       .array(ContentBlockSchema)

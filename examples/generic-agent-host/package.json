@@ -9,7 +9,7 @@
     "serve": "uv run python -m agent"
   },
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "^1.0.0",
+    "@modelcontextprotocol/ext-apps": "file:../..",
     "@modelcontextprotocol/sdk": "^1.11.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
