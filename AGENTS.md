@@ -78,6 +78,38 @@ View (App) <--PostMessageTransport--> Host (AppBridge) <--MCP Client--> MCP Serv
 6. Host sends `sendToolResult()` when tool execution completes
 7. Host calls `teardownResource()` before unmounting iframe
 
+## Critical Patterns for MCP Apps
+
+**Read `docs/patterns.md` before implementing tools with structured output.**
+
+Key patterns you must know:
+
+### outputSchema: Use `.shape`, Not Full Schema
+
+```ts
+// ✅ CORRECT
+outputSchema: MySchema.shape
+
+// ❌ WRONG - causes "Type instantiation excessively deep" errors
+outputSchema: MySchema
+```
+
+### Zod Version
+
+Use Zod v4 (`"zod": "^4.0.0"`). Zod v3 causes type inference issues with the SDK.
+
+### Tool Visibility
+
+- `visibility: ["app"]` - UI-only, hidden from model (for frequent UI calls)
+- `visibility: ["model"]` - Model-only, hidden from UI
+- Default (no visibility) - Both model and UI can call
+
+### structuredContent Flow
+
+Server returns `{ content: [...], structuredContent: data }` → Host delivers to UI via `app.ontoolresult(result)` → UI accesses `result.structuredContent`.
+
+See `examples/maze-server/` for a working reference implementation.
+
 ## Documentation
 
 JSDoc `@example` tags should pull type-checked code from companion `.examples.ts` files (e.g., `app.ts` → `app.examples.ts`). Use ` ```ts source="./file.examples.ts#regionName" ` fences referencing `//#region regionName` blocks; region names follow `exportedName_variant` or `ClassName_methodName_variant` pattern (e.g., `useApp_basicUsage`, `App_hostCapabilities_checkAfterConnection`). For whole-file inclusion (any file type), omit the `#regionName`. Run `npm run sync:snippets` to sync.
