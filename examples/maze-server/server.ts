@@ -22,21 +22,21 @@ const EnemySchema = z.object({
   id: z.string(),
   x: z.number(),
   y: z.number(),
-  alive: z.boolean()
+  alive: z.boolean(),
 });
 
 const ExitsSchema = z.object({
   north: z.nullable(z.string()),
   south: z.nullable(z.string()),
   east: z.nullable(z.string()),
-  west: z.nullable(z.string())
+  west: z.nullable(z.string()),
 });
 
 const TileSchema = z.object({
   id: z.string(),
   walls: z.array(z.array(z.boolean())),
   enemies: z.array(EnemySchema),
-  exits: ExitsSchema
+  exits: ExitsSchema,
 });
 
 const PlayerSchema = z.object({
@@ -44,28 +44,31 @@ const PlayerSchema = z.object({
   y: z.number(),
   health: z.number(),
   maxHealth: z.number(),
-  direction: z.enum(['n', 's', 'e', 'w']),
-  kills: z.number()
+  direction: z.enum(["n", "s", "e", "w"]),
+  kills: z.number(),
 });
 
 const StartMazeOutputSchema = z.object({
   sessionId: z.string(),
   tile: TileSchema,
   player: PlayerSchema,
-  narrative: z.string()
+  narrative: z.string(),
 });
 
 const GenerateTileOutputSchema = z.object({
   tile: TileSchema,
-  narrative: z.string().optional()
+  narrative: z.string().optional(),
 });
 
 // In-memory session storage
-const sessions = new Map<string, {
-  currentTileId: string;
-  tiles: Map<string, any>;
-  player: any;
-}>();
+const sessions = new Map<
+  string,
+  {
+    currentTileId: string;
+    tiles: Map<string, any>;
+    player: any;
+  }
+>();
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
@@ -73,7 +76,10 @@ function generateId(): string {
 
 // Generate a simple maze using a basic algorithm
 // LLM can override this with more creative layouts
-function generateBasicMaze(size: number, wallDensity: number = 0.25): boolean[][] {
+function generateBasicMaze(
+  size: number,
+  wallDensity: number = 0.25,
+): boolean[][] {
   const walls: boolean[][] = [];
   for (let y = 0; y < size; y++) {
     walls[y] = [];
@@ -89,10 +95,10 @@ function generateBasicMaze(size: number, wallDensity: number = 0.25): boolean[][
 
   // Clear exits in the middle of each edge
   const mid = Math.floor(size / 2);
-  walls[0][mid] = false;           // North exit
-  walls[size - 1][mid] = false;    // South exit
-  walls[mid][0] = false;           // West exit
-  walls[mid][size - 1] = false;    // East exit
+  walls[0][mid] = false; // North exit
+  walls[size - 1][mid] = false; // South exit
+  walls[mid][0] = false; // West exit
+  walls[mid][size - 1] = false; // East exit
 
   // Clear spawn area in center
   for (let dy = -2; dy <= 2; dy++) {
@@ -108,7 +114,11 @@ function generateBasicMaze(size: number, wallDensity: number = 0.25): boolean[][
   return walls;
 }
 
-function generateEnemies(count: number, walls: boolean[][], size: number): any[] {
+function generateEnemies(
+  count: number,
+  walls: boolean[][],
+  size: number,
+): any[] {
   const enemies = [];
   const mid = Math.floor(size / 2);
 
@@ -119,14 +129,17 @@ function generateEnemies(count: number, walls: boolean[][], size: number): any[]
       x = Math.floor(Math.random() * (size - 2)) + 1;
       y = Math.floor(Math.random() * (size - 2)) + 1;
       attempts++;
-    } while ((walls[y][x] || (Math.abs(x - mid) < 5 && Math.abs(y - mid) < 5)) && attempts < 100);
+    } while (
+      (walls[y][x] || (Math.abs(x - mid) < 5 && Math.abs(y - mid) < 5)) &&
+      attempts < 100
+    );
 
     if (attempts < 100) {
       enemies.push({
         id: `enemy-${generateId()}`,
         x,
         y,
-        alive: true
+        alive: true,
       });
     }
   }
@@ -156,7 +169,7 @@ export function createMazeServer(): McpServer {
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
-        "utf-8"
+        "utf-8",
       );
       return {
         contents: [
@@ -167,7 +180,7 @@ export function createMazeServer(): McpServer {
           },
         ],
       };
-    }
+    },
   );
 
   // Start maze tool - LLM generates starting tile
@@ -183,11 +196,15 @@ export function createMazeServer(): McpServer {
 
 The player starts in the center. The LLM should be creative with the layout.`,
       inputSchema: {
-        difficulty: z.enum(["easy", "hard"]).default("easy")
-          .describe("Easy = fewer enemies, lower wall density. Hard = more enemies, complex maze"),
+        difficulty: z
+          .enum(["easy", "hard"])
+          .default("easy")
+          .describe(
+            "Easy = fewer enemies, lower wall density. Hard = more enemies, complex maze",
+          ),
       },
       outputSchema: StartMazeOutputSchema.shape,
-      _meta: { ui: { resourceUri } }
+      _meta: { ui: { resourceUri } },
     },
     async ({ difficulty }) => {
       const sessionId = `session-${generateId()}`;
@@ -203,7 +220,7 @@ The player starts in the center. The LLM should be creative with the layout.`,
         id: tileId,
         walls,
         enemies,
-        exits: { north: null, south: null, east: null, west: null }
+        exits: { north: null, south: null, east: null, west: null },
       };
 
       const player = {
@@ -211,8 +228,8 @@ The player starts in the center. The LLM should be creative with the layout.`,
         y: Math.floor(TILE_SIZE / 2),
         health: 5,
         maxHealth: 5,
-        direction: 'n' as const,
-        kills: 0
+        direction: "n" as const,
+        kills: 0,
       };
 
       // Store session
@@ -221,26 +238,29 @@ The player starts in the center. The LLM should be creative with the layout.`,
       sessions.set(sessionId, {
         currentTileId: tileId,
         tiles: tilesMap,
-        player
+        player,
       });
 
-      const narrative = difficulty === "easy"
-        ? "You enter a dimly lit maze. The walls are weathered stone, and you hear distant skittering sounds. Navigate carefully."
-        : "The maze stretches before you, a labyrinth of twisting corridors. Multiple creatures lurk in the shadows. Stay alert.";
+      const narrative =
+        difficulty === "easy"
+          ? "You enter a dimly lit maze. The walls are weathered stone, and you hear distant skittering sounds. Navigate carefully."
+          : "The maze stretches before you, a labyrinth of twisting corridors. Multiple creatures lurk in the shadows. Stay alert.";
 
       return {
-        content: [{
-          type: "text",
-          text: `Game started! ${difficulty} difficulty. ${enemies.length} enemies detected.\n\n${narrative}`
-        }],
+        content: [
+          {
+            type: "text",
+            text: `Game started! ${difficulty} difficulty. ${enemies.length} enemies detected.\n\n${narrative}`,
+          },
+        ],
         structuredContent: {
           sessionId,
           tile,
           player,
-          narrative
-        }
+          narrative,
+        },
       };
-    }
+    },
   );
 
   // Generate tile tool - called when player walks off edge
@@ -263,27 +283,33 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         direction: z.enum(["north", "south", "east", "west"]),
         context: z.object({
           playerHealth: z.number(),
-          playerKills: z.number()
-        })
+          playerKills: z.number(),
+        }),
       },
       outputSchema: GenerateTileOutputSchema.shape,
       _meta: {
-        ui: { visibility: ["app"] }  // App-only, View calls this directly
-      }
+        ui: { visibility: ["app"] }, // App-only, View calls this directly
+      },
     },
     async ({ sessionId, fromTileId, direction, context }) => {
+      console.log(
+        `[generate_tile] Called! direction=${direction} fromTile=${fromTileId} health=${context.playerHealth} kills=${context.playerKills}`,
+      );
+
       const session = sessions.get(sessionId);
       if (!session) {
+        console.log(`[generate_tile] ERROR: Session ${sessionId} not found`);
         return {
           content: [{ type: "text", text: "Session not found" }],
-          isError: true
+          isError: true,
         };
       }
 
       const tileId = `tile-${generateId()}`;
+      console.log(`[generate_tile] Generating new tile: ${tileId}`);
 
       // Adjust difficulty based on player progress
-      const wallDensity = 0.25 + (context.playerKills * 0.01);
+      const wallDensity = 0.25 + context.playerKills * 0.01;
       const enemyCount = Math.min(3 + Math.floor(context.playerKills / 3), 10);
 
       const walls = generateBasicMaze(TILE_SIZE, Math.min(wallDensity, 0.4));
@@ -294,17 +320,22 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         north: "south",
         south: "north",
         east: "west",
-        west: "east"
+        west: "east",
       };
 
-      const exits: Record<string, string | null> = { north: null, south: null, east: null, west: null };
+      const exits: Record<string, string | null> = {
+        north: null,
+        south: null,
+        east: null,
+        west: null,
+      };
       exits[oppositeDir[direction]] = fromTileId;
 
       const tile = {
         id: tileId,
         walls,
         enemies,
-        exits
+        exits,
       };
 
       // Update session
@@ -322,21 +353,24 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         "You push deeper into the maze.",
         "The walls here are covered in strange markings.",
         "A cold draft suggests another exit nearby.",
-        "The sounds of creatures grow louder."
+        "The sounds of creatures grow louder.",
       ];
-      const narrative = narratives[Math.floor(Math.random() * narratives.length)];
+      const narrative =
+        narratives[Math.floor(Math.random() * narratives.length)];
 
       return {
-        content: [{
-          type: "text",
-          text: `Generated new tile: ${tileId} with ${enemies.length} enemies`
-        }],
+        content: [
+          {
+            type: "text",
+            text: `Generated new tile: ${tileId} with ${enemies.length} enemies`,
+          },
+        ],
         structuredContent: {
           tile,
-          narrative
-        }
+          narrative,
+        },
       };
-    }
+    },
   );
 
   return server;

@@ -14,7 +14,7 @@ export interface Enemy {
 
 export interface Tile {
   id: string;
-  walls: boolean[][];  // 64x64 grid, true = wall
+  walls: boolean[][]; // 64x64 grid, true = wall
   enemies: Enemy[];
   exits: {
     north?: string | null;
@@ -30,7 +30,7 @@ export interface Player {
   y: number;
   health: number;
   maxHealth: number;
-  direction: 'n' | 's' | 'e' | 'w';
+  direction: "n" | "s" | "e" | "w";
   kills: number;
 }
 

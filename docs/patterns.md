@@ -23,12 +23,14 @@ const GameStateSchema = z.object({
     y: z.number(),
     health: z.number(),
   }),
-  enemies: z.array(z.object({
-    id: z.string(),
-    x: z.number(),
-    y: z.number(),
-    alive: z.boolean(),
-  })),
+  enemies: z.array(
+    z.object({
+      id: z.string(),
+      x: z.number(),
+      y: z.number(),
+      alive: z.boolean(),
+    }),
+  ),
 });
 
 // Register tool with .shape (NOT the full schema)
@@ -38,7 +40,7 @@ registerAppTool(
   {
     description: "Start a new game session",
     inputSchema: { difficulty: z.enum(["easy", "hard"]) },
-    outputSchema: GameStateSchema.shape,  // ✅ Use .shape
+    outputSchema: GameStateSchema.shape, // ✅ Use .shape
     // outputSchema: GameStateSchema,     // ❌ WRONG - causes type errors
     _meta: { ui: { resourceUri: "ui://game/view.html" } },
   },
@@ -46,7 +48,7 @@ registerAppTool(
     const state = initializeGame(difficulty);
     return {
       content: [{ type: "text", text: `Game started on ${difficulty}` }],
-      structuredContent: state,  // Typed data matching GameStateSchema
+      structuredContent: state, // Typed data matching GameStateSchema
     };
   },
 );
@@ -142,10 +144,15 @@ const StartMazeOutputSchema = z.object({
 });
 
 // Use .shape in tool registration
-registerAppTool(server, "start_maze", {
-  outputSchema: StartMazeOutputSchema.shape,
-  // ...
-}, handler);
+registerAppTool(
+  server,
+  "start_maze",
+  {
+    outputSchema: StartMazeOutputSchema.shape,
+    // ...
+  },
+  handler,
+);
 ```
 
 _See [`examples/maze-server/`](https://github.com/anthropics/mcp-apps/tree/main/examples/maze-server) for a full implementation of this pattern._

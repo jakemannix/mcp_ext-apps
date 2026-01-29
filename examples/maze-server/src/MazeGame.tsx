@@ -11,8 +11,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { Tile, Player, Enemy, TILE_SIZE } from "./types";
 
 const TILE_SIZE_PX = 64;
-const CELL_SIZE = 10;  // pixels per cell
-const CANVAS_SIZE = TILE_SIZE_PX * CELL_SIZE;  // 640px
+const CELL_SIZE = 10; // pixels per cell
+const CANVAS_SIZE = TILE_SIZE_PX * CELL_SIZE; // 640px
 
 interface MazeGameProps {
   tile: Tile;
@@ -22,14 +22,19 @@ interface MazeGameProps {
 }
 
 interface LaserBeam {
-  x1: number;  // start
+  x1: number; // start
   y1: number;
-  x2: number;  // end (hit point)
+  x2: number; // end (hit point)
   y2: number;
   lifetime: number;
 }
 
-export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameProps) {
+export function MazeGame({
+  tile,
+  player,
+  onTileExit,
+  onPlayerUpdate,
+}: MazeGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [enemies, setEnemies] = useState<Enemy[]>(tile.enemies);
   const [laserBeams, setLaserBeams] = useState<LaserBeam[]>([]);
@@ -41,7 +46,7 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
 
   // Update enemies when tile changes
   useEffect(() => {
-    setEnemies(tile.enemies.filter(e => e.alive));
+    setEnemies(tile.enemies.filter((e) => e.alive));
   }, [tile]);
 
   // Update local player when prop changes
@@ -61,15 +66,16 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
       // Move enemies toward player periodically
       if (time - lastEnemyMoveRef.current > enemyMoveIntervalRef.current) {
         lastEnemyMoveRef.current = time;
-        setEnemies(prevEnemies => {
-          return prevEnemies.map(enemy => {
+        setEnemies((prevEnemies) => {
+          return prevEnemies.map((enemy) => {
             if (!enemy.alive) return enemy;
 
             // Simple chase AI
             let newX = enemy.x;
             let newY = enemy.y;
 
-            if (Math.random() < 0.7) {  // 70% chance to move toward player
+            if (Math.random() < 0.7) {
+              // 70% chance to move toward player
               const dx = localPlayer.x - enemy.x;
               const dy = localPlayer.y - enemy.y;
 
@@ -78,7 +84,8 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
               } else {
                 newY += dy > 0 ? 1 : -1;
               }
-            } else {  // Random movement
+            } else {
+              // Random movement
               const dir = Math.floor(Math.random() * 4);
               if (dir === 0) newY--;
               else if (dir === 1) newY++;
@@ -87,7 +94,12 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
             }
 
             // Check wall collision
-            if (newX >= 0 && newX < TILE_SIZE_PX && newY >= 0 && newY < TILE_SIZE_PX) {
+            if (
+              newX >= 0 &&
+              newX < TILE_SIZE_PX &&
+              newY >= 0 &&
+              newY < TILE_SIZE_PX
+            ) {
               if (!tile.walls[newY]?.[newX]) {
                 return { ...enemy, x: newX, y: newY };
               }
@@ -98,24 +110,25 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
       }
 
       // Update laser beams (just fade out)
-      setLaserBeams(prev => prev
-        .map(beam => ({ ...beam, lifetime: beam.lifetime - dt }))
-        .filter(beam => beam.lifetime > 0)
+      setLaserBeams((prev) =>
+        prev
+          .map((beam) => ({ ...beam, lifetime: beam.lifetime - dt }))
+          .filter((beam) => beam.lifetime > 0),
       );
 
       // Check player-enemy collision
-      enemies.forEach(enemy => {
+      enemies.forEach((enemy) => {
         if (!enemy.alive) return;
         if (enemy.x === localPlayer.x && enemy.y === localPlayer.y) {
           // Enemy hits player
-          setLocalPlayer(p => {
+          setLocalPlayer((p) => {
             const updated = { ...p, health: p.health - 1 };
             onPlayerUpdate(updated);
             return updated;
           });
-          setEnemies(prev => prev.map(e =>
-            e.id === enemy.id ? { ...e, alive: false } : e
-          ));
+          setEnemies((prev) =>
+            prev.map((e) => (e.id === enemy.id ? { ...e, alive: false } : e)),
+          );
         }
       });
 
@@ -152,42 +165,66 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
         ctx.fillRect(mid * CELL_SIZE, 0, CELL_SIZE, CELL_SIZE);
       }
       if (!tile.walls[TILE_SIZE_PX - 1]?.[mid]) {
-        ctx.fillRect(mid * CELL_SIZE, (TILE_SIZE_PX - 1) * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillRect(
+          mid * CELL_SIZE,
+          (TILE_SIZE_PX - 1) * CELL_SIZE,
+          CELL_SIZE,
+          CELL_SIZE,
+        );
       }
       if (!tile.walls[mid]?.[0]) {
         ctx.fillRect(0, mid * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       }
       if (!tile.walls[mid]?.[TILE_SIZE_PX - 1]) {
-        ctx.fillRect((TILE_SIZE_PX - 1) * CELL_SIZE, mid * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillRect(
+          (TILE_SIZE_PX - 1) * CELL_SIZE,
+          mid * CELL_SIZE,
+          CELL_SIZE,
+          CELL_SIZE,
+        );
       }
 
       // Draw enemies
       ctx.fillStyle = "#ff4444";
-      enemies.filter(e => e.alive).forEach(enemy => {
-        ctx.beginPath();
-        ctx.arc(
-          enemy.x * CELL_SIZE + CELL_SIZE / 2,
-          enemy.y * CELL_SIZE + CELL_SIZE / 2,
-          CELL_SIZE / 2 - 1,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-      });
+      enemies
+        .filter((e) => e.alive)
+        .forEach((enemy) => {
+          ctx.beginPath();
+          ctx.arc(
+            enemy.x * CELL_SIZE + CELL_SIZE / 2,
+            enemy.y * CELL_SIZE + CELL_SIZE / 2,
+            CELL_SIZE / 2 - 1,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        });
 
       // Draw laser beams as lines
-      laserBeams.forEach(beam => {
+      laserBeams.forEach((beam) => {
         const alpha = Math.min(1, beam.lifetime / 100); // fade out
         ctx.strokeStyle = `rgba(255, 255, 0, ${alpha})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(beam.x1 * CELL_SIZE + CELL_SIZE / 2, beam.y1 * CELL_SIZE + CELL_SIZE / 2);
-        ctx.lineTo(beam.x2 * CELL_SIZE + CELL_SIZE / 2, beam.y2 * CELL_SIZE + CELL_SIZE / 2);
+        ctx.moveTo(
+          beam.x1 * CELL_SIZE + CELL_SIZE / 2,
+          beam.y1 * CELL_SIZE + CELL_SIZE / 2,
+        );
+        ctx.lineTo(
+          beam.x2 * CELL_SIZE + CELL_SIZE / 2,
+          beam.y2 * CELL_SIZE + CELL_SIZE / 2,
+        );
         ctx.stroke();
         // Hit point glow
         ctx.fillStyle = `rgba(255, 100, 0, ${alpha})`;
         ctx.beginPath();
-        ctx.arc(beam.x2 * CELL_SIZE + CELL_SIZE / 2, beam.y2 * CELL_SIZE + CELL_SIZE / 2, 6, 0, Math.PI * 2);
+        ctx.arc(
+          beam.x2 * CELL_SIZE + CELL_SIZE / 2,
+          beam.y2 * CELL_SIZE + CELL_SIZE / 2,
+          6,
+          0,
+          Math.PI * 2,
+        );
         ctx.fill();
       });
 
@@ -197,7 +234,7 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
         localPlayer.x * CELL_SIZE + 1,
         localPlayer.y * CELL_SIZE + 1,
         CELL_SIZE - 2,
-        CELL_SIZE - 2
+        CELL_SIZE - 2,
       );
 
       // Draw direction indicator
@@ -205,15 +242,15 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
       const cx = localPlayer.x * CELL_SIZE + CELL_SIZE / 2;
       const cy = localPlayer.y * CELL_SIZE + CELL_SIZE / 2;
       ctx.beginPath();
-      if (localPlayer.direction === 'n') {
+      if (localPlayer.direction === "n") {
         ctx.moveTo(cx, cy - 3);
         ctx.lineTo(cx - 2, cy + 1);
         ctx.lineTo(cx + 2, cy + 1);
-      } else if (localPlayer.direction === 's') {
+      } else if (localPlayer.direction === "s") {
         ctx.moveTo(cx, cy + 3);
         ctx.lineTo(cx - 2, cy - 1);
         ctx.lineTo(cx + 2, cy - 1);
-      } else if (localPlayer.direction === 'w') {
+      } else if (localPlayer.direction === "w") {
         ctx.moveTo(cx - 3, cy);
         ctx.lineTo(cx + 1, cy - 2);
         ctx.lineTo(cx + 1, cy + 2);
@@ -240,28 +277,38 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
         case "ArrowUp":
         case "k":
           newY--;
-          newDir = 'n';
+          newDir = "n";
           break;
         case "ArrowDown":
         case "j":
           newY++;
-          newDir = 's';
+          newDir = "s";
           break;
         case "ArrowLeft":
         case "h":
           newX--;
-          newDir = 'w';
+          newDir = "w";
           break;
         case "ArrowRight":
         case "l":
           newX++;
-          newDir = 'e';
+          newDir = "e";
           break;
         case " ":
           // Fire laser - instant hit-scan
           e.preventDefault();
-          const dx = localPlayer.direction === 'e' ? 1 : localPlayer.direction === 'w' ? -1 : 0;
-          const dy = localPlayer.direction === 's' ? 1 : localPlayer.direction === 'n' ? -1 : 0;
+          const dx =
+            localPlayer.direction === "e"
+              ? 1
+              : localPlayer.direction === "w"
+                ? -1
+                : 0;
+          const dy =
+            localPlayer.direction === "s"
+              ? 1
+              : localPlayer.direction === "n"
+                ? -1
+                : 0;
 
           // Ray-trace to find hit point
           let hitX = localPlayer.x;
@@ -273,7 +320,12 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
             const checkY = localPlayer.y + dy * i;
 
             // Out of bounds
-            if (checkX < 0 || checkX >= TILE_SIZE_PX || checkY < 0 || checkY >= TILE_SIZE_PX) {
+            if (
+              checkX < 0 ||
+              checkX >= TILE_SIZE_PX ||
+              checkY < 0 ||
+              checkY >= TILE_SIZE_PX
+            ) {
               hitX = checkX - dx; // stop at edge
               hitY = checkY - dy;
               break;
@@ -287,7 +339,9 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
             }
 
             // Check for enemy hit (use ref for current state)
-            const enemyAtPos = enemiesRef.current.find(en => en.alive && en.x === checkX && en.y === checkY);
+            const enemyAtPos = enemiesRef.current.find(
+              (en) => en.alive && en.x === checkX && en.y === checkY,
+            );
             if (enemyAtPos) {
               hitX = checkX;
               hitY = checkY;
@@ -300,20 +354,25 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
           }
 
           // Create beam visual
-          setLaserBeams(prev => [...prev, {
-            x1: localPlayer.x,
-            y1: localPlayer.y,
-            x2: hitX,
-            y2: hitY,
-            lifetime: 200
-          }]);
+          setLaserBeams((prev) => [
+            ...prev,
+            {
+              x1: localPlayer.x,
+              y1: localPlayer.y,
+              x2: hitX,
+              y2: hitY,
+              lifetime: 200,
+            },
+          ]);
 
           // Kill enemy if hit
           if (hitEnemy) {
-            setEnemies(prev => prev.map(en =>
-              en.id === hitEnemy!.id ? { ...en, alive: false } : en
-            ));
-            setLocalPlayer(p => {
+            setEnemies((prev) =>
+              prev.map((en) =>
+                en.id === hitEnemy!.id ? { ...en, alive: false } : en,
+              ),
+            );
+            setLocalPlayer((p) => {
               const updated = { ...p, kills: p.kills + 1 };
               onPlayerUpdate(updated);
               return updated;
@@ -324,7 +383,11 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
           // Cheat: slow down enemies by half
           e.preventDefault();
           enemyMoveIntervalRef.current = enemyMoveIntervalRef.current * 2;
-          console.log("Enemy speed slowed to", enemyMoveIntervalRef.current, "ms");
+          console.log(
+            "Enemy speed slowed to",
+            enemyMoveIntervalRef.current,
+            "ms",
+          );
           return;
         default:
           return;
@@ -375,7 +438,7 @@ export function MazeGame({ tile, player, onTileExit, onPlayerUpdate }: MazeGameP
       style={{
         border: "2px solid #4a4a6e",
         borderRadius: "4px",
-        imageRendering: "pixelated"
+        imageRendering: "pixelated",
       }}
       tabIndex={0}
     />

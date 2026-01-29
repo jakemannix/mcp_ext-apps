@@ -88,10 +88,10 @@ Key patterns you must know:
 
 ```ts
 // ✅ CORRECT
-outputSchema: MySchema.shape
+outputSchema: MySchema.shape;
 
 // ❌ WRONG - causes "Type instantiation excessively deep" errors
-outputSchema: MySchema
+outputSchema: MySchema;
 ```
 
 ### Zod Version
