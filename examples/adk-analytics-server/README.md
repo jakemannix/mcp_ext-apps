@@ -3,6 +3,7 @@
 An MCP Apps demo showcasing **Google ADK** (Agent Development Kit) integration with interactive financial data visualization and real market data from **Tiingo**.
 
 This project includes:
+
 - **MCP Server**: Exposes financial analysis tools via MCP protocol
 - **LLM Agent Server**: Conversational UI powered by Claude, OpenRouter, or Gemini
 
@@ -74,11 +75,11 @@ The agent server provides a chat UI where users can ask questions in natural lan
 
 The agent auto-detects which provider to use based on available API keys:
 
-| Priority | Provider | API Key Env Var | Default Model |
-|----------|----------|-----------------|---------------|
-| 1 | Anthropic | `ANTHROPIC_API_KEY` | claude-opus-4-5 |
-| 2 | OpenRouter | `OPENROUTER_API_KEY` | anthropic/claude-3.5-sonnet |
-| 3 | Google | `GOOGLE_API_KEY` | gemini-2.0-flash |
+| Priority | Provider   | API Key Env Var      | Default Model               |
+| -------- | ---------- | -------------------- | --------------------------- |
+| 1        | Anthropic  | `ANTHROPIC_API_KEY`  | claude-opus-4-5             |
+| 2        | OpenRouter | `OPENROUTER_API_KEY` | anthropic/claude-3.5-sonnet |
+| 3        | Google     | `GOOGLE_API_KEY`     | gemini-2.0-flash            |
 
 ### Running the Agent
 
