@@ -165,13 +165,15 @@ tiles_explored: ${tilesExplored}`,
       });
 
       try {
-        // Ask naturally - the context has the details
+        // Send as assistant turn - narrate what happened and prompt for tile generation
         await app.sendMessage({
           role: "assistant",
           content: [
             {
               type: "text",
-              text: `I walked ${direction}. What do I find?`,
+              text: `The player moved ${direction} into unexplored territory. Current status: ${gameState.player.health}/${gameState.player.maxHealth} HP, ${gameState.player.kills} kills, ${tilesExplored} tiles explored.
+
+I'll generate a new area using the generate_tile tool with the session context provided.`,
             },
           ],
         });
