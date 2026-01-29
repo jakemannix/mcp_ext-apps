@@ -8,6 +8,7 @@
 All systems must use these shared types defined in `src/types/GameTypes.ts`:
 
 ### Vector3
+
 ```typescript
 interface Vector3 {
   x: number;
@@ -17,11 +18,12 @@ interface Vector3 {
 ```
 
 ### Entity Base
+
 ```typescript
 interface Entity {
   id: string;
   position: Vector3;
-  rotation: Vector3;  // Euler angles in radians
+  rotation: Vector3; // Euler angles in radians
   velocity: Vector3;
 }
 ```
@@ -33,6 +35,7 @@ interface Entity {
 ### 1. Storage System (hq-8aai: nux)
 
 **Must provide:**
+
 ```typescript
 interface GameStorage {
   // Session management
@@ -52,6 +55,7 @@ interface GameStorage {
 ```
 
 **Session type:**
+
 ```typescript
 interface Session {
   id: string;
@@ -67,6 +71,7 @@ interface Session {
 ### 2. Inventory System (hq-srvg: slit)
 
 **Must provide:**
+
 ```typescript
 interface InventoryManager {
   // Weapon management
@@ -78,13 +83,13 @@ interface InventoryManager {
 
   // Ammo
   getAmmo(type: AmmoType): number;
-  useAmmo(type: AmmoType, amount: number): boolean;  // returns false if insufficient
+  useAmmo(type: AmmoType, amount: number): boolean; // returns false if insufficient
   addAmmo(type: AmmoType, amount: number): void;
 
   // Power-ups
   activatePowerUp(type: PowerUpType): void;
   getActivePowerUps(): ActivePowerUp[];
-  updatePowerUps(dt: number): void;  // tick down durations
+  updatePowerUps(dt: number): void; // tick down durations
 
   // Serialization (for storage)
   serialize(): InventoryData;
@@ -93,24 +98,32 @@ interface InventoryManager {
 ```
 
 **Weapon types (canonical list):**
+
 ```typescript
 type WeaponType =
-  | 'laser'           // Primary, infinite ammo
-  | 'vulcan'          // Primary, rapid fire
-  | 'plasma'          // Primary, high damage
-  | 'fusion'          // Primary, charge shot
-  | 'concussion'      // Secondary, dumb missile
-  | 'homing'          // Secondary, tracking missile
-  | 'smart';          // Secondary, bouncing missile
+  | "laser" // Primary, infinite ammo
+  | "vulcan" // Primary, rapid fire
+  | "plasma" // Primary, high damage
+  | "fusion" // Primary, charge shot
+  | "concussion" // Secondary, dumb missile
+  | "homing" // Secondary, tracking missile
+  | "smart"; // Secondary, bouncing missile
 
-type AmmoType = 'vulcan' | 'plasma' | 'fusion' | 'concussion' | 'homing' | 'smart';
+type AmmoType =
+  | "vulcan"
+  | "plasma"
+  | "fusion"
+  | "concussion"
+  | "homing"
+  | "smart";
 
-type PowerUpType = 'quad_damage' | 'invulnerability' | 'cloak';
+type PowerUpType = "quad_damage" | "invulnerability" | "cloak";
 ```
 
 ### 3. Combat System (hq-kroq: rictus)
 
 **Must provide:**
+
 ```typescript
 interface CombatManager {
   // Enemy management
@@ -132,10 +145,18 @@ interface CombatManager {
 ```
 
 **Enemy types (canonical list):**
-```typescript
-type EnemyType = 'drone' | 'turret' | 'heavy' | 'cloaker' | 'boss';
 
-type AIState = 'idle' | 'patrol' | 'alert' | 'chase' | 'attack' | 'flee' | 'dead';
+```typescript
+type EnemyType = "drone" | "turret" | "heavy" | "cloaker" | "boss";
+
+type AIState =
+  | "idle"
+  | "patrol"
+  | "alert"
+  | "chase"
+  | "attack"
+  | "flee"
+  | "dead";
 
 interface Enemy extends Entity {
   type: EnemyType;
@@ -148,18 +169,19 @@ interface Enemy extends Entity {
 ```
 
 **Damage event:**
+
 ```typescript
 interface DamageEvent {
-  source: 'player' | 'enemy' | 'hazard';
+  source: "player" | "enemy" | "hazard";
   sourceId: string;
   targetId: string;
   amount: number;
-  type: 'kinetic' | 'energy' | 'explosive';
+  type: "kinetic" | "energy" | "explosive";
   position: Vector3;
 }
 
 interface DamageResult {
-  actualDamage: number;  // After shields/armor
+  actualDamage: number; // After shields/armor
   killed: boolean;
   shieldDamage: number;
   healthDamage: number;
@@ -169,6 +191,7 @@ interface DamageResult {
 ### 4. Core Game (hq-50db: furiosa)
 
 **Integrates all systems. Must define:**
+
 ```typescript
 interface PlayerState {
   position: Vector3;
@@ -184,9 +207,9 @@ interface PlayerState {
 
 interface AreaData {
   id: string;
-  type: 'corridor' | 'room' | 'junction' | 'shaft' | 'cavern';
+  type: "corridor" | "room" | "junction" | "shaft" | "cavern";
   name?: string;
-  shape: 'box' | 'cylinder' | 'L-shaped' | 'T-junction' | 'cross';
+  shape: "box" | "cylinder" | "L-shaped" | "T-junction" | "cross";
   dimensions: { width: number; height: number; length: number };
   position: Vector3;
   theme: Theme;
@@ -194,9 +217,13 @@ interface AreaData {
   exits: Exit[];
 }
 
-type Theme = 'alien_hive' | 'space_station' | 'ancient_ruins' | 'procedural_mix';
-type Difficulty = 'easy' | 'normal' | 'hard';
-type HazardType = 'lava' | 'radiation' | 'forceField' | 'darkness';
+type Theme =
+  | "alien_hive"
+  | "space_station"
+  | "ancient_ruins"
+  | "procedural_mix";
+type Difficulty = "easy" | "normal" | "hard";
+type HazardType = "lava" | "radiation" | "forceField" | "darkness";
 ```
 
 ---
@@ -204,17 +231,20 @@ type HazardType = 'lava' | 'radiation' | 'forceField' | 'darkness';
 ## Integration Points
 
 ### Storage ↔ Core
+
 - Core calls `storage.savePlayerState()` periodically and on events
 - Core calls `storage.saveArea()` when new area generated
 - Core calls `storage.loadSession()` on game resume
 
 ### Inventory ↔ Core
+
 - Core owns InventoryManager instance
 - Core calls `inventory.useAmmo()` when firing
 - Core calls `inventory.activatePowerUp()` on pickup
 - Core serializes inventory via `inventory.serialize()` for storage
 
 ### Combat ↔ Core
+
 - Core owns CombatManager instance
 - Core calls `combat.spawnEnemy()` when generate_area returns enemies
 - Core calls `combat.fireWeapon()` on player fire input
@@ -222,6 +252,7 @@ type HazardType = 'lava' | 'radiation' | 'forceField' | 'darkness';
 - Core processes `combat.checkHit()` results
 
 ### Combat ↔ Inventory
+
 - Combat queries current weapon from Inventory for damage values
 - Combat calls `inventory.useAmmo()` when firing
 
@@ -262,4 +293,4 @@ src/
 
 ---
 
-*Last updated by Mayor. Polecats: reference this before implementing.*
+_Last updated by Mayor. Polecats: reference this before implementing._

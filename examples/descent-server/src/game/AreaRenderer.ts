@@ -8,7 +8,10 @@ import * as THREE from "three";
 import type { AreaData, Theme } from "../types/GameTypes.ts";
 
 // Theme colors
-const THEME_COLORS: Record<Theme, { wall: number; floor: number; ceiling: number; emissive: number }> = {
+const THEME_COLORS: Record<
+  Theme,
+  { wall: number; floor: number; ceiling: number; emissive: number }
+> = {
   alien_hive: {
     wall: 0x2a1a3a,
     floor: 0x1a0a2a,
@@ -109,7 +112,15 @@ export class AreaRenderer {
       wall.position.set(0, 0, -length / 2);
       areaGroup.add(wall);
     } else {
-      this.createWallWithDoorway(areaGroup, wallMaterial, width, height, wallThickness, "north", length);
+      this.createWallWithDoorway(
+        areaGroup,
+        wallMaterial,
+        width,
+        height,
+        wallThickness,
+        "north",
+        length,
+      );
     }
 
     // South wall
@@ -119,7 +130,15 @@ export class AreaRenderer {
       wall.position.set(0, 0, length / 2);
       areaGroup.add(wall);
     } else {
-      this.createWallWithDoorway(areaGroup, wallMaterial, width, height, wallThickness, "south", length);
+      this.createWallWithDoorway(
+        areaGroup,
+        wallMaterial,
+        width,
+        height,
+        wallThickness,
+        "south",
+        length,
+      );
     }
 
     // East wall
@@ -129,7 +148,15 @@ export class AreaRenderer {
       wall.position.set(width / 2, 0, 0);
       areaGroup.add(wall);
     } else {
-      this.createWallWithDoorway(areaGroup, wallMaterial, width, height, wallThickness, "east", length);
+      this.createWallWithDoorway(
+        areaGroup,
+        wallMaterial,
+        width,
+        height,
+        wallThickness,
+        "east",
+        length,
+      );
     }
 
     // West wall
@@ -139,11 +166,23 @@ export class AreaRenderer {
       wall.position.set(-width / 2, 0, 0);
       areaGroup.add(wall);
     } else {
-      this.createWallWithDoorway(areaGroup, wallMaterial, width, height, wallThickness, "west", length);
+      this.createWallWithDoorway(
+        areaGroup,
+        wallMaterial,
+        width,
+        height,
+        wallThickness,
+        "west",
+        length,
+      );
     }
 
     // Add area light
-    const areaLight = new THREE.PointLight(colors.emissive, 0.5, Math.max(width, length));
+    const areaLight = new THREE.PointLight(
+      colors.emissive,
+      0.5,
+      Math.max(width, length),
+    );
     areaLight.position.set(0, height / 3, 0);
     areaGroup.add(areaLight);
 
@@ -157,7 +196,7 @@ export class AreaRenderer {
     roomHeight: number,
     wallThickness: number,
     direction: "north" | "south" | "east" | "west",
-    roomLength: number
+    roomLength: number,
   ): void {
     const doorWidth = 6;
     const doorHeight = 8;
@@ -168,7 +207,11 @@ export class AreaRenderer {
 
       // Left segment
       if (sideWidth > 0) {
-        const leftGeom = new THREE.BoxGeometry(sideWidth, roomHeight, wallThickness);
+        const leftGeom = new THREE.BoxGeometry(
+          sideWidth,
+          roomHeight,
+          wallThickness,
+        );
         const left = new THREE.Mesh(leftGeom, material);
         left.position.set(-roomWidth / 2 + sideWidth / 2, 0, zPos);
         group.add(left);
@@ -176,7 +219,11 @@ export class AreaRenderer {
 
       // Right segment
       if (sideWidth > 0) {
-        const rightGeom = new THREE.BoxGeometry(sideWidth, roomHeight, wallThickness);
+        const rightGeom = new THREE.BoxGeometry(
+          sideWidth,
+          roomHeight,
+          wallThickness,
+        );
         const right = new THREE.Mesh(rightGeom, material);
         right.position.set(roomWidth / 2 - sideWidth / 2, 0, zPos);
         group.add(right);
@@ -185,9 +232,17 @@ export class AreaRenderer {
       // Top segment (above door)
       const topHeight = roomHeight - doorHeight;
       if (topHeight > 0) {
-        const topGeom = new THREE.BoxGeometry(doorWidth, topHeight, wallThickness);
+        const topGeom = new THREE.BoxGeometry(
+          doorWidth,
+          topHeight,
+          wallThickness,
+        );
         const top = new THREE.Mesh(topGeom, material);
-        top.position.set(0, doorHeight / 2 + topHeight / 2 - roomHeight / 2 + doorHeight / 2, zPos);
+        top.position.set(
+          0,
+          doorHeight / 2 + topHeight / 2 - roomHeight / 2 + doorHeight / 2,
+          zPos,
+        );
         group.add(top);
       }
     } else {
@@ -196,7 +251,11 @@ export class AreaRenderer {
 
       // Front segment
       if (sideLength > 0) {
-        const frontGeom = new THREE.BoxGeometry(wallThickness, roomHeight, sideLength);
+        const frontGeom = new THREE.BoxGeometry(
+          wallThickness,
+          roomHeight,
+          sideLength,
+        );
         const front = new THREE.Mesh(frontGeom, material);
         front.position.set(xPos, 0, -roomLength / 2 + sideLength / 2);
         group.add(front);
@@ -204,7 +263,11 @@ export class AreaRenderer {
 
       // Back segment
       if (sideLength > 0) {
-        const backGeom = new THREE.BoxGeometry(wallThickness, roomHeight, sideLength);
+        const backGeom = new THREE.BoxGeometry(
+          wallThickness,
+          roomHeight,
+          sideLength,
+        );
         const back = new THREE.Mesh(backGeom, material);
         back.position.set(xPos, 0, roomLength / 2 - sideLength / 2);
         group.add(back);
@@ -213,9 +276,17 @@ export class AreaRenderer {
       // Top segment (above door)
       const topHeight = roomHeight - doorHeight;
       if (topHeight > 0) {
-        const topGeom = new THREE.BoxGeometry(wallThickness, topHeight, doorWidth);
+        const topGeom = new THREE.BoxGeometry(
+          wallThickness,
+          topHeight,
+          doorWidth,
+        );
         const top = new THREE.Mesh(topGeom, material);
-        top.position.set(xPos, doorHeight / 2 + topHeight / 2 - roomHeight / 2 + doorHeight / 2, 0);
+        top.position.set(
+          xPos,
+          doorHeight / 2 + topHeight / 2 - roomHeight / 2 + doorHeight / 2,
+          0,
+        );
         group.add(top);
       }
     }

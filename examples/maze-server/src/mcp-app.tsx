@@ -36,10 +36,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("Waiting for game to start...");
 
-  // Handle tool result (start_maze)
+  // Handle tool results (start_maze and generate_tile from LLM)
   app &&
     (app.ontoolresult = (result) => {
-      if (result.structuredContent) {
+      if (!result.structuredContent) return;
+
+      // Check if this is a start_maze result (has sessionId)
+      if ("sessionId" in result.structuredContent) {
         const data = result.structuredContent as StartMazeResult;
         const tiles = new Map<string, Tile>();
         tiles.set(data.tile.id, data.tile);
@@ -52,6 +55,60 @@ function App() {
           narrative: data.narrative,
         });
         setStatusText(data.narrative);
+        setLoading(false);
+      }
+      // Check if this is a generate_tile result (has tile but no sessionId)
+      else if ("tile" in result.structuredContent) {
+        const data = result.structuredContent as GenerateTileResult;
+
+        setGameState((prev) => {
+          if (!prev) return null;
+
+          // Add new tile to map
+          const newTiles = new Map(prev.tiles);
+          newTiles.set(data.tile.id, data.tile);
+
+          // Update current tile's exit to link to new tile
+          // Find the direction we went (check which exit was null)
+          let direction: "north" | "south" | "east" | "west" = "north";
+          const oppositeDir: Record<string, "north" | "south" | "east" | "west"> = {
+            north: "south",
+            south: "north",
+            east: "west",
+            west: "east",
+          };
+
+          // The new tile's exit points back to us - use that to find direction
+          for (const [dir, targetId] of Object.entries(data.tile.exits)) {
+            if (targetId === prev.currentTile.id) {
+              direction = oppositeDir[dir] as "north" | "south" | "east" | "west";
+              break;
+            }
+          }
+
+          // Update previous tile to link to new one
+          const updatedCurrentTile = { ...prev.currentTile };
+          updatedCurrentTile.exits[direction] = data.tile.id;
+          newTiles.set(updatedCurrentTile.id, updatedCurrentTile);
+
+          // Calculate entry position
+          let newX = prev.player.x;
+          let newY = prev.player.y;
+          if (direction === "north") newY = TILE_SIZE - 2;
+          if (direction === "south") newY = 1;
+          if (direction === "east") newX = 1;
+          if (direction === "west") newX = TILE_SIZE - 2;
+
+          return {
+            ...prev,
+            currentTile: data.tile,
+            tiles: newTiles,
+            player: { ...prev.player, x: newX, y: newY },
+            narrative: data.narrative || prev.narrative,
+          };
+        });
+        setStatusText(data.narrative || "You enter a new area.");
+        setLoading(false);
       }
     });
 
@@ -83,59 +140,48 @@ function App() {
         return;
       }
 
-      // Generate new tile
+      // Unexplored territory - ask the LLM to generate it!
       setLoading(true);
-      setStatusText("Generating new area...");
+      setStatusText("The agent is creating what lies ahead...");
+
+      // Build context for the LLM
+      const tilesExplored = gameState.tiles.size;
+      const recentNarrative = gameState.narrative;
+
+      // First, update context with the technical details the model needs
+      await app.updateModelContext({
+        content: [
+          {
+            type: "text",
+            text: `[GAME STATE - use these for generate_tile]
+sessionId: ${gameState.sessionId}
+fromTileId: ${gameState.currentTile.id}
+direction: ${direction}
+health: ${gameState.player.health}/${gameState.player.maxHealth}
+kills: ${gameState.player.kills}
+tiles_explored: ${tilesExplored}`,
+          },
+        ],
+      });
 
       try {
-        const result = await app.callServerTool({
-          name: "generate_tile",
-          arguments: {
-            sessionId: gameState.sessionId,
-            fromTileId: gameState.currentTile.id,
-            direction,
-            context: {
-              playerHealth: gameState.player.health,
-              playerKills: gameState.player.kills,
+        // Ask naturally - the context has the details
+        await app.sendMessage({
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: `I walked ${direction}. What do I find?`,
             },
-          },
+          ],
         });
-
-        if (result.structuredContent) {
-          const data = result.structuredContent as GenerateTileResult;
-
-          // Add new tile to map
-          const newTiles = new Map(gameState.tiles);
-          newTiles.set(data.tile.id, data.tile);
-
-          // Update current tile's exit
-          const updatedCurrentTile = { ...gameState.currentTile };
-          updatedCurrentTile.exits[direction] = data.tile.id;
-          newTiles.set(updatedCurrentTile.id, updatedCurrentTile);
-
-          // Calculate entry position
-          let newX = gameState.player.x;
-          let newY = gameState.player.y;
-          if (direction === "north") newY = TILE_SIZE - 2;
-          if (direction === "south") newY = 1;
-          if (direction === "east") newX = 1;
-          if (direction === "west") newX = TILE_SIZE - 2;
-
-          setGameState({
-            ...gameState,
-            currentTile: data.tile,
-            tiles: newTiles,
-            player: { ...gameState.player, x: newX, y: newY },
-            narrative: data.narrative || gameState.narrative,
-          });
-          setStatusText(data.narrative || "You enter a new area.");
-        }
+        // The LLM will call generate_tile, and we'll receive the result via ontoolresult
       } catch (err) {
-        console.error("Failed to generate tile:", err);
-        setStatusText("Failed to generate new area.");
-      } finally {
+        console.error("Failed to request tile generation:", err);
+        setStatusText("Failed to explore new area.");
         setLoading(false);
       }
+      // Note: setLoading(false) will be called when we receive the tool result
     },
     [app, gameState],
   );

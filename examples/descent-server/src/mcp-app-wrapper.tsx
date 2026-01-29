@@ -32,7 +32,7 @@ export interface ViewProps<TToolInput = Record<string, unknown>> {
 
 function McpAppWrapper() {
   const [toolInputs, setToolInputs] = useState<Record<string, unknown> | null>(
-    null
+    null,
   );
   const [toolInputsPartial, setToolInputsPartial] = useState<Record<
     string,
@@ -74,19 +74,19 @@ function McpAppWrapper() {
 
   const callServerTool = useCallback<App["callServerTool"]>(
     (params, options) => app!.callServerTool(params, options),
-    [app]
+    [app],
   );
   const sendMessage = useCallback<App["sendMessage"]>(
     (params, options) => app!.sendMessage(params, options),
-    [app]
+    [app],
   );
   const openLink = useCallback<App["openLink"]>(
     (params, options) => app!.openLink(params, options),
-    [app]
+    [app],
   );
   const sendLog = useCallback<App["sendLog"]>(
     (params) => app!.sendLog(params),
-    [app]
+    [app],
   );
 
   if (error) {
@@ -114,5 +114,5 @@ function McpAppWrapper() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <McpAppWrapper />
-  </StrictMode>
+  </StrictMode>,
 );

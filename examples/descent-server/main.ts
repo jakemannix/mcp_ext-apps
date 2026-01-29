@@ -16,7 +16,7 @@ import { createServer } from "./server.js";
  * Starts an MCP server with Streamable HTTP transport in stateless mode.
  */
 export async function startStreamableHTTPServer(
-  createServer: () => McpServer
+  createServer: () => McpServer,
 ): Promise<void> {
   const port = parseInt(process.env.PORT ?? "3001", 10);
 
@@ -70,7 +70,7 @@ export async function startStreamableHTTPServer(
  * Starts an MCP server with stdio transport.
  */
 export async function startStdioServer(
-  createServer: () => McpServer
+  createServer: () => McpServer,
 ): Promise<void> {
   await createServer().connect(new StdioServerTransport());
 }

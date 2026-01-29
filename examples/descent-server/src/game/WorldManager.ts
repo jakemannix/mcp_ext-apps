@@ -28,7 +28,7 @@ export class WorldManager {
     _scene: THREE.Scene,
     sessionId: string,
     callServerTool: App["callServerTool"],
-    sendLog: App["sendLog"]
+    sendLog: App["sendLog"],
   ) {
     this.sessionId = sessionId;
     this.callServerTool = callServerTool;
@@ -67,7 +67,7 @@ export class WorldManager {
   checkGenerationNeeded(
     playerPos: THREE.Vector3,
     playerDirection: THREE.Vector3,
-    player: PlayerState
+    player: PlayerState,
   ): void {
     const currentArea = this.getCurrentArea(playerPos);
     if (!currentArea) return;
@@ -80,14 +80,14 @@ export class WorldManager {
       // Check if player is approaching this exit
       const exitPosition = this.getExitPosition(currentArea, exit.direction);
       const distanceToExit = playerPos.distanceTo(
-        new THREE.Vector3(exitPosition.x, exitPosition.y, exitPosition.z)
+        new THREE.Vector3(exitPosition.x, exitPosition.y, exitPosition.z),
       );
 
       // Also check if player is moving toward the exit
       const toExit = new THREE.Vector3(
         exitPosition.x - playerPos.x,
         exitPosition.y - playerPos.y,
-        exitPosition.z - playerPos.z
+        exitPosition.z - playerPos.z,
       ).normalize();
 
       const movingToward = playerDirection.dot(toExit) > 0.3;
@@ -100,7 +100,7 @@ export class WorldManager {
 
   private getExitPosition(
     area: AreaData,
-    direction: Direction
+    direction: Direction,
   ): { x: number; y: number; z: number } {
     const pos = area.position;
     const dims = area.dimensions;
@@ -124,7 +124,7 @@ export class WorldManager {
   private async requestGeneration(
     fromArea: AreaData,
     direction: Direction,
-    player: PlayerState
+    player: PlayerState,
   ): Promise<void> {
     const key = `${fromArea.id}-${direction}`;
     if (this.generationQueue.has(key)) return;
@@ -140,7 +140,9 @@ export class WorldManager {
         playerHealth: player.health,
         recentCombat: this.recentCombat,
         explorationDepth: this.areas.size,
-        visitedAreaTypes: [...new Set([...this.areas.values()].map((a) => a.type))],
+        visitedAreaTypes: [
+          ...new Set([...this.areas.values()].map((a) => a.type)),
+        ],
       };
 
       const result = await this.callServerTool({
@@ -154,7 +156,8 @@ export class WorldManager {
       });
 
       if (result.structuredContent) {
-        const genResult = result.structuredContent as unknown as GenerateAreaOutput;
+        const genResult =
+          result.structuredContent as unknown as GenerateAreaOutput;
 
         // Add the new area
         this.addArea(genResult.area);
@@ -167,7 +170,7 @@ export class WorldManager {
 
         // Dispatch event for rendering
         window.dispatchEvent(
-          new CustomEvent("areaGenerated", { detail: genResult })
+          new CustomEvent("areaGenerated", { detail: genResult }),
         );
       }
     } catch (error) {

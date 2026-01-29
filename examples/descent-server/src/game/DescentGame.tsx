@@ -311,7 +311,7 @@ export default function DescentGame({
       scene,
       sessionId,
       callServerTool,
-      sendLog
+      sendLog,
     );
     worldManagerRef.current = worldManager;
 
@@ -352,7 +352,7 @@ export default function DescentGame({
         worldManagerRef.current.checkGenerationNeeded(
           camera.position,
           camera.getWorldDirection(new THREE.Vector3()),
-          player
+          player,
         );
       }
 
@@ -382,7 +382,8 @@ export default function DescentGame({
       });
 
       if (result.structuredContent) {
-        const gameResult = result.structuredContent as unknown as StartGameOutput;
+        const gameResult =
+          result.structuredContent as unknown as StartGameOutput;
         setSessionId(gameResult.sessionId);
         setPlayer(gameResult.player);
         setNarrative(gameResult.narrative);
@@ -424,7 +425,11 @@ export default function DescentGame({
 
   // Render game
   return (
-    <div ref={containerRef} className="descent-container" style={containerStyle}>
+    <div
+      ref={containerRef}
+      className="descent-container"
+      style={containerStyle}
+    >
       <canvas ref={canvasRef} className="game-canvas" style={{ height: 600 }} />
       <HUD
         player={player}

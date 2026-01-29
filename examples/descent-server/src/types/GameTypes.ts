@@ -26,7 +26,11 @@ export interface Entity {
 // Game Configuration Types
 // =============================================================================
 
-export type Theme = "alien_hive" | "space_station" | "ancient_ruins" | "procedural_mix";
+export type Theme =
+  | "alien_hive"
+  | "space_station"
+  | "ancient_ruins"
+  | "procedural_mix";
 export type Difficulty = "easy" | "normal" | "hard";
 export type Direction = "north" | "south" | "east" | "west" | "up" | "down";
 
@@ -35,7 +39,12 @@ export type Direction = "north" | "south" | "east" | "west" | "up" | "down";
 // =============================================================================
 
 export type AreaType = "corridor" | "room" | "junction" | "shaft" | "cavern";
-export type AreaShape = "box" | "cylinder" | "L-shaped" | "T-junction" | "cross";
+export type AreaShape =
+  | "box"
+  | "cylinder"
+  | "L-shaped"
+  | "T-junction"
+  | "cross";
 export type HazardType = "lava" | "radiation" | "forceField" | "darkness";
 export type ExitType = "open" | "door" | "locked" | "destroyed";
 
@@ -62,15 +71,21 @@ export interface AreaData {
 // =============================================================================
 
 export type WeaponType =
-  | "laser"       // Primary, infinite ammo
-  | "vulcan"      // Primary, rapid fire
-  | "plasma"      // Primary, high damage
-  | "fusion"      // Primary, charge shot
-  | "concussion"  // Secondary, dumb missile
-  | "homing"      // Secondary, tracking missile
-  | "smart";      // Secondary, bouncing missile
+  | "laser" // Primary, infinite ammo
+  | "vulcan" // Primary, rapid fire
+  | "plasma" // Primary, high damage
+  | "fusion" // Primary, charge shot
+  | "concussion" // Secondary, dumb missile
+  | "homing" // Secondary, tracking missile
+  | "smart"; // Secondary, bouncing missile
 
-export type AmmoType = "vulcan" | "plasma" | "fusion" | "concussion" | "homing" | "smart";
+export type AmmoType =
+  | "vulcan"
+  | "plasma"
+  | "fusion"
+  | "concussion"
+  | "homing"
+  | "smart";
 
 export type PowerUpType = "quad_damage" | "invulnerability" | "cloak";
 
@@ -101,7 +116,14 @@ export interface InventoryData {
 
 export type EnemyType = "drone" | "turret" | "heavy" | "cloaker" | "boss";
 
-export type AIState = "idle" | "patrol" | "alert" | "chase" | "attack" | "flee" | "dead";
+export type AIState =
+  | "idle"
+  | "patrol"
+  | "alert"
+  | "chase"
+  | "attack"
+  | "flee"
+  | "dead";
 
 export type AIBehavior = "patrol" | "guard" | "ambush" | "swarm";
 
@@ -342,9 +364,10 @@ export function createDefaultInventory(): InventoryData {
 
 export function createDefaultPlayer(
   startPosition: Vector3,
-  difficulty: Difficulty
+  difficulty: Difficulty,
 ): PlayerState {
-  const healthMultiplier = difficulty === "easy" ? 1.5 : difficulty === "hard" ? 0.75 : 1;
+  const healthMultiplier =
+    difficulty === "easy" ? 1.5 : difficulty === "hard" ? 0.75 : 1;
   return {
     position: startPosition,
     rotation: { x: 0, y: 0, z: 0 },

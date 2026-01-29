@@ -103,12 +103,18 @@ export class Ship6DOF {
     if (this.isPointerLocked) {
       // Yaw (rotate around world up, or camera's local up for true 6DOF)
       const yawQuaternion = new THREE.Quaternion();
-      yawQuaternion.setFromAxisAngle(this.up, -this.mouseMovement.x * LOOK_SPEED);
+      yawQuaternion.setFromAxisAngle(
+        this.up,
+        -this.mouseMovement.x * LOOK_SPEED,
+      );
       this.camera.quaternion.premultiply(yawQuaternion);
 
       // Pitch (rotate around camera's local right axis)
       const pitchQuaternion = new THREE.Quaternion();
-      pitchQuaternion.setFromAxisAngle(this.right, -this.mouseMovement.y * LOOK_SPEED);
+      pitchQuaternion.setFromAxisAngle(
+        this.right,
+        -this.mouseMovement.y * LOOK_SPEED,
+      );
       this.camera.quaternion.premultiply(pitchQuaternion);
 
       this.mouseMovement.x = 0;

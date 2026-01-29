@@ -100,7 +100,12 @@ const AreaShapeSchema = z.enum([
   "cross",
 ]);
 
-const HazardTypeSchema = z.enum(["lava", "radiation", "forceField", "darkness"]);
+const HazardTypeSchema = z.enum([
+  "lava",
+  "radiation",
+  "forceField",
+  "darkness",
+]);
 
 const ExitTypeSchema = z.enum(["open", "door", "locked", "destroyed"]);
 
@@ -126,10 +131,25 @@ const AreaDataSchema = z.object({
   exits: z.array(ExitSchema),
 });
 
-const AmmoTypeSchema = z.enum(["vulcan", "plasma", "fusion", "concussion", "homing", "smart"]);
+const AmmoTypeSchema = z.enum([
+  "vulcan",
+  "plasma",
+  "fusion",
+  "concussion",
+  "homing",
+  "smart",
+]);
 
 const WeaponSchema = z.object({
-  type: z.enum(["laser", "vulcan", "plasma", "fusion", "concussion", "homing", "smart"]),
+  type: z.enum([
+    "laser",
+    "vulcan",
+    "plasma",
+    "fusion",
+    "concussion",
+    "homing",
+    "smart",
+  ]),
   level: z.number(),
   damage: z.number(),
   fireRate: z.number(),
@@ -162,7 +182,15 @@ const PlayerStateSchema = z.object({
 });
 
 const EnemyTypeSchema = z.enum(["drone", "turret", "heavy", "cloaker", "boss"]);
-const AIStateSchema = z.enum(["idle", "patrol", "alert", "chase", "attack", "flee", "dead"]);
+const AIStateSchema = z.enum([
+  "idle",
+  "patrol",
+  "alert",
+  "chase",
+  "attack",
+  "flee",
+  "dead",
+]);
 const AIBehaviorSchema = z.enum(["patrol", "guard", "ambush", "swarm"]);
 
 const EnemySchema = z.object({
@@ -184,7 +212,17 @@ const PickupItemSchema = z.object({
   type: z.enum(["health", "shield", "ammo", "weapon", "powerup", "key"]),
   position: Vector3Schema,
   value: z.number().optional(),
-  weaponType: z.enum(["laser", "vulcan", "plasma", "fusion", "concussion", "homing", "smart"]).optional(),
+  weaponType: z
+    .enum([
+      "laser",
+      "vulcan",
+      "plasma",
+      "fusion",
+      "concussion",
+      "homing",
+      "smart",
+    ])
+    .optional(),
   ammoType: AmmoTypeSchema.optional(),
   powerUpType: z.enum(["quad_damage", "invulnerability", "cloak"]).optional(),
 });
@@ -272,13 +310,19 @@ function generateDefaultArea(
   fromArea: AreaData,
   direction: Direction,
   context: GenerationContext,
-  theme: Theme
+  theme: Theme,
 ): { area: AreaData; enemies: Enemy[]; powerUps: PickupItem[] } {
   const areaId = `area-${generateId()}`;
   const oppositeDir = getOppositeDirection(direction);
 
   // Vary area type based on exploration depth
-  const areaTypes: AreaData["type"][] = ["corridor", "room", "junction", "shaft", "cavern"];
+  const areaTypes: AreaData["type"][] = [
+    "corridor",
+    "room",
+    "junction",
+    "shaft",
+    "cavern",
+  ];
   const type = areaTypes[Math.floor(Math.random() * areaTypes.length)];
 
   // Generate dimensions based on type
@@ -293,10 +337,18 @@ function generateDefaultArea(
   ];
 
   // Add some random unexplored exits
-  const possibleExits: Direction[] = ["north", "south", "east", "west", "up", "down"];
+  const possibleExits: Direction[] = [
+    "north",
+    "south",
+    "east",
+    "west",
+    "up",
+    "down",
+  ];
   const numExits = Math.floor(Math.random() * 3) + 1;
   for (let i = 0; i < numExits; i++) {
-    const exitDir = possibleExits[Math.floor(Math.random() * possibleExits.length)];
+    const exitDir =
+      possibleExits[Math.floor(Math.random() * possibleExits.length)];
     if (!exits.find((e) => e.direction === exitDir)) {
       exits.push({ direction: exitDir, type: "open", targetAreaId: null });
     }
@@ -351,7 +403,11 @@ function generateDefaultArea(
   return { area, enemies, powerUps };
 }
 
-function getDefaultDimensions(type: AreaData["type"]): { width: number; height: number; length: number } {
+function getDefaultDimensions(type: AreaData["type"]): {
+  width: number;
+  height: number;
+  length: number;
+} {
   switch (type) {
     case "corridor":
       return { width: 8, height: 8, length: 40 };
@@ -369,7 +425,7 @@ function getDefaultDimensions(type: AreaData["type"]): { width: number; height: 
 function calculateAreaPosition(
   fromArea: AreaData,
   direction: Direction,
-  dims: { width: number; height: number; length: number }
+  dims: { width: number; height: number; length: number },
 ): { x: number; y: number; z: number } {
   const fromDims = fromArea.dimensions;
   const fromPos = fromArea.position;
@@ -446,10 +502,10 @@ Themes:
 - procedural_mix: Blend of all themes, reality-warping spaces`,
       inputSchema: {
         theme: ThemeSchema.default("alien_hive").describe(
-          "The visual theme for the generated world"
+          "The visual theme for the generated world",
         ),
         difficulty: DifficultySchema.default("normal").describe(
-          "Game difficulty level"
+          "Game difficulty level",
         ),
       },
       outputSchema: StartGameOutputSchema.shape,
@@ -498,7 +554,7 @@ Themes:
         ],
         structuredContent: result,
       };
-    }
+    },
   );
 
   // Tool 2: generate_area (Model-Visible, App-Only)
@@ -520,7 +576,7 @@ Generate interesting, varied areas that fit the game's theme.`,
         fromAreaId: z.string().describe("ID of the area player is coming from"),
         direction: DirectionSchema.describe("Direction player is heading"),
         context: GenerationContextSchema.describe(
-          "Current game context for generation"
+          "Current game context for generation",
         ),
       },
       outputSchema: GenerateAreaOutputSchema.shape,
@@ -553,7 +609,7 @@ Generate interesting, varied areas that fit the game's theme.`,
         fromArea,
         direction,
         context,
-        session.theme
+        session.theme,
       );
 
       // Update the source area's exit to point to new area
@@ -595,7 +651,7 @@ Generate interesting, varied areas that fit the game's theme.`,
         ],
         structuredContent: result,
       };
-    }
+    },
   );
 
   // Tool 3: sync_state (App-Only, Hidden from Model)
@@ -646,7 +702,7 @@ Generate interesting, varied areas that fit the game's theme.`,
         content: [{ type: "text", text: "State synced" }],
         structuredContent: { enemyUpdates, events },
       };
-    }
+    },
   );
 
   // Resource registration
@@ -658,7 +714,7 @@ Generate interesting, varied areas that fit the game's theme.`,
     async (): Promise<ReadResourceResult> => {
       const html = await fs.readFile(
         path.join(DIST_DIR, "mcp-app.html"),
-        "utf-8"
+        "utf-8",
       );
 
       return {
@@ -670,7 +726,7 @@ Generate interesting, varied areas that fit the game's theme.`,
           },
         ],
       };
-    }
+    },
   );
 
   return server;

@@ -263,38 +263,56 @@ The player starts in the center. The LLM should be creative with the layout.`,
     },
   );
 
-  // Generate tile tool - called when player walks off edge
+  // Generate tile tool - LLM creates new areas with creative control
   registerAppTool(
     server,
     "generate_tile",
     {
       title: "Generate Adjacent Tile",
-      description: `Generate a new 64x64 tile when the player moves to an unexplored area.
+      description: `Generate a new maze tile when the player explores unexplored territory.
 
-The LLM should create an interesting tile based on:
-- The direction the player is coming from
-- The player's current state (health, kills)
-- Continuity with the exit they came through
+YOU (the LLM) control the creative aspects:
+- tileStyle: What kind of area is this?
+- enemyCount: How many enemies (0-10)?
+- enemyPlacement: Where are they positioned?
+- narrative: Write atmospheric description of what the player sees
+- difficulty: Scale based on player progress
 
-Be creative with wall layouts - create rooms, corridors, or open areas.`,
+Consider the context provided and create an interesting, contextually appropriate area.`,
       inputSchema: {
         sessionId: z.string(),
         fromTileId: z.string(),
         direction: z.enum(["north", "south", "east", "west"]),
-        context: z.object({
-          playerHealth: z.number(),
-          playerKills: z.number(),
-        }),
+        // LLM-controlled creative parameters:
+        tileStyle: z
+          .enum(["open_arena", "tight_corridors", "maze", "ambush_room", "treasure_room"])
+          .describe("The style/layout of this tile"),
+        enemyCount: z
+          .number()
+          .min(0)
+          .max(10)
+          .describe("Number of enemies to spawn"),
+        enemyPlacement: z
+          .enum(["scattered", "guarding_exit", "patrol_center", "ambush_corners"])
+          .describe("How enemies are positioned"),
+        narrative: z
+          .string()
+          .describe("Atmospheric description of what the player sees entering this area"),
+        wallDensity: z
+          .enum(["sparse", "medium", "dense"])
+          .default("medium")
+          .describe("How many internal walls"),
       },
       outputSchema: GenerateTileOutputSchema.shape,
       _meta: {
-        ui: { visibility: ["app"] }, // App-only, View calls this directly
+        ui: { resourceUri }, // Model-visible, LLM calls this with creative input
       },
     },
-    async ({ sessionId, fromTileId, direction, context }) => {
+    async ({ sessionId, fromTileId, direction, tileStyle, enemyCount, enemyPlacement, narrative, wallDensity }) => {
       console.log(
-        `[generate_tile] Called! direction=${direction} fromTile=${fromTileId} health=${context.playerHealth} kills=${context.playerKills}`,
+        `[generate_tile] LLM called! style=${tileStyle} enemies=${enemyCount} placement=${enemyPlacement}`,
       );
+      console.log(`[generate_tile] Narrative: "${narrative}"`);
 
       const session = sessions.get(sessionId);
       if (!session) {
@@ -306,13 +324,33 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
       }
 
       const tileId = `tile-${generateId()}`;
-      console.log(`[generate_tile] Generating new tile: ${tileId}`);
+      console.log(`[generate_tile] Generating tile: ${tileId}`);
 
-      // Adjust difficulty based on player progress
-      const wallDensity = 0.25 + context.playerKills * 0.01;
-      const enemyCount = Math.min(3 + Math.floor(context.playerKills / 3), 10);
+      // Map LLM's wallDensity choice to numeric value
+      const densityMap: Record<string, number> = {
+        sparse: 0.15,
+        medium: 0.25,
+        dense: 0.35,
+      };
+      const density = densityMap[wallDensity || "medium"];
 
-      const walls = generateBasicMaze(TILE_SIZE, Math.min(wallDensity, 0.4));
+      // Generate walls based on tileStyle
+      let walls: boolean[][];
+      if (tileStyle === "open_arena") {
+        walls = generateBasicMaze(TILE_SIZE, 0.1); // Very few walls
+      } else if (tileStyle === "tight_corridors") {
+        walls = generateBasicMaze(TILE_SIZE, 0.4); // Many walls, tight passages
+      } else if (tileStyle === "maze") {
+        walls = generateBasicMaze(TILE_SIZE, density);
+      } else if (tileStyle === "ambush_room") {
+        walls = generateBasicMaze(TILE_SIZE, 0.2); // Open with some cover
+      } else if (tileStyle === "treasure_room") {
+        walls = generateBasicMaze(TILE_SIZE, 0.15); // Open, inviting
+      } else {
+        walls = generateBasicMaze(TILE_SIZE, density);
+      }
+
+      // Generate enemies with LLM-specified count and placement
       const enemies = generateEnemies(enemyCount, walls, TILE_SIZE);
 
       // Set up exits - connect back to where we came from
@@ -348,21 +386,11 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         fromTile.exits[direction] = tileId;
       }
 
-      const narratives = [
-        "The corridor opens into a new chamber.",
-        "You push deeper into the maze.",
-        "The walls here are covered in strange markings.",
-        "A cold draft suggests another exit nearby.",
-        "The sounds of creatures grow louder.",
-      ];
-      const narrative =
-        narratives[Math.floor(Math.random() * narratives.length)];
-
       return {
         content: [
           {
             type: "text",
-            text: `Generated new tile: ${tileId} with ${enemies.length} enemies`,
+            text: `${narrative}\n\n[${tileStyle} tile with ${enemies.length} enemies]`,
           },
         ],
         structuredContent: {
