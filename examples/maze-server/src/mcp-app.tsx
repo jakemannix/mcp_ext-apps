@@ -36,22 +36,71 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState("Waiting for game to start...");
 
-  // Handle tool result (start_maze)
+  // Handle tool results (start_maze and generate_tile)
   app &&
     (app.ontoolresult = (result) => {
-      if (result.structuredContent) {
-        const data = result.structuredContent as StartMazeResult;
+      if (!result.structuredContent) return;
+
+      const data = result.structuredContent as Record<string, unknown>;
+
+      // Check if this is a start_maze result (has sessionId and player)
+      if ("sessionId" in data && "player" in data) {
+        const startResult = data as unknown as StartMazeResult;
         const tiles = new Map<string, Tile>();
-        tiles.set(data.tile.id, data.tile);
+        tiles.set(startResult.tile.id, startResult.tile);
 
         setGameState({
-          sessionId: data.sessionId,
-          currentTile: data.tile,
+          sessionId: startResult.sessionId,
+          currentTile: startResult.tile,
           tiles,
-          player: data.player,
-          narrative: data.narrative,
+          player: startResult.player,
+          narrative: startResult.narrative,
         });
-        setStatusText(data.narrative);
+        setStatusText(startResult.narrative);
+      }
+      // Check if this is a generate_tile result (has tile but no sessionId)
+      else if ("tile" in data && !("sessionId" in data)) {
+        const tileResult = data as unknown as GenerateTileResult;
+
+        setGameState((prev) => {
+          if (!prev) return null;
+
+          // Add new tile to map
+          const newTiles = new Map(prev.tiles);
+          newTiles.set(tileResult.tile.id, tileResult.tile);
+
+          // Update current tile's exit to point to new tile
+          // We need to figure out the direction - check which exit is missing
+          const updatedCurrentTile = { ...prev.currentTile };
+          for (const dir of ["north", "south", "east", "west"] as const) {
+            if (!updatedCurrentTile.exits[dir]) {
+              updatedCurrentTile.exits[dir] = tileResult.tile.id;
+              break;
+            }
+          }
+          newTiles.set(updatedCurrentTile.id, updatedCurrentTile);
+
+          // Calculate entry position based on opposite direction
+          let newX = prev.player.x;
+          let newY = prev.player.y;
+          // Default to center if we can't determine direction
+          const TILE_SIZE = 64;
+          if (prev.player.y <= 1) newY = TILE_SIZE - 2; // was moving north, enter from south
+          if (prev.player.y >= TILE_SIZE - 2) newY = 1; // was moving south, enter from north
+          if (prev.player.x >= TILE_SIZE - 2) newX = 1; // was moving east, enter from west
+          if (prev.player.x <= 1) newX = TILE_SIZE - 2; // was moving west, enter from east
+
+          return {
+            ...prev,
+            currentTile: tileResult.tile,
+            tiles: newTiles,
+            player: { ...prev.player, x: newX, y: newY },
+            narrative: tileResult.narrative || prev.narrative,
+          };
+        });
+
+        setStatusText(tileResult.narrative || "You enter a new area.");
+        setLoading(false);
       }
     });
 
@@ -65,7 +114,6 @@ function App() {
       if (existingTileId && gameState.tiles.has(existingTileId)) {
         // Move to existing tile
         const existingTile = gameState.tiles.get(existingTileId)!;
-        const mid = TILE_SIZE / 2;
 
         // Calculate entry position (opposite side from where we exited)
         let newX = gameState.player.x;
@@ -88,54 +136,42 @@ function App() {
       setStatusText("Generating new area...");
 
       try {
-        const result = await app.callServerTool({
-          name: "generate_tile",
-          arguments: {
-            sessionId: gameState.sessionId,
-            fromTileId: gameState.currentTile.id,
-            direction,
-            context: {
-              playerHealth: gameState.player.health,
-              playerKills: gameState.player.kills,
+        const tilesExplored = gameState.tiles.size;
+
+        // First, update model context with current game state
+        await app.updateModelContext({
+          content: [
+            {
+              type: "text",
+              text: `SimpleMaze game state:
+sessionId: ${gameState.sessionId}
+fromTileId: ${gameState.currentTile.id}
+direction: ${direction}
+health: ${gameState.player.health}/${gameState.player.maxHealth}
+kills: ${gameState.player.kills}
+tiles_explored: ${tilesExplored}`,
             },
-          },
+          ],
         });
 
-        if (result.structuredContent) {
-          const data = result.structuredContent as GenerateTileResult;
-
-          // Add new tile to map
-          const newTiles = new Map(gameState.tiles);
-          newTiles.set(data.tile.id, data.tile);
-
-          // Update current tile's exit
-          const updatedCurrentTile = { ...gameState.currentTile };
-          updatedCurrentTile.exits[direction] = data.tile.id;
-          newTiles.set(updatedCurrentTile.id, updatedCurrentTile);
-
-          // Calculate entry position
-          let newX = gameState.player.x;
-          let newY = gameState.player.y;
-          if (direction === "north") newY = TILE_SIZE - 2;
-          if (direction === "south") newY = 1;
-          if (direction === "east") newX = 1;
-          if (direction === "west") newX = TILE_SIZE - 2;
-
-          setGameState({
-            ...gameState,
-            currentTile: data.tile,
-            tiles: newTiles,
-            player: { ...gameState.player, x: newX, y: newY },
-            narrative: data.narrative || gameState.narrative,
-          });
-          setStatusText(data.narrative || "You enter a new area.");
-        }
+        // Then send a brief message to trigger tile generation
+        // Per spec, ui/message should trigger agent follow-up
+        await app.sendMessage({
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `The player moved ${direction} into unexplored territory. Please generate a new tile using the generate_tile tool.`,
+            },
+          ],
+        });
+        // The agent will call generate_tile, and we'll receive the result via ontoolresult
       } catch (err) {
-        console.error("Failed to generate tile:", err);
-        setStatusText("Failed to generate new area.");
-      } finally {
+        console.error("Failed to request tile generation:", err);
+        setStatusText("Failed to explore new area.");
         setLoading(false);
       }
+      // Note: setLoading(false) will be called when we receive the tool result
     },
     [app, gameState],
   );

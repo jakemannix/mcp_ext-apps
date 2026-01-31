@@ -263,20 +263,30 @@ The player starts in the center. The LLM should be creative with the layout.`,
     },
   );
 
-  // Generate tile tool - called when player walks off edge
+  // Generate tile tool - LLM provides creative tile definition
   registerAppTool(
     server,
     "generate_tile",
     {
       title: "Generate Adjacent Tile",
-      description: `Generate a new 64x64 tile when the player moves to an unexplored area.
+      description: `Create a new 64x64 tile when the player moves to an unexplored area.
 
-The LLM should create an interesting tile based on:
-- The direction the player is coming from
-- The player's current state (health, kills)
-- Continuity with the exit they came through
+YOU (the LLM) design the tile! Be creative with:
+- Wall patterns: rooms, corridors, pillars, mazes, open areas
+- Enemy placement: strategic positions, ambushes, guard posts
+- Narrative: describe what the player sees/feels
 
-Be creative with wall layouts - create rooms, corridors, or open areas.`,
+IMPORTANT wall format: 64x64 boolean grid where true=wall, false=floor.
+- Row 0 is NORTH edge, row 63 is SOUTH edge
+- Column 0 is WEST edge, column 63 is EAST edge
+- The entry point (opposite of direction traveled) MUST be clear (false)
+- Example: if direction="north", player enters from SOUTH, so row 63 middle area must be clear
+
+Tips for interesting layouts:
+- Create rooms by making rectangular wall sections with gaps for doors
+- Add pillars (small wall clusters) for cover
+- Leave the center relatively open for combat
+- Place enemies behind corners or in rooms`,
       inputSchema: {
         sessionId: z.string(),
         fromTileId: z.string(),
@@ -285,16 +295,27 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
           playerHealth: z.number(),
           playerKills: z.number(),
         }),
+        // LLM's creative payload
+        tileDesign: z.object({
+          walls: z.array(z.array(z.boolean())).describe(
+            "64x64 grid of booleans. true=wall, false=floor. Row 0=north edge."
+          ),
+          enemies: z.array(z.object({
+            x: z.number().describe("X position (0-63, 0=west)"),
+            y: z.number().describe("Y position (0-63, 0=north)"),
+          })).describe("Enemy positions. Place them strategically!"),
+          narrative: z.string().describe("What the player sees as they enter this area"),
+        }),
       },
       outputSchema: GenerateTileOutputSchema.shape,
-      _meta: {
-        ui: { visibility: ["app"] }, // App-only, View calls this directly
-      },
+      // Note: No visibility restriction - both model and app can call this tool
+      _meta: {},
     },
-    async ({ sessionId, fromTileId, direction, context }) => {
+    async ({ sessionId, fromTileId, direction, context, tileDesign }) => {
       console.log(
         `[generate_tile] Called! direction=${direction} fromTile=${fromTileId} health=${context.playerHealth} kills=${context.playerKills}`,
       );
+      console.log(`[generate_tile] LLM provided: ${tileDesign.enemies.length} enemies, narrative: "${tileDesign.narrative.substring(0, 50)}..."`);
 
       const session = sessions.get(sessionId);
       if (!session) {
@@ -306,14 +327,25 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
       }
 
       const tileId = `tile-${generateId()}`;
-      console.log(`[generate_tile] Generating new tile: ${tileId}`);
+      console.log(`[generate_tile] Creating tile: ${tileId}`);
 
-      // Adjust difficulty based on player progress
-      const wallDensity = 0.25 + context.playerKills * 0.01;
-      const enemyCount = Math.min(3 + Math.floor(context.playerKills / 3), 10);
+      // Validate and use LLM-provided walls, or fall back to generated
+      let walls: boolean[][];
+      if (tileDesign.walls && tileDesign.walls.length === TILE_SIZE) {
+        walls = tileDesign.walls;
+        console.log(`[generate_tile] Using LLM-designed walls`);
+      } else {
+        console.log(`[generate_tile] Invalid walls from LLM, using fallback`);
+        walls = generateBasicMaze(TILE_SIZE, 0.25);
+      }
 
-      const walls = generateBasicMaze(TILE_SIZE, Math.min(wallDensity, 0.4));
-      const enemies = generateEnemies(enemyCount, walls, TILE_SIZE);
+      // Convert LLM enemy positions to full enemy objects
+      const enemies = tileDesign.enemies.map((e, i) => ({
+        id: `enemy-${generateId()}`,
+        x: Math.max(1, Math.min(TILE_SIZE - 2, Math.floor(e.x))),
+        y: Math.max(1, Math.min(TILE_SIZE - 2, Math.floor(e.y))),
+        alive: true,
+      }));
 
       // Set up exits - connect back to where we came from
       const oppositeDir: Record<string, "north" | "south" | "east" | "west"> = {
@@ -330,6 +362,42 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         west: null,
       };
       exits[oppositeDir[direction]] = fromTileId;
+
+      // Ensure entry point is clear
+      const mid = Math.floor(TILE_SIZE / 2);
+      if (direction === "north") {
+        // Entering from south, clear south edge
+        for (let dx = -2; dx <= 2; dx++) {
+          if (mid + dx >= 0 && mid + dx < TILE_SIZE) {
+            walls[TILE_SIZE - 1][mid + dx] = false;
+            walls[TILE_SIZE - 2][mid + dx] = false;
+          }
+        }
+      } else if (direction === "south") {
+        // Entering from north, clear north edge
+        for (let dx = -2; dx <= 2; dx++) {
+          if (mid + dx >= 0 && mid + dx < TILE_SIZE) {
+            walls[0][mid + dx] = false;
+            walls[1][mid + dx] = false;
+          }
+        }
+      } else if (direction === "east") {
+        // Entering from west, clear west edge
+        for (let dy = -2; dy <= 2; dy++) {
+          if (mid + dy >= 0 && mid + dy < TILE_SIZE) {
+            walls[mid + dy][0] = false;
+            walls[mid + dy][1] = false;
+          }
+        }
+      } else if (direction === "west") {
+        // Entering from east, clear east edge
+        for (let dy = -2; dy <= 2; dy++) {
+          if (mid + dy >= 0 && mid + dy < TILE_SIZE) {
+            walls[mid + dy][TILE_SIZE - 1] = false;
+            walls[mid + dy][TILE_SIZE - 2] = false;
+          }
+        }
+      }
 
       const tile = {
         id: tileId,
@@ -348,26 +416,16 @@ Be creative with wall layouts - create rooms, corridors, or open areas.`,
         fromTile.exits[direction] = tileId;
       }
 
-      const narratives = [
-        "The corridor opens into a new chamber.",
-        "You push deeper into the maze.",
-        "The walls here are covered in strange markings.",
-        "A cold draft suggests another exit nearby.",
-        "The sounds of creatures grow louder.",
-      ];
-      const narrative =
-        narratives[Math.floor(Math.random() * narratives.length)];
-
       return {
         content: [
           {
             type: "text",
-            text: `Generated new tile: ${tileId} with ${enemies.length} enemies`,
+            text: `Created tile ${tileId}: ${tileDesign.narrative}`,
           },
         ],
         structuredContent: {
           tile,
-          narrative,
+          narrative: tileDesign.narrative,
         },
       };
     },

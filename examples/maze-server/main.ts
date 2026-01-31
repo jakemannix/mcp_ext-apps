@@ -12,10 +12,39 @@ import type { Request, Response } from "express";
 import { createMazeServer } from "./server.js";
 
 const PORT = parseInt(process.env.PORT ?? "3002", 10);
+const VERBOSE = process.env.VERBOSE === "true" || process.argv.includes("--verbose");
+
+function log(...args: unknown[]) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}]`, ...args);
+}
+
+function logVerbose(...args: unknown[]) {
+  if (VERBOSE) {
+    log("[VERBOSE]", ...args);
+  }
+}
 
 async function startStreamableHTTPServer(): Promise<void> {
   const app = createMcpExpressApp({ host: "0.0.0.0" });
   app.use(cors());
+
+  // Request logging middleware
+  app.use("/mcp", (req: Request, res: Response, next) => {
+    const method = req.body?.method || "unknown";
+    const id = req.body?.id;
+    log(`[REQUEST] ${req.method} /mcp - method: ${method}, id: ${id}`);
+    logVerbose("Request body:", JSON.stringify(req.body, null, 2));
+
+    // Capture response
+    const originalJson = res.json.bind(res);
+    res.json = (body: unknown) => {
+      logVerbose("Response body:", JSON.stringify(body, null, 2));
+      return originalJson(body);
+    };
+
+    next();
+  });
 
   app.all("/mcp", async (req: Request, res: Response) => {
     const server = createMazeServer();
@@ -48,7 +77,10 @@ async function startStreamableHTTPServer(): Promise<void> {
       console.error("Failed to start server:", err);
       process.exit(1);
     }
-    console.log(`Maze server listening on http://localhost:${PORT}/mcp`);
+    log(`Maze server listening on http://localhost:${PORT}/mcp`);
+    if (VERBOSE) {
+      log("Verbose logging enabled");
+    }
   });
 
   const shutdown = () => {
